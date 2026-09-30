@@ -1,0 +1,64 @@
+{
+    "name": "cornelraiu/feature-request-system",
+    "description": "WordPress plugin: a feature request board with voting, a roadmap and shipped notifications.",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Cornel Raiu",
+            "homepage": "https://www.cornelraiu.com/"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^9.6",
+        "roots/wordpress-no-content": "^7.1",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-coding-standards/wpcs": "^3.1",
+        "wp-phpunit/wp-phpunit": "^7.1",
+        "yoast/phpunit-polyfills": "^2.0 || ^3.0 || ^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "FeatureRequestSystem\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FeatureRequestSystem\\Tests\\": "tests/php/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
+        },
+        "platform": {
+            "php": "7.4.33"
+        },
+        "platform-check": false,
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": "phpcs",
+        "lint:fix": "phpcbf",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "check:names": "@php bin/check-identifiers.php",
+        "test": [
+            "@putenv XDEBUG_MODE=off",
+            "phpunit"
+        ],
+        "ci": [
+            "@lint",
+            "@check:names",
+            "@analyse",
+            "@test"
+        ]
+    }
+}

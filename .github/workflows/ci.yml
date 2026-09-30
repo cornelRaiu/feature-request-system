@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer install --no-interaction --no-progress
+
+      - name: Coding standards
+        run: composer lint
+
+      - name: Identifiers come from constants
+        run: composer check:names
+
+      - name: PHPStan
+        run: composer analyse
+
+  test:
+    name: PHP ${{ matrix.php }} / WordPress ${{ matrix.wp }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.4'
+            wp: '6.6'
+          - php: '7.4'
+            wp: latest
+          - php: '8.3'
+            wp: '6.6'
+          - php: '8.4'
+            wp: latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: frs_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      WP_TESTS_DB_HOST: 127.0.0.1:3306
+      WP_TESTS_DB_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          extensions: mysqli
+
+      - run: composer install --no-interaction --no-progress
+
+      - name: Switch to WordPress ${{ matrix.wp }}
+        if: matrix.wp != 'latest'
+        run: >-
+          composer require --dev --no-interaction --no-progress --update-with-dependencies
+          "roots/wordpress-no-content:${{ matrix.wp }}.*"
+          "wp-phpunit/wp-phpunit:${{ matrix.wp }}.*"
+
+      - name: PHPUnit
+        run: composer test
+
+  plugin-check:
+    name: Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Build release folder
+        run: bin/build-zip.sh
+
+      - uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: dist/feature-request-system
+          slug: feature-request-system
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: feature-request-system
+          path: dist/feature-request-system.zip

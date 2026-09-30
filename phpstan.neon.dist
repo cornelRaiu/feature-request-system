@@ -1,0 +1,13 @@
+parameters:
+	level: 6
+	phpVersion:
+		min: 70400
+		max: 80599
+	paths:
+		- feature-request-system.php
+		- src
+	ignoreErrors:
+		# The requirements check exists for sites running PHP below the supported minimum.
+		-
+			identifier: booleanOr.leftAlwaysFalse
+			path: feature-request-system.php
