@@ -119,6 +119,15 @@ final class StatusTaxonomy {
 	}
 
 	/**
+	 * Whether requests in this status stop accepting votes.
+	 *
+	 * @param WP_Term $status Status term.
+	 */
+	public static function is_closed( WP_Term $status ): bool {
+		return (bool) get_term_meta( $status->term_id, self::META_CLOSED, true );
+	}
+
+	/**
 	 * Sorts statuses by their order, then by name.
 	 *
 	 * @param WP_Term[] $terms Status terms.

@@ -15,6 +15,7 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Installer;
 use FeatureRequestSystem\Install\Schema;
 use FeatureRequestSystem\Install\Uninstaller;
+use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Settings;
 
 /**
@@ -71,6 +72,7 @@ final class UninstallerTest extends TestCase {
 		$comment   = self::factory()->comment->create( [ 'comment_post_ID' => $published ] );
 		self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
 		$unrelated = self::factory()->post->create();
+		set_transient( RateLimiter::TRANSIENT_PREFIX . 'vote_ip_0123456789abcdef_2026100112', 3, HOUR_IN_SECONDS );
 
 		Uninstaller::run();
 
@@ -95,6 +97,16 @@ final class UninstallerTest extends TestCase {
 		$drops = $this->drop_queries();
 		$this->assertCount( 1, $drops );
 		$this->assertStringContainsString( Schema::table( Schema::VOTES ), $drops[0] );
+
+		global $wpdb;
+		$counters = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s',
+				$wpdb->options,
+				'%' . $wpdb->esc_like( RateLimiter::TRANSIENT_PREFIX ) . '%'
+			)
+		);
+		$this->assertSame( '0', $counters, 'Rate limit counters are removed.' );
 	}
 
 	/**

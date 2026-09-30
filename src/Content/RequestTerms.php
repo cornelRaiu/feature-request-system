@@ -105,6 +105,18 @@ final class RequestTerms {
 	}
 
 	/**
+	 * Returns a request's board or status.
+	 *
+	 * @param int    $post_id  Request ID.
+	 * @param string $taxonomy Board or status taxonomy.
+	 */
+	public static function term_of( int $post_id, string $taxonomy ): ?WP_Term {
+		$terms = get_the_terms( $post_id, $taxonomy );
+
+		return is_array( $terms ) && $terms ? $terms[0] : null;
+	}
+
+	/**
 	 * Records a term as the default for the board or status taxonomy.
 	 *
 	 * @param string $taxonomy Board or status taxonomy.

@@ -1,6 +1,9 @@
+/.claude
+/.cursor
 /.git
 /.github
 /.idea
+/.vscode
 /.wordpress-org
 /bin
 /dist

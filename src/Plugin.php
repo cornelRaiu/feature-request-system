@@ -7,10 +7,14 @@
 
 namespace FeatureRequestSystem;
 
+use FeatureRequestSystem\Cli\Commands;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Install\Installer;
+use FeatureRequestSystem\Rest\RestApi;
+use FeatureRequestSystem\Voting\VoteService;
+use WP_CLI;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -39,5 +43,12 @@ final class Plugin {
 
 		RequestPostType::add_hooks();
 		RequestTerms::add_hooks();
+		VoteService::add_hooks();
+
+		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::add_command( Commands::NAME, Commands::class );
+		}
 	}
 }

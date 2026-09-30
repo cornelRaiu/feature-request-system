@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Install;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -35,10 +36,29 @@ final class Uninstaller {
 		self::delete_terms();
 		Schema::drop_tables();
 		Capabilities::revoke();
+		self::delete_rate_limit_counters();
 
 		delete_option( Settings::OPTION );
 		delete_option( Installer::OPTION_DB_VERSION );
 		delete_option( Installer::LOCK_OPTION );
+	}
+
+	/**
+	 * Deletes rate limit counters stored as transients in the database.
+	 *
+	 * With a persistent object cache the counters live there instead and expire within an hour.
+	 */
+	private static function delete_rate_limit_counters(): void {
+		global $wpdb;
+
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk removal of the plugin's own transients.
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',
+				$wpdb->options,
+				$wpdb->esc_like( '_transient_' . RateLimiter::TRANSIENT_PREFIX ) . '%',
+				$wpdb->esc_like( '_transient_timeout_' . RateLimiter::TRANSIENT_PREFIX ) . '%'
+			)
+		);
 	}
 
 	/**

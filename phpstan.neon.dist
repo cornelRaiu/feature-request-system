@@ -7,6 +7,14 @@ parameters:
 		- feature-request-system.php
 		- uninstall.php
 		- src
+	bootstrapFiles:
+		- tests/phpstan/constants.php
+	scanFiles:
+		- tests/phpstan/wp-cli.php
+	dynamicConstantNames:
+		- COOKIEPATH
+		- COOKIE_DOMAIN
+		- WP_CLI
 	ignoreErrors:
 		# The requirements check exists for sites running PHP below the supported minimum.
 		-

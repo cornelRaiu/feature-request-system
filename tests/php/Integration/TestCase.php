@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Tests\Integration;
 
 use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Installer;
 use WP_UnitTest_Factory;
@@ -40,6 +41,23 @@ abstract class TestCase extends WP_UnitTestCase {
 	public function tear_down(): void {
 		Capabilities::grant();
 		parent::tear_down();
+	}
+
+	/**
+	 * Creates a published request.
+	 *
+	 * @param array<string, mixed> $args Post fields to override.
+	 */
+	protected function create_request( array $args = [] ): int {
+		return self::factory()->post->create(
+			array_merge(
+				[
+					'post_type'   => RequestPostType::NAME,
+					'post_status' => 'publish',
+				],
+				$args
+			)
+		);
 	}
 
 	/**

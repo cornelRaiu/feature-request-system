@@ -49,6 +49,7 @@ putenv( 'WP_TESTS_DB_HOST=127.0.0.1:33061' );
 | `composer check:names` | Fails when a plugin identifier is written as a string instead of its constant |
 | `composer ci` | Runs all of the above |
 | `bin/build-zip.sh` | Builds `dist/feature-request-system/` and the release zip |
+| `wp mwtfrs recount` | On a site running the plugin: recounts every request's votes and fixes stored counts |
 
 CI runs the same checks, the tests on PHP 7.4 to 8.4 against WordPress 6.6 and the latest release, and Plugin Check on the built zip.
 

@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 and M1 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0, M1 and M2 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -269,13 +269,15 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 - **Logged-in user:** `voter_key = sha256('u:'.ID)`.
 - **Guest:** a random 128-bit token in the `mwtfrs_vid` cookie (HttpOnly, SameSite=Lax, Secure on HTTPS, one-year lifetime). `voter_key = sha256('g:'.token)`. Clearing cookies allows another vote. **This is documented as best-effort**; boards that need hard guarantees require login, or verified email from 1.1.
 - **Rate limits** (filterable):
-  - Votes: 30 per hour per voter and 60 per hour per IP hash.
+  - Votes: 30 per hour per voter and 60 per hour per IP hash. Retracting counts as an attempt too.
   - Submissions: 5 per hour per voter and 10 per hour per IP hash.
-  - Admins are exempt.
+  - Moderators (anyone who can edit others' requests) are exempt.
+  - Counters are fixed one-hour windows in transients (`mwtfrs_rate_limit` filter to change a limit, `mwtfrs_client_ip` for sites behind a trusted proxy). They are abuse protection, not accounting; the votes table's unique key is what prevents duplicate votes.
+- **Frozen votes:** while a request's status is closed, or its board has voting turned off, votes can neither be cast nor retracted.
 - **Submissions:** honeypot, a minimum 3 seconds between rendering and submitting (via an HMAC-signed timestamp), an Akismet check when available, and the `mwtfrs_verify_captcha` filter.
 - **CSRF:**
   - REST uses the core `wp_rest` nonce for logged-in users. There is no second custom nonce (v0.5 broke voting by adding one).
-  - Guest REST writes are protected by SameSite cookies plus an `Origin`/`Referer` check.
+  - Guest REST writes are protected by SameSite cookies plus an `Origin`/`Referer` check that compares scheme, host and port. Origins added through WordPress's `allowed_http_origins` filter also count as the site.
   - No-JavaScript form posts use `wp_nonce_field`.
 
 ### 5.5 REST API (`mwtfrs/v1`)
@@ -286,14 +288,16 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 | `GET /requests/{id}` | public | Single request (allow-listed fields). |
 | `POST /boards/{board}/requests` | per board setting | Submit a request. The response says whether it's pending or published. |
 | `GET /boards/{board}/similar?q=` | public | Top 5 similar titles, for duplicate detection. |
-| `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`. |
-| `DELETE /requests/{id}/vote` | voter | Retract a vote. |
+| `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`. Built in M2. |
+| `DELETE /requests/{id}/vote` | voter | Retract a vote. Returns `{votes, voted: false}`. Built in M2. |
 | `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on or follows. Used to hydrate cached pages. |
 | `POST` / `DELETE /requests/{id}/subscription` | per settings | Follow or unfollow. |
 | `GET /unsubscribe?token=` | token holder | One-click unsubscribe (also served as a plain page). |
 | `POST /requests/{id}/merge` (1.1) | `edit_others_mwtfrs_requests` | Merge into a target request. |
 
 Every route declares `args` with a type, `enum` and `sanitize_callback`. Every response comes from a `prepare_item()` that uses an explicit allow-list of fields.
+
+Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled` or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
 
 ### 5.6 Front end
 
@@ -402,7 +406,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 |---|---|---|---|
 | **M0** ✅ | Foundation (1 day) | git, Composer (npm arrives in M3 with the first block), main file with requirements check, `Plugin` wiring, CI pipeline, Plugin Check, readme.txt stub | Plugin activates on minimum and latest WordPress; CI green; Plugin Check clean |
 | **M1** ✅ | Content core (1–2 days) | Post type, 3 taxonomies, default statuses and board, caps, Installer, Migrations, `uninstall.php` | Tests: activation creates tables, terms and caps; uninstall with opt-in removes everything; re-activation is idempotent |
-| **M2** | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
+| **M2** ✅ | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
 | **M3** | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
