@@ -7,6 +7,11 @@
 
 namespace FeatureRequestSystem;
 
+use FeatureRequestSystem\Content\ContentTypes;
+use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Content\RequestTerms;
+use FeatureRequestSystem\Install\Installer;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -25,6 +30,14 @@ final class Plugin {
 	 * @param string $file Absolute path to the main plugin file.
 	 */
 	public static function boot( string $file ): void {
-		// Services are wired in here as milestones add them.
+		register_activation_hook( $file, [ Installer::class, 'activate' ] );
+		register_deactivation_hook( $file, [ Installer::class, 'deactivate' ] );
+
+		add_action( 'init', [ ContentTypes::class, 'register' ] );
+		// After content types are registered, because installing seeds terms.
+		add_action( 'init', [ Installer::class, 'maybe_upgrade' ], 20 );
+
+		RequestPostType::add_hooks();
+		RequestTerms::add_hooks();
 	}
 }

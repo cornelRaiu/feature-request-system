@@ -5,6 +5,7 @@ parameters:
 		max: 80599
 	paths:
 		- feature-request-system.php
+		- uninstall.php
 		- src
 	ignoreErrors:
 		# The requirements check exists for sites running PHP below the supported minimum.

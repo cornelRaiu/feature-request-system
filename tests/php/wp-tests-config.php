@@ -23,7 +23,7 @@ define( 'DB_HOST', getenv( 'WP_TESTS_DB_HOST' ) ? getenv( 'WP_TESTS_DB_HOST' ) :
 define( 'DB_CHARSET', 'utf8mb4' );
 define( 'DB_COLLATE', '' );
 
-$table_prefix = 'wptests_'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+$table_prefix = 'wptests_';
 
 define( 'WP_DEBUG', true );
 define( 'WP_DEFAULT_THEME', 'default' );

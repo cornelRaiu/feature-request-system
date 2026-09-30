@@ -1,0 +1,64 @@
+<?php
+/**
+ * Base class for integration tests.
+ *
+ * @package FeatureRequestSystem
+ */
+
+namespace FeatureRequestSystem\Tests\Integration;
+
+use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Install\Installer;
+use WP_UnitTest_Factory;
+use WP_UnitTestCase;
+
+/**
+ * Runs each test in a rolled-back transaction against a site where the plugin is installed.
+ */
+abstract class TestCase extends WP_UnitTestCase {
+
+	/**
+	 * Seeds the default board and statuses for the class.
+	 *
+	 * The WordPress test suite deletes all terms after each test class, so the terms
+	 * seeded when the suite booted are gone by the second class. Installing again
+	 * recreates them, as it would on a site whose default terms were lost.
+	 *
+	 * @param WP_UnitTest_Factory $factory Test data factory.
+	 */
+	public static function wpSetUpBeforeClass( WP_UnitTest_Factory $factory ): void {
+		Installer::install();
+	}
+
+	/**
+	 * Restores plugin capabilities in memory.
+	 *
+	 * The database is rolled back after each test, but WordPress keeps roles in memory
+	 * too, so a test that removes capabilities would otherwise leak into the next one.
+	 */
+	public function tear_down(): void {
+		Capabilities::grant();
+		parent::tear_down();
+	}
+
+	/**
+	 * Returns the ID of a seeded status.
+	 *
+	 * @param string $slug Status slug, such as "planned".
+	 */
+	protected function status( string $slug ): int {
+		return (int) get_term_by( 'slug', $slug, StatusTaxonomy::NAME )->term_id;
+	}
+
+	/**
+	 * Returns the IDs of a request's terms in one taxonomy.
+	 *
+	 * @param int    $post_id  Request ID.
+	 * @param string $taxonomy Taxonomy name.
+	 * @return int[]
+	 */
+	protected function term_ids( int $post_id, string $taxonomy ): array {
+		return array_map( 'intval', wp_get_object_terms( $post_id, $taxonomy, [ 'fields' => 'ids' ] ) );
+	}
+}

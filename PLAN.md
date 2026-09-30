@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: draft for approval · Date: 2026-09-30 · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 and M1 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -210,7 +210,8 @@ Differentiators, in delivery order:
 
 **Post type `mwtfrs_request`**
 - `public`, `has_archive => false`, and a rewrite slug `feature-requests`.
-- `show_in_rest => true`, using the core controller for admin and editor use.
+- `show_in_rest => true`, so the core REST API and the Site Editor see the post type.
+- Edited in the classic editor (the block editor is turned off for this post type), where board and status are single-choice dropdowns.
 - `capability_type => ['mwtfrs_request', 'mwtfrs_requests']`, `map_meta_cap => true`.
 - Post status: `pending` means awaiting moderation, `publish` means visible. Rejected requests go to `trash`.
 - Meta:
@@ -232,14 +233,14 @@ Differentiators, in delivery order:
   request_id   BIGINT UNSIGNED NOT NULL
   voter_key    CHAR(64)        NOT NULL   -- sha256('u:'.user_id) or sha256('g:'.cookie_token)
   user_id      BIGINT UNSIGNED NOT NULL DEFAULT 0
-  value        TINYINT         NOT NULL DEFAULT 1   -- +1 now; -1 reserved (D3)
+  vote         TINYINT         NOT NULL DEFAULT 1   -- +1 now; -1 reserved (D3)
   weight       SMALLINT        NOT NULL DEFAULT 1   -- 1.3 customer weighting
   created_at   DATETIME        NOT NULL
   UNIQUE KEY request_voter (request_id, voter_key)
   KEY user_id (user_id)
   KEY request_created (request_id, created_at)      -- trending
 
-{prefix}mwtfrs_subscriptions
+{prefix}mwtfrs_subscriptions                       -- created in M7, when notifications use it
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
   request_id   BIGINT UNSIGNED NOT NULL
   user_id      BIGINT UNSIGNED NOT NULL DEFAULT 0
@@ -334,7 +335,8 @@ Every route declares `args` with a type, `enum` and `sanitize_callback`. Every r
 - **Privacy exporter and eraser:** covers requests authored, votes, subscriptions and guest emails. On erasure, votes are anonymised (user_id set to 0 and voter_key re-hashed), so counts stay correct.
 - **Suggested privacy policy text** is added via `wp_add_privacy_policy_content`.
 - **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It handles multisite by looping over sites.
-- **Upgrades:** on `plugins_loaded`, if `mwtfrs_db_version` doesn't match, run the migrations in order. They are idempotent and wrapped in an option lock.
+- **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
+- **Default board and status** can't be deleted from the admin or REST. If code such as WP-CLI deletes one anyway, the oldest remaining term becomes the default and the affected requests move to it.
 
 ### 5.11 Directory layout
 
@@ -375,12 +377,12 @@ feature-request-system/
 | Version control | `git init` on day one, GitHub repo, conventional commits, PR per milestone |
 | PHP deps | Composer: PSR-4 autoload; runtime dependency `woocommerce/action-scheduler` only |
 | PHP QA | `wp-coding-standards/wpcs` 3, `phpcompatibility/phpcompatibility-wp`, PHPStan level 6 with `szepeviktor/phpstan-wordpress` |
-| PHP tests | PHPUnit + `yoast/phpunit-polyfills` + WP test suite (via `@wordpress/env`) |
+| PHP tests | PHPUnit 9 + `yoast/phpunit-polyfills`, with WordPress core and its test library from Composer (`roots/wordpress-no-content`, `wp-phpunit/wp-phpunit`) against a MySQL database |
 | JS/CSS | `@wordpress/scripts` (build, lint, format), block.json, Interactivity API |
 | E2E | Playwright with `@wordpress/e2e-test-utils-playwright` on `wp-env` |
-| Local development | Herd site for manual QA; `wp-env` (Docker) for tests |
-| CI (GitHub Actions) | Lint (PHP/JS/CSS) → PHPStan → PHPUnit matrix (PHP 7.4 and 8.3 × minimum and latest WordPress) → E2E → **Plugin Check** (`wordpress/plugin-check-action`) → build zip artefact |
-| Release | `.distignore`; `npm run plugin-zip`; tag → `10up/action-wordpress-plugin-deploy` to SVN; WordPress.org banner, icon and screenshots in `.wordpress-org/` |
+| Local development | Herd site for manual QA; PHP tests run against Herd's MySQL (database `frs_tests`), so Docker is only needed for E2E |
+| CI (GitHub Actions) | Lint (PHP/JS/CSS) → PHPStan → PHPUnit matrix (PHP 7.4 to 8.4 × WordPress 6.6 and latest) → E2E → **Plugin Check** (`wordpress/plugin-check-action`) → build zip artefact |
+| Release | `.distignore`; `bin/build-zip.sh`; tag → `10up/action-wordpress-plugin-deploy` to SVN; WordPress.org banner, icon and screenshots in `.wordpress-org/` |
 | Versioning | Semantic versioning. First public release is **1.0.0**; v0 and v0.5 were never published. |
 
 **Definition of done for every milestone:**
@@ -398,8 +400,8 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 
 | # | Milestone | Scope | Acceptance |
 |---|---|---|---|
-| **M0** | Foundation (1 day) | git, Composer and npm, main file with requirements check, `Plugin` wiring, CI pipeline, Plugin Check, readme.txt stub | Plugin activates on minimum and latest WordPress; CI green; Plugin Check clean |
-| **M1** | Content core (1–2 days) | Post type, 3 taxonomies, default statuses and board, caps, Installer, Migrations, `uninstall.php` | Tests: activation creates tables, terms and caps; uninstall with opt-in removes everything; re-activation is idempotent |
+| **M0** ✅ | Foundation (1 day) | git, Composer (npm arrives in M3 with the first block), main file with requirements check, `Plugin` wiring, CI pipeline, Plugin Check, readme.txt stub | Plugin activates on minimum and latest WordPress; CI green; Plugin Check clean |
+| **M1** ✅ | Content core (1–2 days) | Post type, 3 taxonomies, default statuses and board, caps, Installer, Migrations, `uninstall.php` | Tests: activation creates tables, terms and caps; uninstall with opt-in removes everything; re-activation is idempotent |
 | **M2** | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
 | **M3** | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
