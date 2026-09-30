@@ -5,8 +5,12 @@
 /.idea
 /.vscode
 /.wordpress-org
+/artifacts
 /bin
 /dist
+/node_modules
+/playwright-report
+/test-results
 /tests
 /vendor
 /.distignore
@@ -14,8 +18,11 @@
 /.gitignore
 /.phpcs-cache
 /.phpunit.result.cache
+/.wp-env.json
 /composer.json
 /composer.lock
+/package.json
+/package-lock.json
 /phpcs.xml.dist
 /phpstan.neon.dist
 /phpunit.xml.dist

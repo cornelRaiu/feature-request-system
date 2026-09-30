@@ -21,9 +21,15 @@ jobs:
           php-version: '8.4'
           coverage: none
 
-      - run: composer install --no-interaction --no-progress
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
 
-      - name: Coding standards
+      - run: composer install --no-interaction --no-progress
+      - run: npm ci
+
+      - name: PHP coding standards
         run: composer lint
 
       - name: Identifiers come from constants
@@ -31,6 +37,12 @@ jobs:
 
       - name: PHPStan
         run: composer analyse
+
+      - name: JavaScript
+        run: npm run lint:js
+
+      - name: Styles
+        run: npm run lint:css
 
   test:
     name: PHP ${{ matrix.php }} / WordPress ${{ matrix.wp }}
@@ -72,7 +84,15 @@ jobs:
           coverage: none
           extensions: mysqli
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
       - run: composer install --no-interaction --no-progress
+
+      - name: Build the block
+        run: npm ci && npm run build
 
       - name: Switch to WordPress ${{ matrix.wp }}
         if: matrix.wp != 'latest'
@@ -84,6 +104,41 @@ jobs:
       - name: PHPUnit
         run: composer test
 
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: composer install --no-dev --no-interaction --no-progress
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start WordPress
+        run: npx wp-env start
+
+      - name: Playwright
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: e2e-results
+          path: test-results/
+
   plugin-check:
     name: Plugin Check
     runs-on: ubuntu-latest
@@ -94,6 +149,13 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
 
       - name: Build release folder
         run: bin/build-zip.sh

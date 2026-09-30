@@ -16,6 +16,18 @@ Feature Request System adds a feature request board to your WordPress site. User
 
 This plugin is in development. The first public release will be 1.0.0.
 
+= Adding the board =
+
+Add the Feature Request Board block to any page, or use the shortcode:
+
+`[feature_requests board="board-slug"]`
+
+Leave out the board to show the default board. Visitors can search, filter by status and category, and sort by votes or date. Voting works without reloading the page, and still works when JavaScript is off.
+
+= Themes =
+
+The board takes its colours and spacing from your theme. To change its markup, copy `templates/board.php` from the plugin to `feature-request-system/board.php` in your theme.
+
 = Privacy =
 
 Everything is stored in your own WordPress database. The plugin does not send data to any external service.

@@ -11,6 +11,9 @@ target="$dist/$slug"
 rm -rf "$dist"
 mkdir -p "$target"
 
+# Compile the blocks. Needs node_modules: run npm ci (CI) or npm install (locally) first.
+(cd "$root" && npm run --silent build)
+
 rsync -a --exclude-from="$root/.distignore" "$root/" "$target/"
 
 # Install runtime dependencies only, with an autoloader that needs no filesystem lookups.

@@ -119,6 +119,25 @@ final class StatusTaxonomy {
 	}
 
 	/**
+	 * IDs of the statuses that are closed for voting.
+	 *
+	 * @return int[]
+	 */
+	public static function closed_ids(): array {
+		$ids = get_terms(
+			[
+				'taxonomy'   => self::NAME,
+				'hide_empty' => false,
+				'fields'     => 'ids',
+				'meta_key'   => self::META_CLOSED, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A handful of status terms.
+				'meta_value' => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A handful of status terms.
+			]
+		);
+
+		return is_array( $ids ) ? array_map( 'intval', $ids ) : [];
+	}
+
+	/**
 	 * Whether requests in this status stop accepting votes.
 	 *
 	 * @param WP_Term $status Status term.

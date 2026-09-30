@@ -43,6 +43,31 @@ final class VoteRepository {
 	}
 
 	/**
+	 * Returns which of the given requests a voter has voted for.
+	 *
+	 * @param string $voter_key   Voter key from VoterIdentity.
+	 * @param int[]  $request_ids Request IDs to check.
+	 * @return int[] The IDs the voter voted for.
+	 */
+	public static function voted_among( string $voter_key, array $request_ids ): array {
+		global $wpdb;
+
+		$request_ids = array_values( array_unique( array_filter( array_map( 'intval', $request_ids ) ) ) );
+		if ( ! $request_ids ) {
+			return [];
+		}
+
+		$voted = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-visitor data must not be cached.
+			$wpdb->prepare(
+				'SELECT request_id FROM %i WHERE voter_key = %s AND request_id IN (' . implode( ',', array_fill( 0, count( $request_ids ), '%d' ) ) . ')', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %d placeholders are added.
+				array_merge( [ Schema::table( Schema::VOTES ), $voter_key ], $request_ids )
+			)
+		);
+
+		return array_map( 'intval', $voted );
+	}
+
+	/**
 	 * Removes a voter's vote for a request.
 	 *
 	 * @param int    $request_id Request ID.

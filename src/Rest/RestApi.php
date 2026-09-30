@@ -24,5 +24,6 @@ final class RestApi {
 	 */
 	public static function register_routes(): void {
 		VotesController::register_routes();
+		StateController::register_routes();
 	}
 }

@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0, M1 and M2 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M3 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -302,16 +302,17 @@ Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_vo
 ### 5.6 Front end
 
 - **Blocks** are built with `@wordpress/scripts`. Each has a `block.json` with `viewScriptModule` for the **Interactivity API** (requires WordPress 6.5 or later). They are server-rendered in PHP via `render.php` and hydrated with `data-wp-*` directives.
-- **Shortcodes** are thin wrappers that render the same PHP templates.
+- **Shortcodes** render the block itself (`[feature_requests board="slug"]`), so both share markup, assets and behaviour.
 - **Progressive enhancement:**
-  - The vote button is a `<form method="post">` pointing at an `admin-post.php` handler. The Interactivity API takes over when JavaScript is available.
-  - Search and filters are GET query arguments.
-- **Cache safety:** the HTML never contains per-user state. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on.
-- **Styling:** CSS custom properties that fall back to `theme.json` presets. About 8 KB, with an option to turn it off. No icon fonts; inline SVG only.
+  - The vote button is a `<form method="post">` pointing at an `admin-post.php` handler. Without JavaScript, submitting it toggles the vote and returns to the board with a notice ("Your vote was added"). The Interactivity API takes over when JavaScript is available.
+  - Search and filters are GET query arguments (`fr-search`, `fr-status`, `fr-category`, `fr-sort`, `fr-page`).
+- **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
+- **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
+- **Styling:** CSS custom properties that fall back to `theme.json` presets and then to fixed colours. About 4 KB. The vote button's rules outrank theme `button` styles so pressed and unpressed always look different. A container query tightens the layout when the board is narrow. No icon fonts; inline SVG only.
 - **Templates:**
   - Block themes get a registered block template `single-mwtfrs_request`.
   - Classic themes use `the_content` filtering for the single request view.
-  - Template parts can be overridden from `yourtheme/feature-request-system/`.
+  - Template parts can be overridden from `yourtheme/feature-request-system/` (the board: `board.php`, since M3).
 
 ### 5.7 Admin
 
@@ -407,7 +408,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M0** ✅ | Foundation (1 day) | git, Composer (npm arrives in M3 with the first block), main file with requirements check, `Plugin` wiring, CI pipeline, Plugin Check, readme.txt stub | Plugin activates on minimum and latest WordPress; CI green; Plugin Check clean |
 | **M1** ✅ | Content core (1–2 days) | Post type, 3 taxonomies, default statuses and board, caps, Installer, Migrations, `uninstall.php` | Tests: activation creates tables, terms and caps; uninstall with opt-in removes everything; re-activation is idempotent |
 | **M2** ✅ | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
-| **M3** | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
+| **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
 | **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page, board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once |

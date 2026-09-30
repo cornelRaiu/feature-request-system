@@ -6,17 +6,21 @@ The rebuild plan, feature list and milestones are in [PLAN.md](PLAN.md). The Wor
 
 ## Requirements
 
-- PHP 7.4 or later and Composer 2 for development
-- A MySQL or MariaDB server for the test suite
+- PHP 7.4 or later and Composer 2
+- Node.js 20 or later and npm, to build the block
+- A MySQL or MariaDB server for the PHP tests
+- Docker, only for the end-to-end tests on wp-env
 - WordPress 6.6 or later on the sites that run the plugin
 
 ## Setup
 
 ```bash
-composer install
+composer install && npm install && npm run build
 ```
 
-The test suite needs its own empty database. It deletes everything in that database on every run, so never point it at a real site.
+The plugin shows a notice in the admin if `vendor/` or the block build is missing.
+
+The PHP tests need their own empty database. The test suite deletes everything in it on every run, so never point it at a real site.
 
 ```bash
 mysql -u root -e "CREATE DATABASE frs_tests"
@@ -42,16 +46,33 @@ putenv( 'WP_TESTS_DB_HOST=127.0.0.1:33061' );
 
 | Command | What it does |
 |---|---|
-| `composer test` | Runs PHPUnit against WordPress from Composer |
+| `npm run build` | Compiles the block into `build/` (`npm run start` rebuilds on every change) |
+| `npm run lint:js` / `npm run lint:css` | Lints the block's JavaScript and styles |
+| `composer test` | Runs PHPUnit against WordPress from Composer; needs the block build |
 | `composer lint` | Checks WordPress Coding Standards and PHP 7.4 compatibility |
 | `composer lint:fix` | Fixes what the coding standards check can fix automatically |
 | `composer analyse` | Runs PHPStan at level 6 |
 | `composer check:names` | Fails when a plugin identifier is written as a string instead of its constant |
-| `composer ci` | Runs all of the above |
+| `composer ci` | Runs all the Composer checks above |
+| `npm run test:e2e` | Runs the Playwright end-to-end tests (see below) |
 | `bin/build-zip.sh` | Builds `dist/feature-request-system/` and the release zip |
 | `wp mwtfrs recount` | On a site running the plugin: recounts every request's votes and fixes stored counts |
 
-CI runs the same checks, the tests on PHP 7.4 to 8.4 against WordPress 6.6 and the latest release, and Plugin Check on the built zip.
+### End-to-end tests
+
+The Playwright tests run against a real WordPress site. With Docker running, wp-env provides one:
+
+```bash
+npx playwright install chromium && npx wp-env start && npm run test:e2e
+```
+
+To use another local site instead, point the tests at it. The tests replace all feature requests on that site, so use a throwaway site. It needs an `admin` user with the password `password`, or set `WP_USERNAME` and `WP_PASSWORD`.
+
+```bash
+WP_BASE_URL=http://localhost:8081 WP_CLI="wp --path=/path/to/site" npm run test:e2e
+```
+
+CI runs the lint and static checks, the PHP tests on PHP 7.4 to 8.4 against WordPress 6.6 and the latest release, the end-to-end tests on wp-env, and Plugin Check on the built zip.
 
 ## Rules
 

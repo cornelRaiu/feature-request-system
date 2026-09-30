@@ -5,3 +5,8 @@
 .phpcs-cache
 .idea/
 .DS_Store
+/node_modules/
+/build/
+/artifacts/
+/test-results/
+/playwright-report/
