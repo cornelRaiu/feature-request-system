@@ -16,7 +16,9 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Board;
 use FeatureRequestSystem\Frontend\BoardQuery;
 use FeatureRequestSystem\Frontend\Blocks;
+use FeatureRequestSystem\Frontend\RequestItem;
 use FeatureRequestSystem\Frontend\VoteForm;
+use FeatureRequestSystem\Frontend\VoteStore;
 use FeatureRequestSystem\Voting\VoterIdentity;
 use FeatureRequestSystem\Voting\VoteService;
 
@@ -211,7 +213,7 @@ final class BoardRenderTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertSame( 1, substr_count( $html, 'data-wp-text="context.message">Your vote was added.</span>' ), 'Shown once, as text.' );
-		preg_match( '#id="' . Board::item_id( $voted ) . '".*?</li>#s', $html, $item );
+		preg_match( '#id="' . RequestItem::dom_id( $voted ) . '".*?</li>#s', $html, $item );
 		$this->assertStringContainsString( '<p class="mwtfrs-request__message"', $item[0], 'The message is not hidden on the voted request.' );
 		$this->assertStringContainsString( 'Your vote was added.', $item[0] );
 	}
@@ -263,7 +265,7 @@ final class BoardRenderTest extends TestCase {
 		$html = do_shortcode( '[' . Blocks::SHORTCODE . ' board="' . $mobile->slug . '"]' );
 
 		$this->assertTitles( [ 'Offline mode' ], [ 'Dark mode' ], $html );
-		$this->assertStringContainsString( 'data-wp-interactive="' . Board::BLOCK . '"', $html );
+		$this->assertStringContainsString( 'data-wp-interactive="' . VoteStore::NAME . '"', $html );
 	}
 
 	/**

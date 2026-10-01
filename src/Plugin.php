@@ -7,11 +7,15 @@
 
 namespace FeatureRequestSystem;
 
+use FeatureRequestSystem\Admin\CommentActions;
 use FeatureRequestSystem\Cli\Commands;
+use FeatureRequestSystem\Comments\CommentForm;
+use FeatureRequestSystem\Comments\CommentThread;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Frontend\Blocks;
+use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Install\Installer;
@@ -55,6 +59,7 @@ final class Plugin {
 		// After content types are registered, because installing seeds terms.
 		add_action( 'init', [ Installer::class, 'maybe_upgrade' ], 20 );
 		add_action( 'init', [ Blocks::class, 'register' ] );
+		add_action( 'init', [ RequestView::class, 'register_template' ] );
 
 		RequestPostType::add_hooks();
 		RequestTerms::add_hooks();
@@ -63,6 +68,10 @@ final class Plugin {
 		SubmitForm::add_hooks();
 		Akismet::add_hooks();
 		NewRequestEmail::add_hooks();
+		RequestView::add_hooks();
+		CommentForm::add_hooks();
+		CommentThread::add_hooks();
+		CommentActions::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

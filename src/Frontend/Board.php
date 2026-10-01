@@ -11,11 +11,7 @@ use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
-use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
-use FeatureRequestSystem\Rest\RestApi;
-use FeatureRequestSystem\Voting\VoteCount;
-use stdClass;
 use WP_Post;
 use WP_Query;
 
@@ -31,7 +27,7 @@ defined( 'ABSPATH' ) || exit;
 final class Board {
 
 	/**
-	 * Block name, also the Interactivity API store namespace.
+	 * Block name.
 	 */
 	public const BLOCK = 'mwtfrs/board';
 
@@ -65,19 +61,19 @@ final class Board {
 		$page_url = CurrentPage::url();
 		$current  = add_query_arg( self::filter_args( $filters, true ), $page_url );
 
-		self::provide_state();
+		VoteStore::provide();
 
 		$items = [];
 		foreach ( $query->posts as $post ) {
 			if ( $post instanceof WP_Post ) {
-				$items[] = self::item( $post, $voting, $notice );
+				$items[] = RequestItem::prepare( $post, $voting, $notice );
 			}
 		}
 
 		return Template::render(
 			'board',
 			[
-				'namespace'          => self::BLOCK,
+				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
 				'context'            => [ 'ids' => wp_list_pluck( $items, 'id' ) ],
 				'id_prefix'          => wp_unique_id( 'mwtfrs-board-' ),
@@ -98,63 +94,12 @@ final class Board {
 				],
 				'page_url'           => $page_url,
 				'hidden_fields'      => self::query_args_of( $page_url ),
-				'current_url'        => $current,
-				'vote_url'           => admin_url( 'admin-post.php' ),
-				'vote_action'        => VoteForm::ACTION,
-				'vote_nonce'         => is_user_logged_in() ? wp_create_nonce( VoteForm::ACTION ) : '',
+				'vote'               => VoteForm::template_args( $current ),
 				'login_url'          => wp_login_url( $current ),
 				'pagination'         => self::pagination( $query, $filters['page'], add_query_arg( self::filter_args( $filters, false ), $page_url ) ),
 				'empty_message'      => $items ? '' : self::empty_message( $filters, $board->term_id ),
 			]
 		);
-	}
-
-	/**
-	 * HTML id of a request's row, used as the anchor to return to after a vote.
-	 *
-	 * @param int $request_id Request ID.
-	 */
-	public static function item_id( int $request_id ): string {
-		return 'mwtfrs-request-' . $request_id;
-	}
-
-	/**
-	 * Prepares one request for the template.
-	 *
-	 * @param WP_Post                                                $post   Request.
-	 * @param string                                                 $voting Board voting rule, a BoardSettings value.
-	 * @param array{request: int, message: string, login: bool}|null $notice Notice from a vote without JavaScript.
-	 * @return array<string, mixed>
-	 */
-	private static function item( WP_Post $post, string $voting, ?array $notice ): array {
-		$status     = RequestTerms::term_of( $post->ID, StatusTaxonomy::NAME );
-		$categories = get_the_terms( $post->ID, CategoryTaxonomy::NAME );
-		$summary    = '' !== $post->post_excerpt ? $post->post_excerpt : strip_shortcodes( $post->post_content );
-		$votes      = VoteCount::get( $post->ID );
-		$notice     = $notice && $notice['request'] === $post->ID ? $notice : null;
-
-		return [
-			'id'         => $post->ID,
-			'dom_id'     => self::item_id( $post->ID ),
-			'title'      => get_the_title( $post ),
-			'url'        => (string) get_permalink( $post ),
-			'excerpt'    => wp_trim_words( wp_strip_all_tags( $summary ), 30 ),
-			'votes'      => $votes,
-			'status'     => $status ? [
-				'name'  => $status->name,
-				'color' => (string) get_term_meta( $status->term_id, StatusTaxonomy::META_COLOR, true ),
-			] : null,
-			'categories' => is_array( $categories ) ? wp_list_pluck( $categories, 'name' ) : [],
-			'votable'    => BoardSettings::NOBODY !== $voting && ! ( $status && StatusTaxonomy::is_closed( $status ) ),
-			'context'    => [
-				'id'         => $post->ID,
-				'votes'      => $votes,
-				'voted'      => false,
-				'busy'       => false,
-				'message'    => $notice ? $notice['message'] : '',
-				'needsLogin' => $notice ? $notice['login'] : false,
-			],
-		];
 	}
 
 	/**
@@ -187,28 +132,6 @@ final class Board {
 		return $any_request
 			? __( 'No requests are open for voting right now.', 'feature-request-system' )
 			: __( 'No requests yet.', 'feature-request-system' );
-	}
-
-	/**
-	 * Shares the settings the vote script needs. Holds nothing about the visitor except,
-	 * for logged-in users, the REST nonce WordPress requires.
-	 */
-	private static function provide_state(): void {
-		wp_interactivity_state(
-			self::BLOCK,
-			[
-				'restUrl'      => rest_url( RestApi::NAMESPACE . '/' ),
-				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-				'nonce'        => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
-				'voted'        => new stdClass(),
-				'announcement' => '',
-				'strings'      => [
-					'added'   => __( 'Vote added.', 'feature-request-system' ),
-					'removed' => __( 'Vote removed.', 'feature-request-system' ),
-					'error'   => __( 'Your vote could not be saved. Check your connection and try again.', 'feature-request-system' ),
-				],
-			]
-		);
 	}
 
 	/**

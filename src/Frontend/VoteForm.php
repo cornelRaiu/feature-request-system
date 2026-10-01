@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * The board's HTML is the same for every visitor so it can be cached, which means the
  * form cannot know whether the visitor already voted. Submitting it toggles the vote,
- * then sends the visitor back to the board with a notice saying what happened.
+ * then sends the visitor back to the page they voted on with a notice saying what happened.
  */
 final class VoteForm {
 
@@ -58,7 +58,23 @@ final class VoteForm {
 	}
 
 	/**
-	 * Handles the form post and redirects back to the board.
+	 * What a template needs to render vote forms.
+	 *
+	 * @param string $return_url Page to come back to after a vote without JavaScript.
+	 * @return array{url: string, action: string, nonce: string, redirect_to: string}
+	 */
+	public static function template_args( string $return_url ): array {
+		return [
+			'url'         => admin_url( 'admin-post.php' ),
+			'action'      => self::ACTION,
+			// Guests get no nonce, so their pages can be cached. Their posts are checked by origin.
+			'nonce'       => is_user_logged_in() ? wp_create_nonce( self::ACTION ) : '',
+			'redirect_to' => $return_url,
+		];
+	}
+
+	/**
+	 * Handles the form post and redirects back to the page the vote came from.
 	 */
 	public static function handle(): void {
 		$input   = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- process() checks the nonce for logged-in users and the origin for guests.
@@ -87,7 +103,7 @@ final class VoteForm {
 				self::PARAM_REQUEST => $request_id,
 			],
 			$back
-		) . '#' . Board::item_id( $request_id );
+		) . '#' . RequestItem::dom_id( $request_id );
 	}
 
 	/**

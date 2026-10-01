@@ -4,7 +4,8 @@
  *
  * To change the markup, copy this file to yourtheme/feature-request-system/board.php.
  * Keep the data-wp-* attributes and the form fields: they make voting work, with and
- * without JavaScript. Every value is escaped here, at output.
+ * without JavaScript. Every value is escaped here, at output. The vote button has its
+ * own template, vote-button.php.
  *
  * @package FeatureRequestSystem
  *
@@ -81,31 +82,7 @@ $mwtfrs_params  = $args['params'];
 					<?php echo wp_interactivity_data_wp_context( $mwtfrs_item['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
 					data-wp-watch="callbacks.syncVoted"
 				>
-					<?php if ( $mwtfrs_item['votable'] ) : ?>
-						<form class="mwtfrs-request__vote" method="post" action="<?php echo esc_url( $args['vote_url'] ); ?>" data-wp-on--submit="actions.toggle">
-							<input type="hidden" name="action" value="<?php echo esc_attr( $args['vote_action'] ); ?>">
-							<input type="hidden" name="request_id" value="<?php echo (int) $mwtfrs_item['id']; ?>">
-							<input type="hidden" name="redirect_to" value="<?php echo esc_url( $args['current_url'] ); ?>">
-							<?php if ( $args['vote_nonce'] ) : ?>
-								<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $args['vote_nonce'] ); ?>">
-							<?php endif; ?>
-							<button type="submit" class="mwtfrs-vote" data-wp-bind--aria-pressed="context.voted" data-wp-bind--disabled="context.busy">
-								<svg class="mwtfrs-vote__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M12 4 4.5 12.5h5V20h5v-7.5h5z" /></svg>
-								<span class="mwtfrs-vote__count" data-wp-text="context.votes"><?php echo (int) $mwtfrs_item['votes']; ?></span>
-								<span class="mwtfrs-sr-only">
-									<?php
-									/* translators: %s: request title. */
-									echo esc_html( sprintf( __( 'votes. Vote for %s', 'feature-request-system' ), $mwtfrs_item['title'] ) );
-									?>
-								</span>
-							</button>
-						</form>
-					<?php else : ?>
-						<p class="mwtfrs-request__vote mwtfrs-vote mwtfrs-vote--closed">
-							<span class="mwtfrs-vote__count"><?php echo (int) $mwtfrs_item['votes']; ?></span>
-							<span class="mwtfrs-sr-only"><?php esc_html_e( 'votes. Voting is closed.', 'feature-request-system' ); ?></span>
-						</p>
-					<?php endif; ?>
+					<?php echo FeatureRequestSystem\Frontend\Template::render( 'vote-button', [ 'item' => $mwtfrs_item ] + $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The vote button template escapes every value. ?>
 
 					<div class="mwtfrs-request__body">
 						<h3 class="mwtfrs-request__title"><a href="<?php echo esc_url( $mwtfrs_item['url'] ); ?>"><?php echo esc_html( $mwtfrs_item['title'] ); ?></a></h3>

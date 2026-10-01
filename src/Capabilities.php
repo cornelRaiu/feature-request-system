@@ -22,12 +22,17 @@ final class Capabilities {
 	public const MANAGE_SETTINGS = 'manage_mwtfrs_settings';
 
 	/**
+	 * What makes a user a moderator: being able to edit other people's requests.
+	 */
+	public const MODERATE = 'edit_others_' . RequestPostType::CAPABILITY_TYPE;
+
+	/**
 	 * Primitive capabilities of the request post type. WordPress maps meta capabilities
 	 * such as edit_post onto these because the post type uses map_meta_cap.
 	 */
 	public const REQUEST_CAPS = [
 		'edit_' . RequestPostType::CAPABILITY_TYPE,
-		'edit_others_' . RequestPostType::CAPABILITY_TYPE,
+		self::MODERATE,
 		'edit_private_' . RequestPostType::CAPABILITY_TYPE,
 		'edit_published_' . RequestPostType::CAPABILITY_TYPE,
 		'publish_' . RequestPostType::CAPABILITY_TYPE,
@@ -46,9 +51,9 @@ final class Capabilities {
 	 */
 	public static function term_caps(): array {
 		return [
-			'manage_terms' => 'edit_others_' . RequestPostType::CAPABILITY_TYPE,
-			'edit_terms'   => 'edit_others_' . RequestPostType::CAPABILITY_TYPE,
-			'delete_terms' => 'edit_others_' . RequestPostType::CAPABILITY_TYPE,
+			'manage_terms' => self::MODERATE,
+			'edit_terms'   => self::MODERATE,
+			'delete_terms' => self::MODERATE,
 			'assign_terms' => 'edit_' . RequestPostType::CAPABILITY_TYPE,
 		];
 	}

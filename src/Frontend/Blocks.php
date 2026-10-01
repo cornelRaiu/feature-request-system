@@ -42,7 +42,7 @@ final class Blocks {
 	/**
 	 * Block folders inside build/.
 	 */
-	private const BLOCK_FOLDERS = [ 'board', 'submit' ];
+	private const BLOCK_FOLDERS = [ 'board', 'submit', 'request' ];
 
 	/**
 	 * Registers the blocks, shortcodes and pattern. Runs on init.

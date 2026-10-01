@@ -12,7 +12,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
-use FeatureRequestSystem\Frontend\Board;
+use FeatureRequestSystem\Frontend\RequestItem;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Voting\VoterIdentity;
 
@@ -40,7 +40,7 @@ final class VoteFormTest extends TestCase {
 		$request = $this->create_request();
 
 		$first = VoteForm::process( $this->input( $request, wp_create_nonce( VoteForm::ACTION ) ), '', '' );
-		$this->assertSame( self::BOARD_URL . '?fr-notice=added&fr-request=' . $request . '#' . Board::item_id( $request ), $first );
+		$this->assertSame( self::BOARD_URL . '?fr-notice=added&fr-request=' . $request . '#' . RequestItem::dom_id( $request ), $first );
 		$this->assertSame( '1', get_post_meta( $request, RequestPostType::META_VOTES, true ) );
 
 		$second = VoteForm::process( $this->input( $request, wp_create_nonce( VoteForm::ACTION ) ), '', '' );

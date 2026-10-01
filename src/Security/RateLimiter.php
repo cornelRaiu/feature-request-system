@@ -7,7 +7,7 @@
 
 namespace FeatureRequestSystem\Security;
 
-use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Capabilities;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -59,7 +59,7 @@ final class RateLimiter {
 	 * @return int 0 when the attempt is allowed, otherwise the seconds until the limit resets.
 	 */
 	public static function attempt( string $action, string $voter_key ): int {
-		if ( current_user_can( 'edit_others_' . RequestPostType::CAPABILITY_TYPE ) ) {
+		if ( current_user_can( Capabilities::MODERATE ) ) {
 			return 0;
 		}
 

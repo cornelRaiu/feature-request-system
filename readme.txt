@@ -38,6 +38,14 @@ By default, only logged-in users can suggest features, and new requests wait for
 
 Each new request is emailed to the site admin email address, with a link to review it.
 
+= Request pages and official responses =
+
+Every request has its own page with its vote button, status, categories, description and comments. Comments are WordPress comments, so your discussion settings, comment moderation and your theme's comment design apply.
+
+To answer a request on behalf of your team, write a comment on its page and tick "Post as the official response" before sending it. You can also mark an existing comment from the Comments screen. The newest official response is pinned below the request's description, and each one is labelled in the comments. Editors and administrators can do this, for comments written by editors or administrators.
+
+In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
+
 = Spam protection =
 
 The form stops most spam without a captcha:
@@ -51,7 +59,7 @@ Developers can add a captcha through the `mwtfrs_verify_captcha` filter, or anot
 
 = Themes =
 
-The board and the form take their colours and spacing from your theme. To change their markup, copy `templates/board.php` or `templates/submit-form.php` from the plugin to the `feature-request-system` folder in your theme.
+The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `submit-form.php`, `vote-button.php`, `request.php` or `official-response.php`.
 
 = Privacy =
 

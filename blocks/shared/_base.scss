@@ -16,6 +16,10 @@
 	--mwtfrs-accent: var(--wp--preset--color--contrast, #1e1e1e);
 	--mwtfrs-on-accent: var(--wp--preset--color--base, #fff);
 
+	// Themes limit the width of what sits in the content. With padding or a
+	// border inside that width, the element lines up with the text around it.
+	box-sizing: border-box;
+
 	[hidden] {
 		display: none !important;
 	}

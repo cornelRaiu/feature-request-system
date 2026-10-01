@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M4 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M5 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -104,7 +104,7 @@ Differentiators, in delivery order:
 
 **Comments**
 - ✅ Native WordPress comments on requests, which brings moderation, Akismet and threaded replies for free.
-- ✅ Admin and author replies can be marked **Official response**, which is pinned and styled.
+- ✅ A moderator's reply can be marked as the **official response**. The newest one is pinned below the description, and each is labelled in the comments.
 
 **Notifications ("close the loop")**
 - ✅ Voters are subscribed to requests automatically (configurable). Users can also follow a request without voting.
@@ -221,6 +221,7 @@ Differentiators, in delivery order:
   - `_mwtfrs_merged_into` (int, 1.1)
   - `_mwtfrs_submitter_id` (logged-in submitter), `_mwtfrs_submitter_name` and `_mwtfrs_submitter_email` (a guest's details): private, never exposed
   - `_mwtfrs_flagged_as_spam` (set when a spam check held the request for review)
+- Comment meta: `_mwtfrs_official` marks a comment as an official response (M5).
 - No `author` support: front-end submitters are not WordPress post authors (`post_author` is 0), so their names stay out of author archives, oEmbed data and the public users endpoint. Built in M4.
 
 **Taxonomies**
@@ -320,11 +321,18 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - Search and filters are GET query arguments (`fr-search`, `fr-status`, `fr-category`, `fr-sort`, `fr-page`).
 - **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
 - **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
-- **Styling:** CSS custom properties that fall back to `theme.json` presets and then to fixed colours. About 4 KB. The vote button's rules outrank theme `button` styles so pressed and unpressed always look different. A container query tightens the layout when the board is narrow. No icon fonts; inline SVG only.
-- **Templates:**
-  - Block themes get a registered block template `single-mwtfrs_request`.
-  - Classic themes use `the_content` filtering for the single request view.
-  - Template parts can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3) and `submit-form.php` (since M4).
+- **One vote script.** The board and the request page share the Interactivity API store `mwtfrs/votes`, one vote button template and the stylesheet partials for it.
+- **Styling:** CSS custom properties that fall back to `theme.json` presets and then to fixed colours. About 4 KB per block. Headings and wrappers use selectors that hold up against block themes' global styles, which load after block styles. The vote button's rules outrank theme `button` styles so pressed and unpressed always look different. A container query tightens the layout when the board is narrow. No icon fonts; inline SVG only.
+- **Single request page (M5).** The theme shows the title, the description and the comments. The plugin adds the vote button, status and categories above the description, and the official response below it.
+  - The details are a block, `mwtfrs/request` ("Feature Request Details").
+  - **Block themes on WordPress 6.7 or later** get a registered block template, `single-mwtfrs_request`, that holds the title, that block, the content and the comments. They need it because their template for posts prints an author and post categories, which requests don't have. Site owners can edit it in the Site Editor, and a theme can ship its own.
+  - **Classic themes, and block themes on WordPress 6.6** (which can't take plugin templates): the details are added to the request's content through `the_content`, only inside the main loop of the request's own page. That keeps them out of excerpts, feeds, the REST API and password-protected requests. On 6.6 the theme's post template still prints its empty author line.
+  - If the template in use already holds the block, the details aren't added a second time.
+- **Comments and official responses (M5).** Requests use WordPress comments, so moderation, Akismet, threading and the theme's comment design all apply.
+  - A moderator can post a comment as the official response with a checkbox on the comment form, or mark an existing one from the Comments screen. Only comments written by moderators can be marked, so the mark always means "from the team"; any moderator can remove it.
+  - The checkbox carries a nonce. WordPress accepts comments from logged-in users without one, so without it another site could make a moderator post an "official" comment.
+  - The mark is comment meta, so it goes when the comment goes. A request can collect several official responses; the newest approved one is pinned below the description and all are labelled in the thread.
+- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), and `vote-button.php`, `request.php` and `official-response.php` (since M5).
 - **Pattern:** "Feature request page" puts the form, a heading and the board on one page (M4).
 
 ### 5.7 Admin
@@ -381,12 +389,13 @@ feature-request-system/
 │   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, SimilarRequests
 │   ├── Notifications/              # SubscriptionRepository, Notifier, Mailer, templates/
 │   ├── Rest/                       # BoardsController, RequestsController, VotesController, MeController, SubscriptionsController
-│   ├── Frontend/                   # Blocks, Shortcodes, TemplateLoader, FormHandlers (no-JS)
-│   ├── Admin/                      # ListTable columns, MetaBox, SettingsPage, StatusTermFields, BoardTermFields
+│   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
+│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, VoteForm, VoteStore, Template
+│   ├── Admin/                      # CommentActions, ListTable columns, MetaBox, SettingsPage, StatusTermFields, BoardTermFields
 │   ├── Privacy/                    # Exporter, Eraser, PolicyText
 │   └── Cli/                        # `wp mwtfrs recount|seed`
-├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss)
-├── templates/                      # overridable PHP partials
+├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss), shared/
+├── templates/                      # overridable PHP partials, and the block template single-request.html
 ├── languages/
 ├── tests/
 │   ├── php/Integration/            # WP test suite: slices end to end
@@ -432,7 +441,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M2** ✅ | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
 | **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
-| **M5** | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
+| **M5** ✅ | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
 | **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML |
 | **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
 | **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
