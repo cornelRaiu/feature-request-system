@@ -122,6 +122,7 @@ Differentiators, in delivery order:
 - ✅ Status can be changed from Quick Edit and Bulk Edit.
 - ✅ A count badge on the menu for pending requests.
 - ✅ Settings page with global defaults, a board settings screen, and a status manager.
+- ✅ Each board knows the **page that shows it**, so a request's page can link back to its board.
 - ✅ Voters list on each request (users, and a guest count).
 
 **Platform**
@@ -329,7 +330,8 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - **Classic themes, and block themes on WordPress 6.6** (which can't take plugin templates): the details are added to the request's content through `the_content`, only inside the main loop of the request's own page. That keeps them out of excerpts, feeds, the REST API and password-protected requests. On 6.6 the theme's post template still prints its empty author line.
   - If the template in use already holds the block, the details aren't added a second time.
 - **Comments and official responses (M5).** Requests use WordPress comments, so moderation, Akismet, threading and the theme's comment design all apply.
-  - A moderator can post a comment as the official response with a checkbox on the comment form, or mark an existing one from the Comments screen. Only comments written by moderators can be marked, so the mark always means "from the team"; any moderator can remove it.
+  - A moderator can post a comment as the official response with a checkbox on the comment form. For existing comments, moderators get a "Mark as official response" or "Remove official mark" link in three places: under the comment on the request's page, on the pinned response, and among the comment's actions on the Comments screen. Other visitors never get these links, so their HTML stays the same for everyone.
+  - Only comments written by moderators can be marked, so the mark always means "from the team". Any moderator can remove it, even after the comment's author left the team.
   - The checkbox carries a nonce. WordPress accepts comments from logged-in users without one, so without it another site could make a moderator post an "official" comment.
   - The mark is comment meta, so it goes when the comment goes. A request can collect several official responses; the newest approved one is pinned below the description and all are labelled in the thread.
 - **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), and `vote-button.php`, `request.php` and `official-response.php` (since M5).
@@ -338,6 +340,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 ### 5.7 Admin
 
 - Classic PHP screens: list table columns and filters, the Settings API, and term screens for boards and statuses (with a colour picker).
+- **Board page (M6).** A board's settings hold the page that shows the board. A request's page links back to it, above the vote button ("← All requests"). The plugin can't know this page by itself, because the board is a block that can sit on any page. When the setting is empty, publishing a page that holds that board's block fills it in, so most sites never have to set it by hand. Without a board page there is no link.
 - The **settings page** (M6) covers the default board and status, the new request emails and who gets them, deleting data on uninstall, and the "How we use your data" note for guests (see 5.10).
 - A **Request details** meta box for editors: board, status, voters list and subscriber count, and a "Notify subscribers of this status change" checkbox (on by default).
 - Changing status from the edit screen, Quick Edit, Bulk Edit or REST triggers **one** hook, `mwtfrs_status_changed( $request_id, $old, $new )`. The notifier listens on that hook, so notifications don't depend on which screen made the change.
@@ -442,7 +445,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** ✅ | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
-| **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML |
+| **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and publishing a page with the board block sets that page |
 | **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
 | **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
