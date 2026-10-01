@@ -126,6 +126,7 @@ Differentiators, in delivery order:
 
 **Platform**
 - ✅ WordPress privacy **exporter and eraser**, plus suggested privacy policy text.
+- ✅ A **"How we use your data" note** on the submit form for visitors without an account. The site owner writes it in settings.
 - ✅ `uninstall.php` that removes data only if the admin opted in.
 - ✅ Database version tracking with an upgrade routine.
 - ✅ Fully translatable; accessibility target is WCAG 2.2 AA for the front end.
@@ -329,6 +330,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 ### 5.7 Admin
 
 - Classic PHP screens: list table columns and filters, the Settings API, and term screens for boards and statuses (with a colour picker).
+- The **settings page** (M6) covers the default board and status, the new request emails and who gets them, deleting data on uninstall, and the "How we use your data" note for guests (see 5.10).
 - A **Request details** meta box for editors: board, status, voters list and subscriber count, and a "Notify subscribers of this status change" checkbox (on by default).
 - Changing status from the edit screen, Quick Edit, Bulk Edit or REST triggers **one** hook, `mwtfrs_status_changed( $request_id, $old, $new )`. The notifier listens on that hook, so notifications don't depend on which screen made the change.
 
@@ -352,6 +354,11 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 
 - **Privacy exporter and eraser:** covers requests authored, votes, subscriptions and guest emails. On erasure, votes are anonymised (user_id set to 0 and voter_key re-hashed), so counts stay correct.
 - **Suggested privacy policy text** is added via `wp_add_privacy_policy_content`.
+- **"How we use your data" note (M6).** A settings field holds text the site owner writes for visitors who submit without an account. When it is set, the form shows it under the name and email fields, in a section the visitor opens ("How we use your data"), followed by a link to the site's privacy policy page when WordPress has one.
+  - The section is a `<details>` element, not a tooltip or a modal. It works without JavaScript and on touch screens, suits keyboards and screen readers, holds several sentences and adds no script. A tooltip can't hold a paragraph and fails on phones; a modal needs script and focus handling for a few sentences of text.
+  - The text allows links and emphasis only. It is sanitised when saved and again when shown. Every guest gets the same text, so cached pages stay correct.
+  - It is empty by default, which shows nothing. The settings field offers a suggested text built from what the plugin does on that site. The suggestion mentions Akismet only when Akismet is connected, which covers what the form's short "Only our team sees this" note leaves out.
+  - It is one site-wide text, not one per board. Logged-in users don't see it, because the form asks them for nothing.
 - **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy.
 - **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It handles multisite by looping over sites.
 - **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
@@ -426,7 +433,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
-| **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page, board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once |
+| **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML |
 | **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
 | **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
