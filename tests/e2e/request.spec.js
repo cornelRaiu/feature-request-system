@@ -14,7 +14,7 @@ const { wpEval } = require( './wp-cli' );
  * @param {number}  [options.votes]       Votes the request starts with.
  * @param {string}  [options.teamComment] Text of a comment by the admin.
  * @param {boolean} [options.official]    Whether that comment is marked as official.
- * @return {{url: string}} The request's page.
+ * @return {{url: string, comment: number}} The request's page, and the ID of the admin's comment.
  */
 function setUpRequest( {
 	title,
@@ -72,7 +72,7 @@ function setUpRequest( {
 				}
 			}
 
-			echo wp_json_encode( [ 'url' => get_permalink( $id ) ] );
+			echo wp_json_encode( [ 'url' => get_permalink( $id ), 'comment' => $comment ?? 0 ] );
 		` )
 	);
 }
@@ -148,7 +148,7 @@ test.describe( 'Feature request page', () => {
 		).toContainText( 'We are looking into webhooks.' );
 	} );
 
-	test( 'a moderator removes the official mark on the request page, and puts it back', async ( {
+	test( "a moderator removes the official mark next to the comment's Reply link, and puts it back", async ( {
 		page,
 	} ) => {
 		const request = setUpRequest( {
@@ -160,11 +160,31 @@ test.describe( 'Feature request page', () => {
 		const pinned = page.getByRole( 'region', {
 			name: 'Official response',
 		} );
+		const remove = page.getByRole( 'link', {
+			name: 'Remove official mark',
+		} );
 
+		// Only on the comment, on the same line as its Reply link.
 		await expect( pinned ).toContainText( 'Calendar view ships in March.' );
-		await pinned
-			.getByRole( 'link', { name: 'Remove official mark' } )
-			.click();
+		await expect( remove ).toHaveCount( 1 );
+		await expect(
+			pinned.getByRole( 'link', { name: /mark/ } )
+		).toHaveCount( 0 );
+		const replyBox = await remove
+			.locator( 'xpath=../..' )
+			.locator( '.comment-reply-link' )
+			.boundingBox();
+		const removeBox = await remove.boundingBox();
+		expect(
+			Math.abs(
+				replyBox.y +
+					replyBox.height / 2 -
+					( removeBox.y + removeBox.height / 2 )
+			)
+		).toBeLessThan( 6 );
+		expect( removeBox.x ).toBeGreaterThan( replyBox.x + replyBox.width );
+
+		await remove.click();
 		await expect( pinned ).toHaveCount( 0 );
 		await expect( page.locator( '.mwtfrs-official-label' ) ).toHaveCount(
 			0
@@ -174,6 +194,32 @@ test.describe( 'Feature request page', () => {
 			.getByRole( 'link', { name: 'Mark as official response' } )
 			.click();
 		await expect( pinned ).toContainText( 'Calendar view ships in March.' );
+	} );
+
+	test( "the comment's edit screen has a checkbox that removes the mark", async ( {
+		page,
+	} ) => {
+		const request = setUpRequest( {
+			title: 'API keys',
+			teamComment: 'API keys arrive in June.',
+			official: true,
+		} );
+		await page.goto(
+			`/wp-admin/comment.php?action=editcomment&c=${ request.comment }`
+		);
+		const checkbox = page.getByLabel( 'Official response' );
+
+		await expect( checkbox ).toBeChecked();
+		await checkbox.uncheck();
+		await page.getByRole( 'button', { name: 'Update' } ).click();
+
+		await page.goto( request.url );
+		await expect(
+			page.getByText( 'API keys arrive in June.' )
+		).toBeVisible();
+		await expect(
+			page.getByRole( 'region', { name: 'Official response' } )
+		).toHaveCount( 0 );
 	} );
 
 	test.describe( 'without JavaScript', () => {

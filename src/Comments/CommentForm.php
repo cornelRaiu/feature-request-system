@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
 final class CommentForm {
 
 	/**
-	 * Name of the checkbox.
+	 * Name of the checkbox, here and on a comment's edit screen.
 	 */
 	public const FIELD = 'mwtfrs_official';
 

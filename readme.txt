@@ -44,7 +44,11 @@ Every request has its own page with its vote button, status, categories, descrip
 
 To answer a request on behalf of your team, write a comment on its page and tick "Post as the official response" before sending it. The newest official response is pinned below the request's description, and each one is labelled in the comments.
 
-Editors and administrators also see a link under each comment by an editor or administrator: "Mark as official response", or "Remove official mark" once it is marked. The pinned response has the same link, and so does the Comments screen, among the actions that appear when you point at a comment.
+Editors and administrators can change the mark on any comment written by an editor or administrator, in three places:
+
+* On the request's page, next to the comment's Reply link: "Mark as official response", or "Remove official mark" once it is marked.
+* On the comment's edit screen, with the "Official response" checkbox in the Save box.
+* On the Comments screen, among the actions that appear when you point at a comment.
 
 In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
 

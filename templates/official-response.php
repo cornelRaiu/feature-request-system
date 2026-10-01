@@ -20,9 +20,5 @@ defined( 'ABSPATH' ) || exit;
 	<p class="mwtfrs-official-response__meta">
 		<?php echo esc_html( $args['author'] ); ?>,
 		<a href="<?php echo esc_url( $args['url'] ); ?>"><time datetime="<?php echo esc_attr( $args['datetime'] ); ?>"><?php echo esc_html( $args['date'] ); ?></time></a>
-		<?php if ( '' !== $args['remove_url'] ) : ?>
-			<?php // Only moderators get this link. ?>
-			<a class="mwtfrs-official-response__remove" href="<?php echo esc_url( $args['remove_url'] ); ?>"><?php esc_html_e( 'Remove official mark', 'feature-request-system' ); ?></a>
-		<?php endif; ?>
 	</p>
 </section>
