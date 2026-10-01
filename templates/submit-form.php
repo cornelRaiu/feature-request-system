@@ -107,23 +107,23 @@ $mwtfrs_limits = $args['limits'];
 			<?php endif; ?>
 
 			<?php if ( $args['guest_fields'] ) : ?>
-				<div class="mwtfrs-submit__row">
-					<p class="mwtfrs-submit__field">
-						<label for="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>">
-							<?php esc_html_e( 'Your name', 'feature-request-system' ); ?>
-							<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
-						</label>
-						<input type="text" id="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>" name="name" maxlength="<?php echo (int) $mwtfrs_limits['name']; ?>" autocomplete="name">
-					</p>
-					<p class="mwtfrs-submit__field">
-						<label for="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>">
-							<?php esc_html_e( 'Email', 'feature-request-system' ); ?>
-							<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
-						</label>
-						<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-email-help' ); ?>">
-						<span class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-email-help' ); ?>"><?php esc_html_e( 'Never shown publicly.', 'feature-request-system' ); ?></span>
-					</p>
-				</div>
+				<fieldset class="mwtfrs-submit__about">
+					<legend class="mwtfrs-submit__legend">
+						<?php esc_html_e( 'About you', 'feature-request-system' ); ?>
+						<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
+					</legend>
+					<p class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"><?php esc_html_e( 'Only our team sees this, in case we have a question about your request.', 'feature-request-system' ); ?></p>
+					<div class="mwtfrs-submit__row">
+						<p class="mwtfrs-submit__field">
+							<label for="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>"><?php esc_html_e( 'Name', 'feature-request-system' ); ?></label>
+							<input type="text" id="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>" name="name" maxlength="<?php echo (int) $mwtfrs_limits['name']; ?>" autocomplete="name" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
+						</p>
+						<p class="mwtfrs-submit__field">
+							<label for="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>"><?php esc_html_e( 'Email', 'feature-request-system' ); ?></label>
+							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
+						</p>
+					</div>
+				</fieldset>
 			<?php endif; ?>
 
 			<?php // A field people never see. Bots that fill in every field give themselves away. ?>

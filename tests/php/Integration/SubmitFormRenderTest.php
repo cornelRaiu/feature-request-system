@@ -45,6 +45,7 @@ final class SubmitFormRenderTest extends TestCase {
 		$this->assertStringContainsString( 'name="title"', $html );
 		$this->assertStringContainsString( 'name="' . SpamGuard::FIELD_TRAP . '"', $html );
 		$this->assertStringNotContainsString( 'name="email"', $html, 'Logged-in users are not asked who they are.' );
+		$this->assertStringNotContainsString( 'About you', $html );
 	}
 
 	public function test_guests_are_asked_to_log_in_by_default(): void {
@@ -64,6 +65,20 @@ final class SubmitFormRenderTest extends TestCase {
 		$this->assertStringContainsString( 'name="email"', $html );
 		$this->assertStringNotContainsString( '_wpnonce', $html );
 		$this->assertSame( '', wp_interactivity_state( SubmitForm::BLOCK )['nonce'], 'The script state carries no nonce either.' );
+	}
+
+	public function test_guests_are_told_who_sees_their_name_and_email(): void {
+		$this->allow_guests();
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/<legend[^>]*>\s*About you\s*<span[^>]*>\(optional\)<\/span>\s*<\/legend>/', $html );
+		$this->assertStringContainsString( 'Only our team sees this, in case we have a question about your request.', $html );
+		$this->assertSame(
+			2,
+			preg_match_all( '/name="(name|email)"[^>]*aria-describedby="mwtfrs-submit-\d+-about-help"/', $html ),
+			'Both fields point screen readers at the note.'
+		);
 	}
 
 	public function test_every_guest_gets_the_same_html_so_pages_can_be_cached(): void {

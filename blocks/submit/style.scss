@@ -63,8 +63,28 @@
 }
 
 .mwtfrs-submit__help {
+	margin: 0;
 	color: var(--mwtfrs-muted);
 	font-size: 0.875em;
+}
+
+// A visitor's own details: a group with a title and a note on who sees them.
+// Themes and browsers box in fieldsets; this one is only a grouping.
+.mwtfrs-submit__about {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+
+	.mwtfrs-submit__help {
+		margin-bottom: 0.625rem;
+	}
+}
+
+.mwtfrs-submit__legend {
+	margin: 0 0 0.125rem;
+	padding: 0;
+	font-weight: 600;
 }
 
 // Name and email side by side when there is room.

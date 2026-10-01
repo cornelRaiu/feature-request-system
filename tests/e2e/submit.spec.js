@@ -214,8 +214,11 @@ test.describe( 'Feature request form', () => {
 			const form = setUpPage( { submitting: 'ANYONE' } );
 			await page.goto( form.url );
 
+			const about = page.getByRole( 'group', { name: 'About you' } );
+			await expect( about ).toContainText( 'Only our team sees this' );
+
 			await page.getByLabel( 'Title' ).fill( 'Calendar view' );
-			await page.getByLabel( 'Your name' ).fill( 'Robin' );
+			await about.getByLabel( 'Name' ).fill( 'Robin' );
 			await page.getByRole( 'button', { name: 'Send request' } ).click();
 
 			await expect(
