@@ -4,6 +4,10 @@
  * The board's HTML is the same for every visitor, so it can be cached. After the page
  * loads, callbacks.hydrate asks the REST API which requests this visitor voted for.
  * Each vote button is a real form, so voting still works if this script never runs.
+ *
+ * Actions that wait for the network are generators (the * before the name) instead of
+ * async functions. They yield promises rather than awaiting them, so the Interactivity
+ * API can restore the element's scope before resuming, and getContext() keeps working.
  */
 import { store, getContext } from '@wordpress/interactivity';
 
