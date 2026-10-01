@@ -16,10 +16,8 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Voting\VoteCount;
 use stdClass;
-use WP;
 use WP_Post;
 use WP_Query;
-use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -54,7 +52,7 @@ final class Board {
 	 * @param string               $wrapper_attributes Attributes from get_block_wrapper_attributes().
 	 */
 	public static function render( array $attributes, string $wrapper_attributes ): string {
-		$board = self::board( (int) ( $attributes['board'] ?? 0 ) );
+		$board = BoardTaxonomy::resolve( (int) ( $attributes['board'] ?? 0 ) );
 		if ( ! $board ) {
 			return '';
 		}
@@ -62,9 +60,9 @@ final class Board {
 		$per_page = min( self::MAX_PER_PAGE, max( 1, (int) ( $attributes['perPage'] ?? self::DEFAULT_PER_PAGE ) ) );
 		$filters  = BoardQuery::filters_from_request();
 		$query    = new WP_Query( BoardQuery::args( $board->term_id, $filters, $per_page ) );
-		$voting   = BoardSettings::get( $board->term_id )[ BoardSettings::VOTING ];
+		$voting   = BoardSettings::voting( $board->term_id );
 		$notice   = VoteForm::notice_from_request();
-		$page_url = self::page_url();
+		$page_url = CurrentPage::url();
 		$current  = add_query_arg( self::filter_args( $filters, true ), $page_url );
 
 		self::provide_state();
@@ -118,22 +116,6 @@ final class Board {
 	 */
 	public static function item_id( int $request_id ): string {
 		return 'mwtfrs-request-' . $request_id;
-	}
-
-	/**
-	 * Returns the board to show: the chosen one, or the default board if it no longer exists.
-	 *
-	 * @param int $board_id Board term ID, or 0 for the default board.
-	 */
-	private static function board( int $board_id ): ?WP_Term {
-		foreach ( [ $board_id, RequestTerms::default_term( BoardTaxonomy::NAME ) ] as $id ) {
-			$term = $id ? get_term( $id, BoardTaxonomy::NAME ) : null;
-			if ( $term instanceof WP_Term ) {
-				return $term;
-			}
-		}
-
-		return null;
 	}
 
 	/**
@@ -227,19 +209,6 @@ final class Board {
 				],
 			]
 		);
-	}
-
-	/**
-	 * URL of the page showing the board, without the board's own parameters.
-	 */
-	private static function page_url(): string {
-		if ( is_singular() ) {
-			return (string) get_permalink( get_queried_object_id() );
-		}
-
-		global $wp;
-
-		return home_url( $wp instanceof WP ? $wp->request : '' );
 	}
 
 	/**

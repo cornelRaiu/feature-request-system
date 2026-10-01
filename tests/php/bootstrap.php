@@ -9,10 +9,12 @@ $mwtfrs_root = dirname( __DIR__, 2 );
 
 require_once $mwtfrs_root . '/vendor/autoload.php';
 
-// Board tests render the real block, which is registered from the build folder.
-if ( ! is_readable( $mwtfrs_root . '/build/board/block.json' ) ) {
-	fwrite( STDERR, 'The block build is missing. Run npm install and npm run build first.' . PHP_EOL );
-	exit( 1 );
+// Render tests use the real blocks, which are registered from the build folder.
+foreach ( [ 'board', 'submit' ] as $mwtfrs_block ) {
+	if ( ! is_readable( $mwtfrs_root . '/build/' . $mwtfrs_block . '/block.json' ) ) {
+		fwrite( STDERR, 'The block build is missing. Run npm install and npm run build first.' . PHP_EOL );
+		exit( 1 );
+	}
 }
 
 // Hosted setups such as wp-env provide their own test library. Otherwise use the wp-phpunit package.

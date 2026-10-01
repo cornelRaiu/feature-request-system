@@ -12,9 +12,12 @@ use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Frontend\Blocks;
+use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Install\Installer;
+use FeatureRequestSystem\Notifications\NewRequestEmail;
 use FeatureRequestSystem\Rest\RestApi;
+use FeatureRequestSystem\Submission\Akismet;
 use FeatureRequestSystem\Voting\VoteService;
 use WP_CLI;
 
@@ -57,6 +60,9 @@ final class Plugin {
 		RequestTerms::add_hooks();
 		VoteService::add_hooks();
 		VoteForm::add_hooks();
+		SubmitForm::add_hooks();
+		Akismet::add_hooks();
+		NewRequestEmail::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

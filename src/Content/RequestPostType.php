@@ -36,6 +36,26 @@ final class RequestPostType {
 	public const META_VOTES = '_mwtfrs_votes';
 
 	/**
+	 * Post meta: ID of the logged-in user who submitted the request from the front end.
+	 */
+	public const META_SUBMITTER_ID = '_mwtfrs_submitter_id';
+
+	/**
+	 * Post meta: name a visitor gave when submitting without an account. Never shown publicly.
+	 */
+	public const META_SUBMITTER_NAME = '_mwtfrs_submitter_name';
+
+	/**
+	 * Post meta: email a visitor gave when submitting without an account. Never shown publicly.
+	 */
+	public const META_SUBMITTER_EMAIL = '_mwtfrs_submitter_email';
+
+	/**
+	 * Post meta: set when a spam filter such as Akismet flagged the submission, which is then held for review.
+	 */
+	public const META_FLAGGED_AS_SPAM = '_mwtfrs_flagged_as_spam';
+
+	/**
 	 * Registers the post type and its meta.
 	 */
 	public static function register(): void {
@@ -51,7 +71,9 @@ final class RequestPostType {
 				],
 				'menu_icon'        => 'dashicons-lightbulb',
 				'menu_position'    => 26,
-				'supports'         => [ 'title', 'editor', 'author', 'comments', 'revisions' ],
+				// No author support: front-end submitters are not WordPress authors, so their names
+				// stay out of author archives, oEmbed data and the public users endpoint.
+				'supports'         => [ 'title', 'editor', 'comments', 'revisions' ],
 				'show_in_rest'     => true,
 				'capability_type'  => [ self::NAME, self::CAPABILITY_TYPE ],
 				'map_meta_cap'     => true,

@@ -7,7 +7,7 @@ The rebuild plan, feature list and milestones are in [PLAN.md](PLAN.md). The Wor
 ## Requirements
 
 - PHP 7.4 or later and Composer 2
-- Node.js 20 or later and npm, to build the block
+- Node.js 20 or later and npm, to build the blocks
 - A MySQL or MariaDB server for the PHP tests
 - Docker, only for the end-to-end tests on wp-env
 - WordPress 6.6 or later on the sites that run the plugin
@@ -46,9 +46,9 @@ putenv( 'WP_TESTS_DB_HOST=127.0.0.1:33061' );
 
 | Command | What it does |
 |---|---|
-| `npm run build` | Compiles the block into `build/` (`npm run start` rebuilds on every change) |
-| `npm run lint:js` / `npm run lint:css` | Lints the block's JavaScript and styles |
-| `composer test` | Runs PHPUnit against WordPress from Composer; needs the block build |
+| `npm run build` | Compiles the blocks into `build/` (`npm run start` rebuilds on every change) |
+| `npm run lint:js` / `npm run lint:css` | Lints the blocks' JavaScript and styles |
+| `composer test` | Runs PHPUnit against WordPress from Composer; needs the blocks built |
 | `composer lint` | Checks WordPress Coding Standards and PHP 7.4 compatibility |
 | `composer lint:fix` | Fixes what the coding standards check can fix automatically |
 | `composer analyse` | Runs PHPStan at level 6 |
@@ -73,6 +73,16 @@ WP_BASE_URL=http://localhost:8081 WP_CLI="wp --path=/path/to/site" npm run test:
 ```
 
 CI runs the lint and static checks, the PHP tests on PHP 7.4 to 8.4 against WordPress 6.6 and the latest release, the end-to-end tests on wp-env, and Plugin Check on the built zip.
+
+## Hooks
+
+| Hook | Type | Use |
+|---|---|---|
+| `mwtfrs_request_submitted` | action | Runs after a request is submitted from the front end. Receives the request ID. |
+| `mwtfrs_verify_captcha` | filter | Return `true` to accept a submission, or a `WP_Error` to refuse it with that message. Receives `true` and the submitted fields. |
+| `mwtfrs_is_spam` | filter | Return `true` to hold a submission for review as spam. Receives the verdict so far and the title, description, name and email. |
+| `mwtfrs_rate_limit` | filter | Changes a rate limit. Receives the limit per hour, the action (`vote` or `submit`) and the scope (`voter` or `ip`). |
+| `mwtfrs_client_ip` | filter | Returns the visitor's IP address, for sites behind a trusted proxy. Defaults to `REMOTE_ADDR`. |
 
 ## Rules
 

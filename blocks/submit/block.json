@@ -1,0 +1,31 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "mwtfrs/submit",
+	"version": "0.1.0",
+	"title": "Feature Request Form",
+	"category": "widgets",
+	"icon": "feedback",
+	"description": "A form for suggesting features. Shows similar requests while people type, so they can vote instead of posting a duplicate.",
+	"keywords": [ "feature request", "suggest", "submit", "feedback", "ideas" ],
+	"textdomain": "feature-request-system",
+	"attributes": {
+		"board": {
+			"type": "integer",
+			"default": 0
+		}
+	},
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style-index.css",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}

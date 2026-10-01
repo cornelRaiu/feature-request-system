@@ -38,7 +38,33 @@ final class BoardSettingsTest extends TestCase {
 			]
 		);
 
-		$this->assertSame( [ BoardSettings::VOTING => BoardSettings::NOBODY ], BoardSettings::get( $this->board() ) );
+		$this->assertSame( BoardSettings::NOBODY, BoardSettings::voting( $this->board() ) );
+		$this->assertSame( array_keys( BoardSettings::defaults() ), array_keys( BoardSettings::get( $this->board() ) ), 'Unknown keys are dropped.' );
+	}
+
+	public function test_boards_take_new_requests_from_logged_in_users_and_hold_them_for_approval_by_default(): void {
+		$this->assertSame( BoardSettings::LOGGED_IN, BoardSettings::submitting( $this->board() ) );
+		$this->assertTrue( BoardSettings::moderated( $this->board() ) );
+	}
+
+	public function test_submitting_and_moderation_can_be_changed(): void {
+		BoardSettings::update(
+			$this->board(),
+			[
+				BoardSettings::SUBMITTING => BoardSettings::ANYONE,
+				BoardSettings::MODERATION => false,
+			]
+		);
+
+		$this->assertSame( BoardSettings::ANYONE, BoardSettings::submitting( $this->board() ) );
+		$this->assertFalse( BoardSettings::moderated( $this->board() ) );
+		$this->assertSame( BoardSettings::LOGGED_IN, BoardSettings::voting( $this->board() ), 'Other settings keep their value.' );
+	}
+
+	public function test_moderation_only_accepts_true_or_false(): void {
+		BoardSettings::update( $this->board(), [ BoardSettings::MODERATION => 'no' ] );
+
+		$this->assertTrue( BoardSettings::moderated( $this->board() ) );
 	}
 
 	public function test_corrupt_stored_settings_fall_back_to_the_defaults(): void {

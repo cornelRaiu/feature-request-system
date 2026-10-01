@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Content;
 
 use FeatureRequestSystem\Admin\TermSelectBox;
 use FeatureRequestSystem\Capabilities;
+use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -44,6 +45,22 @@ final class BoardTaxonomy {
 				'capabilities'         => Capabilities::term_caps(),
 			]
 		);
+	}
+
+	/**
+	 * Returns a board, or the default board when it is 0 or no longer exists.
+	 *
+	 * @param int $board_id Board term ID, or 0 for the default board.
+	 */
+	public static function resolve( int $board_id ): ?WP_Term {
+		foreach ( [ $board_id, RequestTerms::default_term( self::NAME ) ] as $id ) {
+			$term = $id ? get_term( $id, self::NAME ) : null;
+			if ( $term instanceof WP_Term ) {
+				return $term;
+			}
+		}
+
+		return null;
 	}
 
 	/**

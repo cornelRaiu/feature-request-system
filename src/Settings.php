@@ -35,6 +35,16 @@ final class Settings {
 	public const DELETE_DATA_ON_UNINSTALL = 'delete_data_on_uninstall';
 
 	/**
+	 * Whether to email the site's moderators about every new request.
+	 */
+	public const NOTIFY_NEW_REQUESTS = 'notify_new_requests';
+
+	/**
+	 * Comma-separated addresses for new request emails. Empty means the site admin email.
+	 */
+	public const NOTIFY_EMAILS = 'notify_emails';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -44,6 +54,8 @@ final class Settings {
 			self::DEFAULT_BOARD            => 0,
 			self::DEFAULT_STATUS           => 0,
 			self::DELETE_DATA_ON_UNINSTALL => false,
+			self::NOTIFY_NEW_REQUESTS      => true,
+			self::NOTIFY_EMAILS            => '',
 		];
 	}
 

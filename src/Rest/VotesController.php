@@ -90,7 +90,7 @@ final class VotesController {
 	 * @phpstan-param WP_REST_Request<array<string, mixed>> $request
 	 */
 	public static function cast( WP_REST_Request $request ): WP_REST_Response {
-		return self::respond( VoteService::cast( (int) $request['id'] ) );
+		return Response::from( VoteService::cast( (int) $request['id'] ) );
 	}
 
 	/**
@@ -100,25 +100,6 @@ final class VotesController {
 	 * @phpstan-param WP_REST_Request<array<string, mixed>> $request
 	 */
 	public static function retract( WP_REST_Request $request ): WP_REST_Response {
-		return self::respond( VoteService::retract( (int) $request['id'] ) );
-	}
-
-	/**
-	 * Turns a service result into a response, with a Retry-After header when rate-limited.
-	 *
-	 * @param array{votes: int, voted: bool}|WP_Error $result Service result.
-	 */
-	private static function respond( $result ): WP_REST_Response {
-		if ( ! is_wp_error( $result ) ) {
-			return new WP_REST_Response( $result );
-		}
-
-		$response = rest_convert_error_to_response( $result );
-		$data     = $result->get_error_data();
-		if ( is_array( $data ) && isset( $data['retry_after'] ) ) {
-			$response->header( 'Retry-After', (string) $data['retry_after'] );
-		}
-
-		return $response;
+		return Response::from( VoteService::retract( (int) $request['id'] ) );
 	}
 }

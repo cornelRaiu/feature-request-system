@@ -39,9 +39,13 @@ final class RateLimiter {
 	 * Allowed attempts per hour, by action and scope.
 	 */
 	private const LIMITS = [
-		'vote' => [
+		'vote'   => [
 			'voter' => 30,
 			'ip'    => 60,
+		],
+		'submit' => [
+			'voter' => 5,
+			'ip'    => 10,
 		],
 	];
 
@@ -50,7 +54,7 @@ final class RateLimiter {
 	 *
 	 * Moderators are never limited. The IP address is only used as a hashed counter key.
 	 *
-	 * @param string $action    Action name, such as "vote".
+	 * @param string $action    Action name: "vote" or "submit".
 	 * @param string $voter_key Voter key of the visitor, or '' when there is none.
 	 * @return int 0 when the attempt is allowed, otherwise the seconds until the limit resets.
 	 */

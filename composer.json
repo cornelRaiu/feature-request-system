@@ -48,7 +48,7 @@
     "scripts": {
         "lint": "phpcs",
         "lint:fix": "phpcbf",
-        "analyse": "phpstan analyse --memory-limit=1G",
+        "analyse": "phpstan analyse --memory-limit=2G",
         "check:names": "@php bin/check-identifiers.php",
         "test": [
             "@putenv XDEBUG_MODE=off",

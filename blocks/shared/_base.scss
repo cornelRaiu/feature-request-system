@@ -1,0 +1,66 @@
+/**
+ * Shared by the plugin's blocks.
+ *
+ * Colours and spacing come from the theme's presets where it defines them,
+ * and from the surrounding text colour otherwise, so the blocks fit block
+ * and classic themes alike.
+ */
+
+@mixin tokens {
+	--mwtfrs-gap: var(--wp--preset--spacing--30, 1rem);
+	--mwtfrs-radius: 8px;
+	--mwtfrs-line: color-mix(in srgb, currentcolor 20%, transparent);
+	--mwtfrs-muted: color-mix(in srgb, currentcolor 70%, transparent);
+	// Real colours as fallbacks: currentcolor would resolve against a
+	// filled button's own text colour and hide its content.
+	--mwtfrs-accent: var(--wp--preset--color--contrast, #1e1e1e);
+	--mwtfrs-on-accent: var(--wp--preset--color--base, #fff);
+
+	[hidden] {
+		display: none !important;
+	}
+}
+
+// Hidden on screen, still read by screen readers.
+@mixin visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+@mixin field {
+	min-height: 2.5rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--mwtfrs-line);
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+}
+
+@mixin button {
+	min-height: 2.5rem;
+	margin: 0;
+	padding: 0.25rem 1rem;
+	border: 1px solid var(--mwtfrs-accent);
+	border-radius: 4px;
+	box-shadow: none;
+	background: var(--mwtfrs-accent);
+	color: var(--mwtfrs-on-accent);
+	font: inherit;
+	line-height: 1.2;
+	text-decoration: none;
+	text-transform: none;
+	cursor: pointer;
+}
+
+.mwtfrs-sr-only {
+
+	@include visually-hidden;
+}

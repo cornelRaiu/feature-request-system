@@ -79,7 +79,7 @@ final class VoteService {
 		}
 
 		$board = RequestTerms::term_of( $request_id, BoardTaxonomy::NAME );
-		$rule  = BoardSettings::get( $board ? $board->term_id : 0 )[ BoardSettings::VOTING ];
+		$rule  = BoardSettings::voting( $board ? $board->term_id : 0 );
 
 		if ( BoardSettings::NOBODY === $rule ) {
 			return new WP_Error( self::ERROR_DISABLED, __( 'Voting is turned off for this board.', 'feature-request-system' ), [ 'status' => 403 ] );

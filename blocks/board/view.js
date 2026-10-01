@@ -11,6 +11,8 @@
  */
 import { store, getContext } from '@wordpress/interactivity';
 
+import { send } from '../shared/rest';
+
 const { state } = store( 'mwtfrs/board', {
 	actions: {
 		/**
@@ -32,8 +34,9 @@ const { state } = store( 'mwtfrs/board', {
 
 			try {
 				const response = yield* send(
+					state,
 					`requests/${ context.id }/vote`,
-					context.voted ? 'DELETE' : 'POST'
+					{ method: context.voted ? 'DELETE' : 'POST' }
 				);
 				const data = yield response.json();
 
@@ -66,7 +69,10 @@ const { state } = store( 'mwtfrs/board', {
 			}
 
 			try {
-				const response = yield* send( 'me/state', 'POST', { ids } );
+				const response = yield* send( state, 'me/state', {
+					method: 'POST',
+					body: { ids },
+				} );
 				if ( response.ok ) {
 					const data = yield response.json();
 					data.voted.forEach( ( id ) => {
@@ -87,45 +93,3 @@ const { state } = store( 'mwtfrs/board', {
 		},
 	},
 } );
-
-/**
- * Sends a request to the plugin's REST API.
- *
- * Logged-in visitors send the REST nonce. If it expired while the page was open,
- * a fresh one is fetched and the request is sent once more.
- *
- * @param {string} path   Route relative to the plugin's REST namespace.
- * @param {string} method HTTP method.
- * @param {Object} [body] JSON body.
- * @return {Response} The response to the request.
- */
-function* send( path, method, body ) {
-	const request = () =>
-		fetch( state.restUrl + path, {
-			method,
-			credentials: 'same-origin',
-			headers: {
-				'Content-Type': 'application/json',
-				...( state.nonce ? { 'X-WP-Nonce': state.nonce } : {} ),
-			},
-			body: body ? JSON.stringify( body ) : undefined,
-		} );
-
-	let response = yield request();
-
-	if ( response.status === 403 && state.nonce ) {
-		const error = yield response.clone().json();
-		if ( error.code === 'rest_cookie_invalid_nonce' ) {
-			const refreshed = yield fetch(
-				`${ state.ajaxUrl }?action=rest-nonce`,
-				{ credentials: 'same-origin' }
-			);
-			if ( refreshed.ok ) {
-				state.nonce = yield refreshed.text();
-				response = yield request();
-			}
-		}
-	}
-
-	return response;
-}

@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M3 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M4 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -82,7 +82,7 @@ Differentiators, in delivery order:
 
 **Boards and requests**
 - ✅ Multiple **boards** (for example, one per product), each with its own settings: who can submit, who can vote, whether moderation is on, and whether guests are allowed.
-- ✅ **Requests**: title, description (plain text with line breaks), category, author.
+- ✅ **Requests**: title, description (plain text with line breaks), category, and who submitted it (kept private).
 - ✅ **Statuses**: Open, Under Review, Planned, In Progress, Shipped, Declined. Each has a colour, an order, an "is closed" flag (closed requests stop accepting votes) and a "show on roadmap" flag. Admins can add, rename and reorder them.
 - ✅ **Categories** per site, optionally limited per board.
 - ✅ **Moderation**: new requests are held as `pending` by default, with approve and reject in the admin.
@@ -218,7 +218,9 @@ Differentiators, in delivery order:
   - `_mwtfrs_votes` (int, always set)
   - `_mwtfrs_trending` (int, 1.1)
   - `_mwtfrs_merged_into` (int, 1.1)
-  - `_mwtfrs_guest_name` and `_mwtfrs_guest_email` (private, never exposed)
+  - `_mwtfrs_submitter_id` (logged-in submitter), `_mwtfrs_submitter_name` and `_mwtfrs_submitter_email` (a guest's details): private, never exposed
+  - `_mwtfrs_flagged_as_spam` (set when a spam check held the request for review)
+- No `author` support: front-end submitters are not WordPress post authors (`post_author` is 0), so their names stay out of author archives, oEmbed data and the public users endpoint. Built in M4.
 
 **Taxonomies**
 - `mwtfrs_board`: not hierarchical, one per request. Term meta holds the board settings as JSON (who can submit or vote, whether guests are allowed, moderation, allowed categories).
@@ -274,7 +276,11 @@ This is idempotent and self-correcting, and there's no read-increment-write race
   - Moderators (anyone who can edit others' requests) are exempt.
   - Counters are fixed one-hour windows in transients (`mwtfrs_rate_limit` filter to change a limit, `mwtfrs_client_ip` for sites behind a trusted proxy). They are abuse protection, not accounting; the votes table's unique key is what prevents duplicate votes.
 - **Frozen votes:** while a request's status is closed, or its board has voting turned off, votes can neither be cast nor retracted.
-- **Submissions:** honeypot, a minimum 3 seconds between rendering and submitting (via an HMAC-signed timestamp), an Akismet check when available, and the `mwtfrs_verify_captcha` filter.
+- **Submissions** (built in M4):
+  - A honeypot field, and a minimum 3 seconds between rendering the form and submitting it, checked with an HMAC-signed timestamp. The timestamp has no maximum age, so a form served from a page cache keeps working. With JavaScript, the form waits out the rest of the 3 seconds itself, so quick people are never refused.
+  - Refusals don't say which check failed.
+  - The `mwtfrs_verify_captcha` filter lets a captcha plugin refuse a submission, and the `mwtfrs_is_spam` filter lets a spam service flag one. The Akismet adapter uses the second when Akismet is active and has a key. A flagged request is held as `pending` with `_mwtfrs_flagged_as_spam`, never deleted, because spam checks sometimes get it wrong.
+  - Text is saved as plain text: tags are stripped, and square brackets are stored as entities so a shortcode in a visitor's text displays instead of running.
 - **CSRF:**
   - REST uses the core `wp_rest` nonce for logged-in users. There is no second custom nonce (v0.5 broke voting by adding one).
   - Guest REST writes are protected by SameSite cookies plus an `Origin`/`Referer` check that compares scheme, host and port. Origins added through WordPress's `allowed_http_origins` filter also count as the site.
@@ -286,8 +292,8 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 |---|---|---|
 | `GET /boards/{board}/requests` | public (board visibility) | List with `status`, `category`, `search`, `sort=top\|new\|trending`, `page`. Only published requests. |
 | `GET /requests/{id}` | public | Single request (allow-listed fields). |
-| `POST /boards/{board}/requests` | per board setting | Submit a request. The response says whether it's pending or published. |
-| `GET /boards/{board}/similar?q=` | public | Top 5 similar titles, for duplicate detection. |
+| `POST /boards/{board}/requests` | per board setting | Submit a request. Returns `{id, status, url, message}`; `status` is `pending` or `publish`. Built in M4. |
+| `GET /boards/{board}/similar?q=` | public | Top 5 published requests whose titles share a meaningful word with `q`, most shared words first, then most votes. Built in M4. |
 | `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`. Built in M2. |
 | `DELETE /requests/{id}/vote` | voter | Retract a vote. Returns `{votes, voted: false}`. Built in M2. |
 | `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on or follows. Used to hydrate cached pages. |
@@ -299,12 +305,17 @@ Every route declares `args` with a type, `enum` and `sanitize_callback`. Every r
 
 Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled` or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
 
+Submission errors: 400 `mwtfrs_submission_invalid` (with `data.reason`: `title`, `title-long`, `details-long`, `category`, `name-long` or `email`) or `mwtfrs_submission_rejected` (spam checks); 401 `mwtfrs_submit_login_required`; 403 `mwtfrs_submissions_closed` or `mwtfrs_invalid_origin`; 404 `mwtfrs_board_not_found`; 429 `mwtfrs_submit_rate_limited` with a `Retry-After` header.
+
+WordPress search needs every word to match, which would miss most duplicates ("Add dark mode" against "Dark mode"). The similar endpoint instead matches any word of three or more letters that isn't a common word (a translatable list), and ranks titles by how many words they share.
+
 ### 5.6 Front end
 
 - **Blocks** are built with `@wordpress/scripts`. Each has a `block.json` with `viewScriptModule` for the **Interactivity API** (requires WordPress 6.5 or later). They are server-rendered in PHP via `render.php` and hydrated with `data-wp-*` directives.
 - **Shortcodes** render the block itself (`[feature_requests board="slug"]`), so both share markup, assets and behaviour.
 - **Progressive enhancement:**
   - The vote button is a `<form method="post">` pointing at an `admin-post.php` handler. Without JavaScript, submitting it toggles the vote and returns to the board with a notice ("Your vote was added"). The Interactivity API takes over when JavaScript is available.
+  - The submit form works the same way: without JavaScript it posts to `admin-post.php` and returns to the form with an `fr-form` notice. Its `required` and `maxlength` attributes catch most mistakes before a post.
   - Search and filters are GET query arguments (`fr-search`, `fr-status`, `fr-category`, `fr-sort`, `fr-page`).
 - **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
 - **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
@@ -312,7 +323,8 @@ Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_vo
 - **Templates:**
   - Block themes get a registered block template `single-mwtfrs_request`.
   - Classic themes use `the_content` filtering for the single request view.
-  - Template parts can be overridden from `yourtheme/feature-request-system/` (the board: `board.php`, since M3).
+  - Template parts can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3) and `submit-form.php` (since M4).
+- **Pattern:** "Feature request page" puts the form, a heading and the board on one page (M4).
 
 ### 5.7 Admin
 
@@ -322,7 +334,8 @@ Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_vo
 
 ### 5.8 Notifications
 
-- Sending runs through **Action Scheduler**, bundled via Composer and loaded only if no other copy is present. WooCommerce ships the same library.
+- The **new request** email (M4) is one `wp_mail()` to the moderators, sent when the request is submitted: the addresses in settings, or the site admin email. It says whether the request waits for approval and links to its edit screen. A site can turn it off.
+- Sending to subscribers runs through **Action Scheduler**, bundled via Composer and loaded only if no other copy is present. WooCommerce ships the same library.
 - Subscribers get one scheduled action per batch of 50.
 - Templates are plain PHP with text and HTML versions, can be overridden, and can be filtered.
 - All strings are translatable and sent in the site locale.
@@ -339,6 +352,7 @@ Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_vo
 
 - **Privacy exporter and eraser:** covers requests authored, votes, subscriptions and guest emails. On erasure, votes are anonymised (user_id set to 0 and voter_key re-hashed), so counts stay correct.
 - **Suggested privacy policy text** is added via `wp_add_privacy_policy_content`.
+- **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy.
 - **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It handles multisite by looping over sites.
 - **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
 - **Default board and status** can't be deleted from the admin or REST. If code such as WP-CLI deletes one anyway, the oldest remaining term becomes the default and the affected requests move to it.
@@ -356,7 +370,8 @@ feature-request-system/
 │   ├── Install/                    # Installer (tables, terms, caps), Migrations, Uninstaller
 │   ├── Content/                    # RequestPostType, BoardTaxonomy, StatusTaxonomy, CategoryTaxonomy, BoardSettings
 │   ├── Voting/                     # VoteRepository, VoteService, VoterIdentity
-│   ├── Submission/                 # SubmissionService, SpamGuard, RateLimiter, Similar
+│   ├── Security/                   # RateLimiter, RequestOrigin
+│   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, SimilarRequests
 │   ├── Notifications/              # SubscriptionRepository, Notifier, Mailer, templates/
 │   ├── Rest/                       # BoardsController, RequestsController, VotesController, MeController, SubscriptionsController
 │   ├── Frontend/                   # Blocks, Shortcodes, TemplateLoader, FormHandlers (no-JS)
@@ -409,7 +424,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M1** ✅ | Content core (1–2 days) | Post type, 3 taxonomies, default statuses and board, caps, Installer, Migrations, `uninstall.php` | Tests: activation creates tables, terms and caps; uninstall with opt-in removes everything; re-activation is idempotent |
 | **M2** ✅ | **Voting slice** (2 days) | VoteRepository, VoteService, VoterIdentity, RateLimiter, vote REST routes, count sync, `wp mwtfrs recount` | Tests: vote, re-vote (no duplicate), retract, guest via cookie, guests blocked when the board disallows them, closed status blocks votes, rate limit returns 429, `_mwtfrs_votes` is always accurate |
 | **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
-| **M4** | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
+| **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
 | **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page, board and status term screens | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once |
 | **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
