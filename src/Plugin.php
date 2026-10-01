@@ -11,6 +11,7 @@ use FeatureRequestSystem\Admin\CommentActions;
 use FeatureRequestSystem\Cli\Commands;
 use FeatureRequestSystem\Comments\CommentForm;
 use FeatureRequestSystem\Comments\CommentThread;
+use FeatureRequestSystem\Comments\OfficialResponseLink;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
@@ -71,6 +72,7 @@ final class Plugin {
 		RequestView::add_hooks();
 		CommentForm::add_hooks();
 		CommentThread::add_hooks();
+		OfficialResponseLink::add_hooks();
 		CommentActions::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );

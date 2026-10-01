@@ -7,13 +7,15 @@
 
 namespace FeatureRequestSystem\Comments;
 
+use FeatureRequestSystem\Content\RequestPostType;
 use WP_Comment;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Labels official responses wherever WordPress shows comments: the theme's comment list,
- * the Comments block and the admin Comments screen.
+ * the Comments block and the admin Comments screen. On a request's page, moderators also
+ * get a link under each comment to mark it or to remove its mark.
  */
 final class CommentThread {
 
@@ -52,22 +54,30 @@ final class CommentThread {
 	}
 
 	/**
-	 * Puts "Official response" above the text of an official response.
+	 * Puts "Official response" above the text of an official response, and on a request's
+	 * page gives moderators a link below the text to change the mark.
 	 *
 	 * @param string          $text    Comment text, already formatted.
 	 * @param WP_Comment|null $comment Comment. Missing when other code applies the filter to plain text.
 	 */
 	public static function add_label( string $text, $comment = null ): string {
-		if ( ! $comment instanceof WP_Comment || ! OfficialResponse::is_official( (int) $comment->comment_ID ) ) {
+		if ( ! $comment instanceof WP_Comment ) {
 			return $text;
 		}
 
-		return '<p class="mwtfrs-official-label"><strong>' . esc_html__( 'Official response', 'feature-request-system' ) . '</strong></p>' . $text;
+		if ( OfficialResponse::is_official( (int) $comment->comment_ID ) ) {
+			$text = '<p class="mwtfrs-official-label"><strong>' . esc_html__( 'Official response', 'feature-request-system' ) . '</strong></p>' . $text;
+		}
+
+		// Only on the request's page: the Comments screen has its own action, and the REST API shows text only.
+		$link = is_singular( RequestPostType::NAME ) ? OfficialResponseLink::for_comment( $comment, get_comment_link( $comment ) ) : '';
+
+		return '' === $link ? $text : $text . '<p class="mwtfrs-official-action">' . $link . '</p>';
 	}
 
 	/**
-	 * Returns a comment's formatted text without the label, for the pinned response,
-	 * which has its own heading.
+	 * Returns a comment's formatted text without the label and the link, for the pinned
+	 * response, which has its own.
 	 *
 	 * @param WP_Comment $comment Comment.
 	 */

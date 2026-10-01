@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Frontend;
 
 use FeatureRequestSystem\Comments\CommentThread;
 use FeatureRequestSystem\Comments\OfficialResponse;
+use FeatureRequestSystem\Comments\OfficialResponseLink;
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
@@ -169,12 +170,16 @@ final class RequestView {
 		return Template::render(
 			'official-response',
 			[
-				'id'       => 'mwtfrs-official-response-' . $request_id,
-				'text'     => CommentThread::text_without_label( $comment ),
-				'author'   => get_comment_author( $comment ),
-				'date'     => get_comment_date( '', $comment ),
-				'datetime' => get_comment_date( 'c', $comment ),
-				'url'      => get_comment_link( $comment ),
+				'id'         => 'mwtfrs-official-response-' . $request_id,
+				'text'       => CommentThread::text_without_label( $comment ),
+				'author'     => get_comment_author( $comment ),
+				'date'       => get_comment_date( '', $comment ),
+				'datetime'   => get_comment_date( 'c', $comment ),
+				'url'        => get_comment_link( $comment ),
+				// For moderators only, so every other visitor gets the same HTML.
+				'remove_url' => OfficialResponse::can_mark( $comment, false )
+					? OfficialResponseLink::url( (int) $comment->comment_ID, false, CurrentPage::url() )
+					: '',
 			]
 		);
 	}

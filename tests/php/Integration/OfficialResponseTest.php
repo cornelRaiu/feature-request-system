@@ -7,9 +7,9 @@
 
 namespace FeatureRequestSystem\Tests\Integration;
 
-use FeatureRequestSystem\Admin\CommentActions;
 use FeatureRequestSystem\Comments\CommentForm;
 use FeatureRequestSystem\Comments\OfficialResponse;
+use FeatureRequestSystem\Comments\OfficialResponseLink;
 use RuntimeException;
 use WPDieException;
 
@@ -75,7 +75,7 @@ final class OfficialResponseTest extends TestCase {
 
 		get_userdata( (int) $comment->user_id )->set_role( 'subscriber' );
 
-		$this->assertStringContainsString( 'Remove official mark', apply_filters( 'comment_row_actions', [], $comment )[ CommentActions::ACTION ] );
+		$this->assertStringContainsString( 'Remove official mark', apply_filters( 'comment_row_actions', [], $comment )[ OfficialResponseLink::ACTION ] );
 		$this->assertTrue( OfficialResponse::mark( (int) $comment->comment_ID, false ) );
 		$this->assertFalse( OfficialResponse::is_official( (int) $comment->comment_ID ) );
 		$this->assertFalse( OfficialResponse::mark( (int) $comment->comment_ID, true ), 'It cannot be marked again.' );
@@ -160,26 +160,74 @@ final class OfficialResponseTest extends TestCase {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
 		$actions = apply_filters( 'comment_row_actions', [], $by_team );
-		$this->assertStringContainsString( '>Mark as official response</a>', $actions[ CommentActions::ACTION ] );
-		$this->assertStringContainsString( 'comment=' . $by_team->comment_ID, $actions[ CommentActions::ACTION ] );
-		$this->assertStringContainsString( 'official=1', $actions[ CommentActions::ACTION ] );
-		$this->assertStringContainsString( '_wpnonce=', $actions[ CommentActions::ACTION ] );
+		$this->assertStringContainsString( '>Mark as official response</a>', $actions[ OfficialResponseLink::ACTION ] );
+		$this->assertStringContainsString( 'comment=' . $by_team->comment_ID, $actions[ OfficialResponseLink::ACTION ] );
+		$this->assertStringContainsString( 'official=1', $actions[ OfficialResponseLink::ACTION ] );
+		$this->assertStringContainsString( '_wpnonce=', $actions[ OfficialResponseLink::ACTION ] );
 
 		OfficialResponse::mark( (int) $by_team->comment_ID, true );
 		$actions = apply_filters( 'comment_row_actions', [], $by_team );
-		$this->assertStringContainsString( '>Remove official mark</a>', $actions[ CommentActions::ACTION ] );
-		$this->assertStringContainsString( 'official=0', $actions[ CommentActions::ACTION ] );
+		$this->assertStringContainsString( '>Remove official mark</a>', $actions[ OfficialResponseLink::ACTION ] );
+		$this->assertStringContainsString( 'official=0', $actions[ OfficialResponseLink::ACTION ] );
 
-		$this->assertArrayNotHasKey( CommentActions::ACTION, apply_filters( 'comment_row_actions', [], $by_visitor ) );
+		$this->assertArrayNotHasKey( OfficialResponseLink::ACTION, apply_filters( 'comment_row_actions', [], $by_visitor ) );
 
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'subscriber' ] ) );
-		$this->assertArrayNotHasKey( CommentActions::ACTION, apply_filters( 'comment_row_actions', [], $by_team ) );
+		$this->assertArrayNotHasKey( OfficialResponseLink::ACTION, apply_filters( 'comment_row_actions', [], $by_team ) );
+	}
+
+	public function test_moderators_get_a_link_under_team_comments_on_the_request_page(): void {
+		$by_team    = get_comment( $this->comment_by( 'editor' ) );
+		$by_visitor = self::factory()->comment->create_and_get(
+			[
+				'comment_post_ID'  => $by_team->comment_post_ID,
+				'comment_approved' => '1',
+			]
+		);
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$this->go_to( get_permalink( (int) $by_team->comment_post_ID ) );
+
+		$text = $this->comment_text( (int) $by_team->comment_ID );
+		$this->assertStringContainsString( '>Mark as official response</a>', $text );
+		$this->assertStringContainsString( 'official=1', $text );
+		$this->assertStringContainsString( rawurlencode( get_comment_link( $by_team ) ), $text, 'The link returns to this comment.' );
+		$this->assertStringNotContainsString( 'official response', $this->comment_text( (int) $by_visitor->comment_ID ), 'A visitor\'s comment cannot be marked.' );
+
+		OfficialResponse::mark( (int) $by_team->comment_ID, true );
+		$text = $this->comment_text( (int) $by_team->comment_ID );
+		$this->assertStringContainsString( '>Remove official mark</a>', $text );
+		$this->assertStringContainsString( 'official=0', $text );
+	}
+
+	public function test_the_links_are_for_moderators_on_the_request_page_only(): void {
+		$comment = get_comment( $this->comment_by( 'editor' ) );
+		update_comment_meta( (int) $comment->comment_ID, OfficialResponse::META, 1 );
+
+		foreach ( [ 0, self::factory()->user->create( [ 'role' => 'subscriber' ] ) ] as $visitor ) {
+			wp_set_current_user( $visitor );
+			$this->go_to( get_permalink( (int) $comment->comment_post_ID ) );
+			$this->assertStringNotContainsString( OfficialResponseLink::ACTION, $this->comment_text( (int) $comment->comment_ID ) );
+		}
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$this->go_to( home_url( '/' ) );
+		$this->assertStringNotContainsString( OfficialResponseLink::ACTION, $this->comment_text( (int) $comment->comment_ID ), 'Not where comments are shown elsewhere, such as the Comments screen or the REST API.' );
+	}
+
+	public function test_a_link_on_the_request_page_returns_there(): void {
+		$comment = get_comment( $this->comment_by( 'editor' ) );
+		$back    = get_comment_link( $comment );
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$this->follow_action_link( (int) $comment->comment_ID, wp_create_nonce( OfficialResponseLink::ACTION . '_' . $comment->comment_ID ), $back );
+
+		$this->assertSame( $back, $this->run_action() );
+		$this->assertTrue( OfficialResponse::is_official( (int) $comment->comment_ID ) );
 	}
 
 	public function test_the_action_marks_the_comment_and_returns_to_the_comments_screen(): void {
 		$comment = $this->comment_by( 'editor' );
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
-		$this->follow_action_link( $comment, wp_create_nonce( CommentActions::ACTION . '_' . $comment ) );
+		$this->follow_action_link( $comment, wp_create_nonce( OfficialResponseLink::ACTION . '_' . $comment ) );
 
 		$this->assertStringContainsString( 'edit-comments.php', $this->run_action() );
 		$this->assertTrue( OfficialResponse::is_official( $comment ) );
@@ -262,18 +310,22 @@ final class OfficialResponseTest extends TestCase {
 	}
 
 	/**
-	 * Sets up the request a click on the row action sends.
+	 * Sets up the request a click on a link sends.
 	 *
 	 * @param int    $comment_id Comment ID.
 	 * @param string $nonce      Nonce in the link.
+	 * @param string $back       Page the link says to return to, if any.
 	 */
-	private function follow_action_link( int $comment_id, string $nonce ): void {
-		$_GET     = [
-			'action'   => CommentActions::ACTION,
-			'comment'  => (string) $comment_id,
-			'official' => '1',
-			'_wpnonce' => $nonce,
-		];
+	private function follow_action_link( int $comment_id, string $nonce, string $back = '' ): void {
+		$_GET     = array_filter(
+			[
+				'action'           => OfficialResponseLink::ACTION,
+				'comment'          => (string) $comment_id,
+				'official'         => '1',
+				'_wpnonce'         => $nonce,
+				'_wp_http_referer' => $back,
+			]
+		);
 		$_REQUEST = $_GET;
 	}
 
@@ -289,7 +341,7 @@ final class OfficialResponseTest extends TestCase {
 		);
 
 		try {
-			CommentActions::handle();
+			OfficialResponseLink::handle();
 		} catch ( RuntimeException $redirect ) {
 			return $redirect->getMessage();
 		}

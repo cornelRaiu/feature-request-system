@@ -71,6 +71,11 @@
 	font-size: 0.875em;
 }
 
+// Shown to moderators only.
+.mwtfrs-official-response__remove {
+	margin-inline-start: 0.75em;
+}
+
 /* The same response in the comments, marked with a label */
 
 .mwtfrs-official-label {
@@ -81,4 +86,10 @@
 	border-radius: 4px;
 	font-size: 0.8125em;
 	line-height: 1.5;
+}
+
+// Shown to moderators only: marks a team comment, or removes its mark.
+.mwtfrs-official-action {
+	margin: 0.5em 0 0;
+	font-size: 0.8125em;
 }

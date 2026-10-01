@@ -9,19 +9,26 @@ const { wpEval } = require( './wp-cli' );
  *
  * Also clears rate limit counters, so repeated runs within the hour do not hit them.
  *
- * @param {Object} options
- * @param {string} options.title         Request title.
- * @param {number} [options.votes]       Votes the request starts with.
- * @param {string} [options.teamComment] Text of a comment by the admin, not marked as official.
+ * @param {Object}  options
+ * @param {string}  options.title         Request title.
+ * @param {number}  [options.votes]       Votes the request starts with.
+ * @param {string}  [options.teamComment] Text of a comment by the admin.
+ * @param {boolean} [options.official]    Whether that comment is marked as official.
  * @return {{url: string}} The request's page.
  */
-function setUpRequest( { title, votes = 0, teamComment = '' } ) {
+function setUpRequest( {
+	title,
+	votes = 0,
+	teamComment = '',
+	official = false,
+} ) {
 	const data = Buffer.from(
-		JSON.stringify( { title, votes, teamComment } )
+		JSON.stringify( { title, votes, teamComment, official } )
 	).toString( 'base64' );
 
 	return JSON.parse(
 		wpEval( `
+			use FeatureRequestSystem\\Comments\\OfficialResponse;
 			use FeatureRequestSystem\\Content\\BoardSettings;
 			use FeatureRequestSystem\\Content\\BoardTaxonomy;
 			use FeatureRequestSystem\\Content\\RequestPostType;
@@ -51,8 +58,8 @@ function setUpRequest( { title, votes = 0, teamComment = '' } ) {
 			VoteCount::sync( $id );
 
 			if ( $data['teamComment'] ) {
-				$admin = get_user_by( 'login', 'admin' );
-				wp_insert_comment( [
+				$admin   = get_user_by( 'login', 'admin' );
+				$comment = wp_insert_comment( [
 					'comment_post_ID'      => $id,
 					'user_id'              => $admin->ID,
 					'comment_author'       => $admin->display_name,
@@ -60,6 +67,9 @@ function setUpRequest( { title, votes = 0, teamComment = '' } ) {
 					'comment_content'      => $data['teamComment'],
 					'comment_approved'     => 1,
 				] );
+				if ( $data['official'] ) {
+					update_comment_meta( $comment, OfficialResponse::META, 1 );
+				}
 			}
 
 			echo wp_json_encode( [ 'url' => get_permalink( $id ) ] );
@@ -136,6 +146,34 @@ test.describe( 'Feature request page', () => {
 		await expect(
 			page.getByRole( 'region', { name: 'Official response' } )
 		).toContainText( 'We are looking into webhooks.' );
+	} );
+
+	test( 'a moderator removes the official mark on the request page, and puts it back', async ( {
+		page,
+	} ) => {
+		const request = setUpRequest( {
+			title: 'Calendar view',
+			teamComment: 'Calendar view ships in March.',
+			official: true,
+		} );
+		await page.goto( request.url );
+		const pinned = page.getByRole( 'region', {
+			name: 'Official response',
+		} );
+
+		await expect( pinned ).toContainText( 'Calendar view ships in March.' );
+		await pinned
+			.getByRole( 'link', { name: 'Remove official mark' } )
+			.click();
+		await expect( pinned ).toHaveCount( 0 );
+		await expect( page.locator( '.mwtfrs-official-label' ) ).toHaveCount(
+			0
+		);
+
+		await page
+			.getByRole( 'link', { name: 'Mark as official response' } )
+			.click();
+		await expect( pinned ).toContainText( 'Calendar view ships in March.' );
 	} );
 
 	test.describe( 'without JavaScript', () => {

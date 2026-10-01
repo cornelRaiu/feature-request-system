@@ -197,6 +197,21 @@ final class RequestViewTest extends TestCase {
 		$this->assertSame( 1, substr_count( $pinned, 'Official response' ), 'The heading says it once; the thread label is left out.' );
 	}
 
+	public function test_moderators_can_remove_the_mark_from_the_pinned_response(): void {
+		$request = $this->request();
+		$comment = $this->official_response( $request, 'Planned for 2.4.' );
+
+		$this->assertStringNotContainsString( 'Remove official mark', $this->content_of( $request ), 'Visitors get no link, so their HTML stays the same for everyone.' );
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		$html = $this->content_of( $request );
+
+		$this->assertStringContainsString( '>Remove official mark</a>', $html );
+		$this->assertStringContainsString( 'comment=' . $comment, $html );
+		$this->assertStringContainsString( 'official=0', $html );
+		$this->assertStringContainsString( rawurlencode( get_permalink( $request ) ), $html, 'The link returns to this page.' );
+	}
+
 	public function test_requests_without_an_official_response_pin_nothing(): void {
 		$request = $this->request();
 		self::factory()->comment->create( [ 'comment_post_ID' => $request ] );

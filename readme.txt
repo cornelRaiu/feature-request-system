@@ -42,7 +42,9 @@ Each new request is emailed to the site admin email address, with a link to revi
 
 Every request has its own page with its vote button, status, categories, description and comments. Comments are WordPress comments, so your discussion settings, comment moderation and your theme's comment design apply.
 
-To answer a request on behalf of your team, write a comment on its page and tick "Post as the official response" before sending it. You can also mark an existing comment from the Comments screen. The newest official response is pinned below the request's description, and each one is labelled in the comments. Editors and administrators can do this, for comments written by editors or administrators.
+To answer a request on behalf of your team, write a comment on its page and tick "Post as the official response" before sending it. The newest official response is pinned below the request's description, and each one is labelled in the comments.
+
+Editors and administrators also see a link under each comment by an editor or administrator: "Mark as official response", or "Remove official mark" once it is marked. The pinned response has the same link, and so does the Comments screen, among the actions that appear when you point at a comment.
 
 In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
 
