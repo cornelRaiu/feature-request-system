@@ -7,7 +7,15 @@
 
 namespace FeatureRequestSystem;
 
+use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Admin\CommentActions;
+use FeatureRequestSystem\Admin\PendingBadge;
+use FeatureRequestSystem\Admin\RequestDetailsBox;
+use FeatureRequestSystem\Admin\RequestList;
+use FeatureRequestSystem\Admin\SettingsPage;
+use FeatureRequestSystem\Admin\StatusFields;
+use FeatureRequestSystem\Admin\StatusQuickEdit;
+use FeatureRequestSystem\Admin\TermSelectBox;
 use FeatureRequestSystem\Cli\Commands;
 use FeatureRequestSystem\Comments\CommentForm;
 use FeatureRequestSystem\Comments\CommentThread;
@@ -15,6 +23,8 @@ use FeatureRequestSystem\Comments\OfficialResponseLink;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
+use FeatureRequestSystem\Content\StatusChange;
+use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
@@ -64,6 +74,8 @@ final class Plugin {
 
 		RequestPostType::add_hooks();
 		RequestTerms::add_hooks();
+		StatusChange::add_hooks();
+		StatusTaxonomy::add_hooks();
 		VoteService::add_hooks();
 		VoteForm::add_hooks();
 		SubmitForm::add_hooks();
@@ -74,12 +86,29 @@ final class Plugin {
 		CommentThread::add_hooks();
 		OfficialResponseLink::add_hooks();
 		CommentActions::add_hooks();
+		RequestList::add_hooks();
+		StatusQuickEdit::add_hooks();
+		PendingBadge::add_hooks();
+		RequestDetailsBox::add_hooks();
+		TermSelectBox::add_hooks();
+		SettingsPage::add_hooks();
+		BoardFields::add_hooks();
+		StatusFields::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			WP_CLI::add_command( Commands::NAME, Commands::class );
 		}
+	}
+
+	/**
+	 * Returns the URL of a file inside the plugin folder.
+	 *
+	 * @param string $relative Path relative to the plugin folder, such as "assets/admin/quick-edit.js".
+	 */
+	public static function url( string $relative ): string {
+		return plugins_url( $relative, self::$file );
 	}
 
 	/**

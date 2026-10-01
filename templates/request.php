@@ -23,6 +23,18 @@ $mwtfrs_item = $args['item'];
 	<?php echo wp_interactivity_data_wp_context( $args['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
 	data-wp-init="callbacks.hydrate"
 >
+	<?php if ( '' !== $args['board_url'] ) : ?>
+		<p class="mwtfrs-single__back">
+			<a href="<?php echo esc_url( $args['board_url'] ); ?>">
+				<span aria-hidden="true">&larr;</span>
+				<?php
+				/* translators: %s: board name. */
+				echo esc_html( sprintf( __( 'Back to %s', 'feature-request-system' ), $args['board_name'] ) );
+				?>
+			</a>
+		</p>
+	<?php endif; ?>
+
 	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="state.announcement"></p>
 
 	<div

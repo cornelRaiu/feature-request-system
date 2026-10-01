@@ -123,6 +123,18 @@ $mwtfrs_limits = $args['limits'];
 							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
 						</p>
 					</div>
+
+					<?php if ( '' !== $args['data_use'] ) : ?>
+						<details class="mwtfrs-submit__data-use">
+							<summary><?php esc_html_e( 'How we use your data', 'feature-request-system' ); ?></summary>
+							<div class="mwtfrs-submit__data-use-text">
+								<?php echo wp_kses_post( $args['data_use'] ); ?>
+								<?php if ( '' !== $args['privacy_url'] ) : ?>
+									<p><a href="<?php echo esc_url( $args['privacy_url'] ); ?>"><?php esc_html_e( 'Privacy policy', 'feature-request-system' ); ?></a></p>
+								<?php endif; ?>
+							</div>
+						</details>
+					<?php endif; ?>
 				</fieldset>
 			<?php endif; ?>
 

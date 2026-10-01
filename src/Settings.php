@@ -45,6 +45,12 @@ final class Settings {
 	public const NOTIFY_EMAILS = 'notify_emails';
 
 	/**
+	 * Text shown to visitors who suggest a feature without an account, about how their
+	 * name and email are used. Links and emphasis only. Empty shows nothing.
+	 */
+	public const DATA_USE_NOTE = 'data_use_note';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -56,6 +62,7 @@ final class Settings {
 			self::DELETE_DATA_ON_UNINSTALL => false,
 			self::NOTIFY_NEW_REQUESTS      => true,
 			self::NOTIFY_EMAILS            => '',
+			self::DATA_USE_NOTE            => '',
 		];
 	}
 

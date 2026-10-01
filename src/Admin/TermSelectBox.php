@@ -7,6 +7,8 @@
 
 namespace FeatureRequestSystem\Admin;
 
+use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use WP_Post;
@@ -14,12 +16,35 @@ use WP_Post;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Renders a dropdown in place of the default checkboxes for taxonomies where a request has exactly one term.
+ * Adds a dropdown box to the request edit screen for each taxonomy where a request has
+ * exactly one term, in place of the boxes WordPress would add for several terms.
  */
 final class TermSelectBox {
 
 	/**
-	 * Meta box callback, registered as the taxonomy's meta_box_cb.
+	 * Adds the boxes to the request edit screen.
+	 */
+	public static function add_hooks(): void {
+		add_action( 'add_meta_boxes_' . RequestPostType::NAME, [ self::class, 'add' ] );
+	}
+
+	/**
+	 * Registers a box for the board and one for the status.
+	 */
+	public static function add(): void {
+		$boxes = [
+			BoardTaxonomy::NAME  => __( 'Board', 'feature-request-system' ),
+			// Not "Status": the Publish box uses that word for Published, Pending and so on.
+			StatusTaxonomy::NAME => __( 'Request status', 'feature-request-system' ),
+		];
+
+		foreach ( $boxes as $taxonomy => $title ) {
+			add_meta_box( $taxonomy . 'div', $title, [ self::class, 'render' ], RequestPostType::NAME, 'side', 'core', [ 'taxonomy' => $taxonomy ] );
+		}
+	}
+
+	/**
+	 * Prints the dropdown.
 	 *
 	 * The field posts tax_input[taxonomy][] like the core category box, so WordPress saves it
 	 * with the post and checks the taxonomy's assign_terms capability.

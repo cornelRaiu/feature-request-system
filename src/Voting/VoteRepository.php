@@ -101,6 +101,41 @@ final class VoteRepository {
 	}
 
 	/**
+	 * Returns who voted for a request: the users, newest vote first, and how many votes
+	 * came from users and from guests in total.
+	 *
+	 * @param int $request_id Request ID.
+	 * @param int $limit      Most users to return.
+	 * @return array{users: int[], user_votes: int, guest_votes: int}
+	 */
+	public static function voters( int $request_id, int $limit ): array {
+		global $wpdb;
+
+		$users = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; shown to moderators on one screen.
+			$wpdb->prepare(
+				'SELECT user_id FROM %i WHERE request_id = %d AND user_id > 0 ORDER BY created_at DESC, id DESC LIMIT %d',
+				Schema::table( Schema::VOTES ),
+				$request_id,
+				$limit
+			)
+		);
+
+		$totals = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; shown to moderators on one screen.
+			$wpdb->prepare(
+				'SELECT COALESCE( SUM( user_id > 0 ), 0 ) AS user_votes, COALESCE( SUM( user_id = 0 ), 0 ) AS guest_votes FROM %i WHERE request_id = %d',
+				Schema::table( Schema::VOTES ),
+				$request_id
+			)
+		);
+
+		return [
+			'users'       => array_map( 'intval', $users ),
+			'user_votes'  => $totals ? (int) $totals->user_votes : 0,
+			'guest_votes' => $totals ? (int) $totals->guest_votes : 0,
+		];
+	}
+
+	/**
 	 * Counts the votes for a request.
 	 *
 	 * @param int $request_id Request ID.

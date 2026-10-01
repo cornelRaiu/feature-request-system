@@ -34,9 +34,21 @@ While someone types a title, the form lists existing requests with similar title
 
 For a complete page, insert the Feature request page pattern. It has the form, then the board.
 
-By default, only logged-in users can suggest features, and new requests wait for your approval under Feature Requests, marked Pending. Requests from editors and administrators are published straight away.
+By default, only logged-in users can suggest features, and new requests wait for your approval under Feature Requests, marked Pending. Requests from editors and administrators are published straight away. Each board can change who may suggest features and whether requests wait for approval.
 
-Each new request is emailed to the site admin email address, with a link to review it.
+Each new request is emailed to the site's administration email address, with a link to review it. You can change the addresses, or turn the email off, under Feature Requests → Settings.
+
+= Managing requests =
+
+Feature Requests in the admin lists every request with its votes, status, board and categories. Sort by votes to see what people want most, and filter by status, board or category. The menu shows how many requests wait for approval.
+
+Change a request's status from its edit screen, from Quick Edit, or for many requests at once with Bulk Edit. The edit screen also shows who voted for the request and who submitted it.
+
+= Boards and statuses =
+
+Under Feature Requests → Boards, each board has its own settings: who can vote, who can suggest features (everyone, logged-in users, or nobody), whether new requests wait for approval, and the page that shows the board. Each request links back to that page. The board fills the page in by itself the first time it is shown on one.
+
+Under Feature Requests → Statuses, add, rename and reorder statuses. Each has a colour and a position, and can be closed for voting: requests in a closed status keep their votes, and nobody can add or remove one.
 
 = Request pages and official responses =
 
@@ -71,6 +83,8 @@ The board, the form and the request page take their colours and spacing from you
 
 Everything is stored in your own WordPress database.
 
+Under Feature Requests → Settings you can write a "How we use your data" note. Visitors without an account can open it on the form, under the name and email fields, followed by a link to your privacy policy page. The settings page suggests a text to start from.
+
 People who suggest a feature are not stored as post authors, so their names never appear in author archives or other public data. The name and email a visitor gives are stored privately with their request and shown only to moderators. The plugin stores no IP addresses; rate limits use short-lived, hashed counters.
 
 = External services =
@@ -85,7 +99,11 @@ The board and the form are built for any theme. Block themes and classic themes 
 
 = Can visitors without an account suggest features? =
 
-Not by default. Each board has a setting for who can suggest features: anyone, logged-in users, or nobody. Visitors without an account can leave their name and email, and those are never shown publicly.
+Not by default. Each board has a setting for who can suggest features: everyone, logged-in users, or nobody. Change it under Feature Requests → Boards. Visitors without an account can leave their name and email, and those are never shown publicly.
+
+= How do I delete the plugin's data? =
+
+Deleting the plugin keeps your requests and votes, in case you install it again. To remove everything, tick "Delete all requests, votes, boards, statuses and settings when the plugin is deleted" under Feature Requests → Settings before you delete it.
 
 == Changelog ==
 

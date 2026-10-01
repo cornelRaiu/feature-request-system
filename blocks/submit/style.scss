@@ -87,6 +87,24 @@
 	font-weight: 600;
 }
 
+// The site's own note on how a visitor's details are used, opened on request.
+.mwtfrs-submit__data-use {
+	margin-top: 0.625rem;
+	font-size: 0.875em;
+
+	summary {
+		cursor: pointer;
+	}
+}
+
+.mwtfrs-submit__data-use-text {
+	color: var(--mwtfrs-muted);
+
+	> * {
+		margin: 0.5rem 0 0;
+	}
+}
+
 // Name and email side by side when there is room.
 .mwtfrs-submit__row {
 	display: grid;

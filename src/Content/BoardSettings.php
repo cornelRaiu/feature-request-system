@@ -35,6 +35,11 @@ final class BoardSettings {
 	public const MODERATION = 'moderation';
 
 	/**
+	 * Setting: ID of the page that shows the board, or 0 when it is not known yet.
+	 */
+	public const PAGE = 'page';
+
+	/**
 	 * Everyone may take part, including visitors who are not logged in.
 	 */
 	public const ANYONE = 'anyone';
@@ -52,13 +57,14 @@ final class BoardSettings {
 	/**
 	 * Default value of every setting.
 	 *
-	 * @return array<string, string|bool>
+	 * @return array<string, string|bool|int>
 	 */
 	public static function defaults(): array {
 		return [
 			self::VOTING     => self::LOGGED_IN,
 			self::SUBMITTING => self::LOGGED_IN,
 			self::MODERATION => true,
+			self::PAGE       => 0,
 		];
 	}
 
@@ -66,7 +72,7 @@ final class BoardSettings {
 	 * Returns a board's settings, using the default for anything missing or invalid.
 	 *
 	 * @param int $board_id Board term ID. 0 returns the defaults.
-	 * @return array<string, string|bool>
+	 * @return array<string, string|bool|int>
 	 */
 	public static function get( int $board_id ): array {
 		$stored = $board_id ? get_term_meta( $board_id, self::META, true ) : [];
@@ -102,6 +108,17 @@ final class BoardSettings {
 	}
 
 	/**
+	 * URL of the page that shows a board, or '' when it is not known or no longer published.
+	 *
+	 * @param int $board_id Board term ID.
+	 */
+	public static function page_url( int $board_id ): string {
+		$page_id = (int) self::get( $board_id )[ self::PAGE ];
+
+		return $page_id && 'publish' === get_post_status( $page_id ) ? (string) get_permalink( $page_id ) : '';
+	}
+
+	/**
 	 * Saves settings for a board. Settings not passed, and invalid values, leave the current value in place.
 	 *
 	 * @param int                  $board_id Board term ID.
@@ -114,9 +131,9 @@ final class BoardSettings {
 	/**
 	 * Applies the valid values from $settings on top of $base. Unknown keys and invalid values are dropped.
 	 *
-	 * @param array<string, mixed>       $settings Raw settings.
-	 * @param array<string, string|bool> $base     Valid settings to start from.
-	 * @return array<string, string|bool>
+	 * @param array<string, mixed>           $settings Raw settings.
+	 * @param array<string, string|bool|int> $base     Valid settings to start from.
+	 * @return array<string, string|bool|int>
 	 */
 	private static function sanitize( array $settings, array $base ): array {
 		$clean = $base;
@@ -129,6 +146,10 @@ final class BoardSettings {
 
 		if ( isset( $settings[ self::MODERATION ] ) && is_bool( $settings[ self::MODERATION ] ) ) {
 			$clean[ self::MODERATION ] = $settings[ self::MODERATION ];
+		}
+
+		if ( isset( $settings[ self::PAGE ] ) && is_numeric( $settings[ self::PAGE ] ) ) {
+			$clean[ self::PAGE ] = max( 0, (int) $settings[ self::PAGE ] );
 		}
 
 		return $clean;

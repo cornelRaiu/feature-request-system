@@ -47,7 +47,7 @@ putenv( 'WP_TESTS_DB_HOST=127.0.0.1:33061' );
 | Command | What it does |
 |---|---|
 | `npm run build` | Compiles the blocks into `build/` (`npm run start` rebuilds on every change) |
-| `npm run lint:js` / `npm run lint:css` | Lints the blocks' JavaScript and styles |
+| `npm run lint:js` / `npm run lint:css` | Lints the JavaScript (blocks, admin scripts and end-to-end tests) and the styles |
 | `composer test` | Runs PHPUnit against WordPress from Composer; needs the blocks built |
 | `composer lint` | Checks WordPress Coding Standards and PHP 7.4 compatibility |
 | `composer lint:fix` | Fixes what the coding standards check can fix automatically |
@@ -79,6 +79,7 @@ CI runs the lint and static checks, the PHP tests on PHP 7.4 to 8.4 against Word
 | Hook | Type | Use |
 |---|---|---|
 | `mwtfrs_request_submitted` | action | Runs after a request is submitted from the front end. Receives the request ID. |
+| `mwtfrs_status_changed` | action | Runs once when a request moves to another status, however the change was made. Receives the request ID, the old status term and the new status term. |
 | `mwtfrs_verify_captcha` | filter | Return `true` to accept a submission, or a `WP_Error` to refuse it with that message. Receives `true` and the submitted fields. |
 | `mwtfrs_is_spam` | filter | Return `true` to hold a submission for review as spam. Receives the verdict so far and the title, description, name and email. |
 | `mwtfrs_rate_limit` | filter | Changes a rate limit. Receives the limit per hour, the action (`vote` or `submit`) and the scope (`voter` or `ip`). |

@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M5 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M6 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -343,11 +343,18 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 
 ### 5.7 Admin
 
-- Classic PHP screens: list table columns and filters, the Settings API, and term screens for boards and statuses (with a colour picker).
-- **Board page (M6).** A board's settings hold the page that shows the board. A request's page links back to it, above the vote button ("← All requests"). The plugin can't know this page by itself, because the board is a block that can sit on any page. When the setting is empty, publishing a page that holds that board's block fills it in, so most sites never have to set it by hand. Without a board page there is no link.
-- The **settings page** (M6) covers the default board and status, the new request emails and who gets them, deleting data on uninstall, and the "How we use your data" note for guests (see 5.10).
-- A **Request details** meta box for editors: board, status, voters list and subscriber count, and a "Notify subscribers of this status change" checkbox (on by default).
-- Changing status from the edit screen, Quick Edit, Bulk Edit or REST triggers **one** hook, `mwtfrs_status_changed( $request_id, $old, $new )`. The notifier listens on that hook, so notifications don't depend on which screen made the change.
+Built in M6 with classic PHP screens: the posts list table, the Settings API and the term screens.
+
+- **Requests list.** A sortable Votes column, then Status (with its colour), Board and Categories. Filters for status, board and category; a filter only shows when there is something to choose.
+- **Status in Quick Edit and Bulk Edit.** A dropdown labelled "Request status", because WordPress already has a field called Status there for Published, Pending and so on. Bulk Edit starts at "No Change". A small script selects the request's current status when Quick Edit opens.
+- **Pending badge.** The Feature Requests menu shows moderators how many requests wait for approval, the way WordPress shows pending comments.
+- **Edit screen.** A Request details box shows the vote count, the users who voted (the 20 most recent by name), how many guests voted, who submitted the request, and whether a spam check flagged it. A submitter's name and email appear here and in the new request email, nowhere else. The board and the status each have a box with one dropdown, titled "Board" and "Request status". Subscriber counts and the "notify subscribers" switch arrive with M7.
+- **One status hook.** `mwtfrs_status_changed( $request_id, $old_status, $new_status )` fires once per change, whether it comes from the edit screen, Quick Edit, Bulk Edit, the REST API, WP-CLI or other code, because all of them end in `wp_set_object_terms()`. The old status is read on `add_term_relationship`, just before WordPress adds the new one, since WordPress doesn't report the previous terms when terms are appended. A new request getting its first status is not a change, and neither is a change that other code undid. M7's notifier listens to this hook.
+- **Settings page** (Feature Requests → Settings): the default board and status, the new request emails and who gets them, the "How we use your data" note for guests (see 5.10), and deleting data on uninstall. Settings that a save doesn't send keep their value, so saving one setting from code can't reset the others; the form's checkboxes send 0 when unticked.
+- **Boards screen.** Each board's form has who can vote, who can suggest features, whether new requests wait for approval, and the board's page.
+- **Board page.** A request's page links back to the page that shows its board ("← Back to Feature Requests"). The plugin can't know this page by itself, because the board is a block that can sit on any page. So the board remembers the first published page it is shown on, and the page can also be chosen on the board's form. If that page stops being published, the link goes away and the board takes the next page it is shown on.
+- **Statuses screen.** Each status's form has its colour (the browser's colour picker), its position, and a "Closed for voting" switch. The list shows the colour and whether voting is open, in workflow order. A new status gets a colour and the last position from wherever it is created. The "show on roadmap" flag gets its field in 1.1, with the roadmap.
+- The board, status and comment screens save their fields only when their own form was submitted, checked with a nonce. The REST API, WP-CLI and other code leave those settings alone.
 
 ### 5.8 Notifications
 
@@ -369,7 +376,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 
 - **Privacy exporter and eraser:** covers requests authored, votes, subscriptions and guest emails. On erasure, votes are anonymised (user_id set to 0 and voter_key re-hashed), so counts stay correct.
 - **Suggested privacy policy text** is added via `wp_add_privacy_policy_content`.
-- **"How we use your data" note (M6).** A settings field holds text the site owner writes for visitors who submit without an account. When it is set, the form shows it under the name and email fields, in a section the visitor opens ("How we use your data"), followed by a link to the site's privacy policy page when WordPress has one.
+- **"How we use your data" note (built in M6).** A settings field holds text the site owner writes for visitors who submit without an account. When it is set, the form shows it under the name and email fields, in a section the visitor opens ("How we use your data"), followed by a link to the site's privacy policy page when WordPress has one.
   - The section is a `<details>` element, not a tooltip or a modal. It works without JavaScript and on touch screens, suits keyboards and screen readers, holds several sentences and adds no script. A tooltip can't hold a paragraph and fails on phones; a modal needs script and focus handling for a few sentences of text.
   - The text allows links and emphasis only. It is sanitised when saved and again when shown. Every guest gets the same text, so cached pages stay correct.
   - It is empty by default, which shows nothing. The settings field offers a suggested text built from what the plugin does on that site. The suggestion mentions Akismet only when Akismet is connected, which covers what the form's short "Only our team sees this" note leaves out.
@@ -398,7 +405,7 @@ feature-request-system/
 │   ├── Rest/                       # BoardsController, RequestsController, VotesController, MeController, SubscriptionsController
 │   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
 │   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, VoteForm, VoteStore, Template
-│   ├── Admin/                      # CommentActions, ListTable columns, MetaBox, SettingsPage, StatusTermFields, BoardTermFields
+│   ├── Admin/                      # RequestList, StatusQuickEdit, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions
 │   ├── Privacy/                    # Exporter, Eraser, PolicyText
 │   └── Cli/                        # `wp mwtfrs recount|seed`
 ├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss), shared/
@@ -449,7 +456,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M3** ✅ | Board rendering (3 days) | Board block and shortcode, list/search/filter/sort/paginate, Interactivity vote button, no-JS fallback, `/me/state` hydration | E2E: visitor votes, count persists after reload, list sorts by votes, works with JavaScript disabled, correct behind a simulated page cache |
 | **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** ✅ | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
-| **M6** | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and publishing a page with the board block sets that page |
+| **M6** ✅ | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and showing the board on a published page sets that page |
 | **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
 | **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |

@@ -11,6 +11,11 @@
 	@include base.tokens;
 }
 
+.mwtfrs-single__back {
+	margin: 0 0 var(--mwtfrs-gap);
+	font-size: 0.875em;
+}
+
 .mwtfrs-single__row {
 	display: flex;
 	align-items: center;

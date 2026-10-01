@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Security\RequestOrigin;
+use FeatureRequestSystem\Submission\DataUseNote;
 use FeatureRequestSystem\Submission\SimilarRequests;
 use FeatureRequestSystem\Submission\SpamGuard;
 use FeatureRequestSystem\Submission\SubmissionService;
@@ -115,6 +116,8 @@ final class SubmitForm {
 				'board_id'           => $board->term_id,
 				'categories'         => self::categories(),
 				'guest_fields'       => ! $logged_in,
+				'data_use'           => DataUseNote::html(),
+				'privacy_url'        => get_privacy_policy_url(),
 				'limits'             => [
 					'title'       => SubmissionService::MAX_TITLE,
 					'description' => SubmissionService::MAX_DESCRIPTION,

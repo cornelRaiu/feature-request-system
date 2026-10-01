@@ -45,7 +45,7 @@ final class RequestItem {
 			'votes'      => $votes,
 			'status'     => $status ? [
 				'name'  => $status->name,
-				'color' => (string) get_term_meta( $status->term_id, StatusTaxonomy::META_COLOR, true ),
+				'color' => StatusTaxonomy::color( $status ),
 			] : null,
 			'categories' => is_array( $categories ) ? wp_list_pluck( $categories, 'name' ) : [],
 			'votable'    => 'publish' === $post->post_status

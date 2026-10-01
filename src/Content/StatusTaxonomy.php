@@ -7,7 +7,6 @@
 
 namespace FeatureRequestSystem\Content;
 
-use FeatureRequestSystem\Admin\TermSelectBox;
 use FeatureRequestSystem\Capabilities;
 use WP_Term;
 
@@ -44,6 +43,55 @@ final class StatusTaxonomy {
 	public const META_ROADMAP = '_mwtfrs_roadmap';
 
 	/**
+	 * Colour of a status that has none of its own.
+	 */
+	public const DEFAULT_COLOR = '#64748b';
+
+	/**
+	 * Adds the hook that completes new statuses.
+	 */
+	public static function add_hooks(): void {
+		add_action( 'created_' . self::NAME, [ self::class, 'complete' ] );
+	}
+
+	/**
+	 * Gives a new status a colour and puts it last, unless it already has them.
+	 *
+	 * Every status has a position, so lists sorted by it never lose one.
+	 *
+	 * @param int $status_id Status term ID.
+	 */
+	public static function complete( int $status_id ): void {
+		if ( '' === get_term_meta( $status_id, self::META_COLOR, true ) ) {
+			update_term_meta( $status_id, self::META_COLOR, self::DEFAULT_COLOR );
+		}
+
+		if ( '' === get_term_meta( $status_id, self::META_ORDER, true ) ) {
+			// The new status is among them, but without a position yet it counts as 0.
+			$statuses = get_terms(
+				[
+					'taxonomy'   => self::NAME,
+					'hide_empty' => false,
+				]
+			);
+			$last     = is_array( $statuses ) && $statuses ? max( array_map( [ self::class, 'order' ], $statuses ) ) : 0;
+
+			update_term_meta( $status_id, self::META_ORDER, $last + 10 );
+		}
+	}
+
+	/**
+	 * Returns a status's colour as a hex value.
+	 *
+	 * @param WP_Term $status Status term.
+	 */
+	public static function color( WP_Term $status ): string {
+		$color = sanitize_hex_color( (string) get_term_meta( $status->term_id, self::META_COLOR, true ) );
+
+		return $color ? $color : self::DEFAULT_COLOR;
+	}
+
+	/**
 	 * Registers the taxonomy and its term meta.
 	 */
 	public static function register(): void {
@@ -60,7 +108,8 @@ final class StatusTaxonomy {
 				'show_tagcloud'        => false,
 				'hierarchical'         => false,
 				'rewrite'              => false,
-				'meta_box_cb'          => [ TermSelectBox::class, 'render' ],
+				// TermSelectBox adds a box with one dropdown instead.
+				'meta_box_cb'          => false,
 				'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
 				'capabilities'         => Capabilities::term_caps(),
 			]
@@ -93,7 +142,7 @@ final class StatusTaxonomy {
 	 */
 	public static function defaults(): array {
 		$statuses = [
-			[ __( 'Open', 'feature-request-system' ), 'open', '#64748b', false, false ],
+			[ __( 'Open', 'feature-request-system' ), 'open', self::DEFAULT_COLOR, false, false ],
 			[ __( 'Under Review', 'feature-request-system' ), 'under-review', '#b7791f', false, false ],
 			[ __( 'Planned', 'feature-request-system' ), 'planned', '#6d4fc2', false, true ],
 			[ __( 'In Progress', 'feature-request-system' ), 'in-progress', '#2f5bd3', false, true ],

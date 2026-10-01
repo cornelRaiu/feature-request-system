@@ -127,6 +127,8 @@ final class RequestView {
 				'wrapper_attributes' => $wrapper_attributes,
 				'context'            => [ 'ids' => [ $post->ID ] ],
 				'item'               => RequestItem::prepare( $post, BoardSettings::voting( $board ? $board->term_id : 0 ), VoteForm::notice_from_request() ),
+				'board_name'         => $board ? $board->name : '',
+				'board_url'          => $board ? BoardSettings::page_url( $board->term_id ) : '',
 				'vote'               => VoteForm::template_args( $page_url ),
 				'login_url'          => wp_login_url( $page_url ),
 			]

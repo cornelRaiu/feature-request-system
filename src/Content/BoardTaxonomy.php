@@ -7,7 +7,6 @@
 
 namespace FeatureRequestSystem\Content;
 
-use FeatureRequestSystem\Admin\TermSelectBox;
 use FeatureRequestSystem\Capabilities;
 use WP_Term;
 
@@ -40,7 +39,8 @@ final class BoardTaxonomy {
 				'show_tagcloud'        => false,
 				'hierarchical'         => false,
 				'rewrite'              => false,
-				'meta_box_cb'          => [ TermSelectBox::class, 'render' ],
+				// TermSelectBox adds a box with one dropdown instead.
+				'meta_box_cb'          => false,
 				'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
 				'capabilities'         => Capabilities::term_caps(),
 			]

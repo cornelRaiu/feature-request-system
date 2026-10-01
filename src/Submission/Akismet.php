@@ -25,13 +25,20 @@ final class Akismet {
 	}
 
 	/**
+	 * Whether the Akismet plugin is active and has an API key.
+	 */
+	public static function is_connected(): bool {
+		return class_exists( '\Akismet' ) && \Akismet::get_api_key();
+	}
+
+	/**
 	 * Asks Akismet about a submission.
 	 *
 	 * @param bool                                                                   $is_spam    Verdict so far.
 	 * @param array{title: string, description: string, name: string, email: string} $submission Submitted request.
 	 */
 	public static function check( bool $is_spam, array $submission ): bool {
-		if ( $is_spam || ! class_exists( '\Akismet' ) || ! \Akismet::get_api_key() ) {
+		if ( $is_spam || ! self::is_connected() ) {
 			return $is_spam;
 		}
 

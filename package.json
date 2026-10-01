@@ -10,9 +10,9 @@
     "scripts": {
         "build": "wp-scripts build --experimental-modules --webpack-src-dir=blocks --output-path=build --webpack-copy-php",
         "start": "wp-scripts start --experimental-modules --webpack-src-dir=blocks --output-path=build --webpack-copy-php",
-        "lint:js": "wp-scripts lint-js blocks tests/e2e",
+        "lint:js": "wp-scripts lint-js blocks assets tests/e2e",
         "lint:css": "wp-scripts lint-style \"blocks/**/*.scss\"",
-        "format": "wp-scripts format blocks tests/e2e",
+        "format": "wp-scripts format blocks assets tests/e2e",
         "env": "wp-env",
         "test:e2e": "playwright test --config tests/e2e/playwright.config.js"
     },

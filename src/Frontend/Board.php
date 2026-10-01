@@ -62,6 +62,7 @@ final class Board {
 		$current  = add_query_arg( self::filter_args( $filters, true ), $page_url );
 
 		VoteStore::provide();
+		self::remember_page( $board->term_id );
 
 		$items = [];
 		foreach ( $query->posts as $post ) {
@@ -100,6 +101,23 @@ final class Board {
 				'empty_message'      => $items ? '' : self::empty_message( $filters, $board->term_id ),
 			]
 		);
+	}
+
+	/**
+	 * Notes the page a board is shown on, so that its requests can link back to it.
+	 *
+	 * The board is a block that can sit on any page, so the plugin learns the page the
+	 * first time the board is shown on a published one. A page chosen in the board's
+	 * settings is kept for as long as it stays published.
+	 *
+	 * @param int $board_id Board term ID.
+	 */
+	private static function remember_page( int $board_id ): void {
+		$page_id = get_queried_object_id();
+
+		if ( is_singular() && ! is_singular( RequestPostType::NAME ) && 'publish' === get_post_status( $page_id ) && '' === BoardSettings::page_url( $board_id ) ) {
+			BoardSettings::update( $board_id, [ BoardSettings::PAGE => $page_id ] );
+		}
 	}
 
 	/**
