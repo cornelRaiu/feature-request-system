@@ -8,14 +8,15 @@
 namespace FeatureRequestSystem\Admin;
 
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Voting\VoteRepository;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Shows moderators who voted for a request and who submitted it. A submitter's name and
- * email are shown nowhere else.
+ * Shows moderators who voted for a request, how many users follow it and who submitted
+ * it. A submitter's name and email are shown nowhere else.
  */
 final class RequestDetailsBox {
 
@@ -76,6 +77,15 @@ final class RequestDetailsBox {
 		);
 		if ( $more ) {
 			echo '<p>' . esc_html( implode( ', ', $more ) ) . '</p>';
+		}
+
+		$followers = SubscriptionRepository::count( $post->ID );
+		if ( $followers ) {
+			printf(
+				'<p>%s</p>',
+				/* translators: %s: number of users who follow the request. */
+				esc_html( sprintf( _n( '%s follower', '%s followers', $followers, 'feature-request-system' ), number_format_i18n( $followers ) ) )
+			);
 		}
 
 		$submitter = self::submitter( $post->ID );

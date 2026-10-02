@@ -13,13 +13,14 @@ use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
+use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Plugin;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Adds the vote button, status and categories above a request's description, and the
- * official response below it. The theme shows the title, the description and the comments.
+ * Adds the vote button, status, categories and Follow button above a request's description,
+ * and the official response below it. The theme shows the title, the description and the comments.
  *
  * Block themes get a template for requests that holds the Feature Request Details block,
  * because their template for posts shows an author and post categories, which requests
@@ -117,6 +118,14 @@ final class RequestView {
 
 		$board    = RequestTerms::term_of( $post->ID, BoardTaxonomy::NAME );
 		$page_url = CurrentPage::url();
+		$item     = RequestItem::prepare( $post, BoardSettings::voting( $board ? $board->term_id : 0 ), RequestNotice::from_request() );
+
+		// Only logged-in users can follow, and their pages are not cached, so the page can say whether they do.
+		$can_follow = is_user_logged_in() && Subscriptions::enabled() && 'publish' === $post->post_status;
+		if ( $can_follow ) {
+			$item['context']['following']  = Subscriptions::is_following( $post->ID, get_current_user_id() );
+			$item['context']['followBusy'] = false;
+		}
 
 		VoteStore::provide();
 
@@ -126,10 +135,11 @@ final class RequestView {
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
 				'context'            => [ 'ids' => [ $post->ID ] ],
-				'item'               => RequestItem::prepare( $post, BoardSettings::voting( $board ? $board->term_id : 0 ), VoteForm::notice_from_request() ),
+				'item'               => $item,
 				'board_name'         => $board ? $board->name : '',
 				'board_url'          => $board ? BoardSettings::page_url( $board->term_id ) : '',
 				'vote'               => VoteForm::template_args( $page_url ),
+				'follow'             => $can_follow ? FollowForm::template_args( $page_url ) : null,
 				'login_url'          => wp_login_url( $page_url ),
 			]
 		);

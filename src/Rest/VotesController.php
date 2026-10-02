@@ -7,6 +7,7 @@
 
 namespace FeatureRequestSystem\Rest;
 
+use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Security\RequestOrigin;
 use FeatureRequestSystem\Voting\VoteService;
 use WP_Error;
@@ -19,8 +20,9 @@ defined( 'ABSPATH' ) || exit;
 /**
  * POST and DELETE /mwtfrs/v1/requests/{id}/vote.
  *
- * Both return {votes, voted}. Logged-in users authenticate with the standard wp_rest
- * nonce; without it WordPress treats them as guests.
+ * Both return {votes, voted}, and for logged-in users also {following}, because voting
+ * can make a user follow the request. Logged-in users authenticate with the standard
+ * wp_rest nonce; without it WordPress treats them as guests.
  */
 final class VotesController {
 
@@ -90,7 +92,7 @@ final class VotesController {
 	 * @phpstan-param WP_REST_Request<array<string, mixed>> $request
 	 */
 	public static function cast( WP_REST_Request $request ): WP_REST_Response {
-		return Response::from( VoteService::cast( (int) $request['id'] ) );
+		return Response::from( self::with_following( VoteService::cast( (int) $request['id'] ), (int) $request['id'] ) );
 	}
 
 	/**
@@ -100,6 +102,21 @@ final class VotesController {
 	 * @phpstan-param WP_REST_Request<array<string, mixed>> $request
 	 */
 	public static function retract( WP_REST_Request $request ): WP_REST_Response {
-		return Response::from( VoteService::retract( (int) $request['id'] ) );
+		return Response::from( self::with_following( VoteService::retract( (int) $request['id'] ), (int) $request['id'] ) );
+	}
+
+	/**
+	 * Adds whether a logged-in user follows the request now, since a vote can change that.
+	 *
+	 * @param array<string, mixed>|WP_Error $result     Result of the vote.
+	 * @param int                           $request_id Request ID.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	private static function with_following( $result, int $request_id ) {
+		if ( ! is_wp_error( $result ) && is_user_logged_in() ) {
+			$result['following'] = Subscriptions::is_following( $request_id, get_current_user_id() );
+		}
+
+		return $result;
 	}
 }

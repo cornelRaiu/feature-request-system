@@ -57,7 +57,7 @@ final class Board {
 		$filters  = BoardQuery::filters_from_request();
 		$query    = new WP_Query( BoardQuery::args( $board->term_id, $filters, $per_page ) );
 		$voting   = BoardSettings::voting( $board->term_id );
-		$notice   = VoteForm::notice_from_request();
+		$notice   = RequestNotice::from_request();
 		$page_url = CurrentPage::url();
 		$current  = add_query_arg( self::filter_args( $filters, true ), $page_url );
 

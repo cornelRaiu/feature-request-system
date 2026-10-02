@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M6 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M7 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -107,10 +107,12 @@ Differentiators, in delivery order:
 - ✅ A moderator's reply can be marked as the **official response**. The newest one is pinned below the description, and each is labelled in the comments.
 
 **Notifications ("close the loop")**
-- ✅ Voters are subscribed to requests automatically (configurable). Users can also follow a request without voting.
-- ✅ Emails when a request's **status changes** (to subscribers), on a **new request** (to admins or a list), and on **approval** (to the author).
-- ✅ One-click **unsubscribe** links, and a per-user "my subscriptions" list for logged-in users.
+- ✅ Logged-in voters follow the requests they vote for (the site can turn that off, and so can each user). Users can also follow a request without voting, and follow the requests they suggest.
+- ✅ Emails when a request's **status changes** (to its followers), on a **new request** (to admins or a list), and on **approval** (to the user who suggested it).
+- ✅ Status emails wait five minutes, so a status picked by mistake can be corrected before anyone hears of it, and changes in a row become one email. A moderator can also change a status without an email.
+- ✅ One-click **unsubscribe** links that work without logging in, and a list of followed requests on each user's profile.
 - ✅ Batched sending in the background, so a status change doesn't send 2,000 emails in one request.
+- Visitors without an account are not emailed in 1.0. They can follow once their address is verified, in 1.1.
 
 **Anti-abuse**
 - ✅ Honeypot field, a minimum time before a form can be submitted, and rate limits per user or IP hash for votes and submissions.
@@ -222,7 +224,9 @@ Differentiators, in delivery order:
   - `_mwtfrs_merged_into` (int, 1.1)
   - `_mwtfrs_submitter_id` (logged-in submitter), `_mwtfrs_submitter_name` and `_mwtfrs_submitter_email` (a guest's details): private, never exposed
   - `_mwtfrs_flagged_as_spam` (set when a spam check held the request for review)
+  - `_mwtfrs_status_notice` (the status announcement that waits to be emailed, or was emailed last; M7)
 - Comment meta: `_mwtfrs_official` marks a comment as an official response (M5).
+- User meta: `mwtfrs_auto_follow` holds `0` for a user who turned off following the requests they vote for or suggest (M7).
 - No `author` support: front-end submitters are not WordPress post authors (`post_author` is 0), so their names stay out of author archives, oEmbed data and the public users endpoint. Built in M4.
 
 **Taxonomies**
@@ -245,18 +249,19 @@ Differentiators, in delivery order:
   KEY user_id (user_id)
   KEY request_created (request_id, created_at)      -- trending
 
-{prefix}mwtfrs_subscriptions                       -- created in M7, when notifications use it
+{prefix}mwtfrs_subscriptions                       -- built in M7, database version 2
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
   request_id   BIGINT UNSIGNED NOT NULL
-  user_id      BIGINT UNSIGNED NOT NULL DEFAULT 0
-  email        VARCHAR(190)    NOT NULL
-  token        CHAR(32)        NOT NULL   -- unsubscribe / confirm
-  source       VARCHAR(20)     NOT NULL   -- vote | follow | author | comment
-  confirmed_at DATETIME        NULL       -- guests need confirmation (1.1)
+  user_id      BIGINT UNSIGNED NOT NULL
+  token        CHAR(32)        NOT NULL   -- secret of the unsubscribe link
+  source       VARCHAR(20)     NOT NULL   -- vote | follow | author
   created_at   DATETIME        NOT NULL
-  UNIQUE KEY request_email (request_id, email)
+  UNIQUE KEY request_user (request_id, user_id)
   KEY token (token)
+  KEY user_id (user_id)
 ```
+
+The subscriptions table holds only what 1.0 uses: one row per user per request they follow. No email address is stored, because a user's emails go to the address of their account, which can change. When guests can follow (1.1), the table gets `email` and `confirmed_at` columns, and its unique key becomes `(request_id, user_id, email)`.
 
 No IP addresses are stored. Rate limiting uses transients keyed on `hash_hmac('sha256', ip, daily_rotating_salt)`, which expire on their own.
 
@@ -268,6 +273,14 @@ No IP addresses are stored. Rate limiting uses transients keyed on `hash_hmac('s
 This is idempotent and self-correcting, and there's no read-increment-write race (v0 had one). A WP-CLI command `wp mwtfrs recount` rebuilds all counts.
 
 **Options.** `mwtfrs_settings` holds one array with a typed schema, sanitised via `register_setting` with a `sanitize_callback` and defaults. Also `mwtfrs_db_version` and `mwtfrs_salt`.
+
+**Following (M7).** `Subscriptions` holds the rules:
+- Only logged-in users follow, and only published requests without a password. A user can always stop, also when the request is no longer public.
+- A vote makes its voter follow (source `vote`), and taking the vote back ends that. Voting again for a request already voted for is not a new vote, so it doesn't follow again after the user stopped.
+- Choosing to follow (source `follow`) replaces the weaker reason, so taking back a vote later doesn't end it. A user who suggests a request follows it (source `author`).
+- Nobody comes to follow while the site has the emails turned off. A user who turned off following by itself only follows by choosing to.
+- Subscriptions go when their request or their user is deleted. Trashing a request keeps them.
+- `VoteService` announces votes with two actions, `mwtfrs_vote_cast` and `mwtfrs_vote_retracted`, which is how following hears of them.
 
 ### 5.4 Identity and anti-abuse
 
@@ -297,16 +310,19 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 | `GET /requests/{id}` | public | Single request (allow-listed fields). |
 | `POST /boards/{board}/requests` | per board setting | Submit a request. Returns `{id, status, url, message}`; `status` is `pending` or `publish`. Built in M4. |
 | `GET /boards/{board}/similar?q=` | public | Top 5 published requests whose titles share a meaningful word with `q`, most shared words first, then most votes. Built in M4. |
-| `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`. Built in M2. |
-| `DELETE /requests/{id}/vote` | voter | Retract a vote. Returns `{votes, voted: false}`. Built in M2. |
-| `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on or follows. Used to hydrate cached pages. |
-| `POST` / `DELETE /requests/{id}/subscription` | per settings | Follow or unfollow. |
-| `GET /unsubscribe?token=` | token holder | One-click unsubscribe (also served as a plain page). |
+| `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`, and for logged-in users `{following}`, because a vote can make them follow. Built in M2. |
+| `DELETE /requests/{id}/vote` | voter | Retract a vote. Returns `{votes, voted: false}`, and for logged-in users `{following}`. Built in M2. |
+| `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on. Used to hydrate cached pages. |
+| `POST` / `DELETE /requests/{id}/subscription` | logged-in users | Follow a request, or stop. Returns `{following}`. Built in M7. |
 | `POST /requests/{id}/merge` (1.1) | `edit_others_mwtfrs_requests` | Merge into a target request. |
 
 Every route declares `args` with a type, `enum` and `sanitize_callback`. Every response comes from a `prepare_item()` that uses an explicit allow-list of fields.
 
 Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled` or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
+
+Follow errors: 401 `mwtfrs_follow_login_required`; 403 `mwtfrs_following_disabled` (the site doesn't email followers); 404 `mwtfrs_request_not_found`.
+
+The unsubscribe link is not a REST route. It is the home URL with a `mwtfrs_unsubscribe` parameter (see 5.8), because sites often close the REST API and `wp-admin` to visitors who aren't logged in. Whether a user follows a request isn't part of `/me/state` either: only logged-in users follow, their pages aren't cached, so the request's page says it directly.
 
 Submission errors: 400 `mwtfrs_submission_invalid` (with `data.reason`: `title`, `title-long`, `details-long`, `category`, `name-long` or `email`) or `mwtfrs_submission_rejected` (spam checks); 401 `mwtfrs_submit_login_required`; 403 `mwtfrs_submissions_closed` or `mwtfrs_invalid_origin`; 404 `mwtfrs_board_not_found`; 429 `mwtfrs_submit_rate_limited` with a `Retry-After` header.
 
@@ -323,6 +339,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
 - **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
 - **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
 - **One vote script.** The board and the request page share the Interactivity API store `mwtfrs/votes`, one vote button template and the stylesheet partials for it.
+- **Follow button (M7).** Logged-in users get it on a request's page, under the status: a line that says whether they get emails, and a button that says what it does ("Follow" or "Stop following"). The request block adds its action to the vote store, so a vote that makes the user follow flips the button at once. It is a form like the vote button, so it works without JavaScript and returns with a notice. Guests don't get it, and their HTML stays the same for everyone.
 - **Styling:** CSS custom properties that fall back to `theme.json` presets and then to fixed colours. About 4 KB per block. Headings and wrappers use selectors that hold up against block themes' global styles, which load after block styles. The vote button's rules outrank theme `button` styles so pressed and unpressed always look different. A container query tightens the layout when the board is narrow. No icon fonts; inline SVG only.
 - **Single request page (M5).** The theme shows the title, the description and the comments. The plugin adds the vote button, status and categories above the description, and the official response below it.
   - The details are a block, `mwtfrs/request` ("Feature Request Details").
@@ -338,7 +355,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - Only comments written by moderators can be marked, so the mark always means "from the team". Any moderator can remove it, even after the comment's author left the team.
   - The checkbox carries a nonce. WordPress accepts comments from logged-in users without one, so without it another site could make a moderator post an "official" comment.
   - The mark is comment meta, so it goes when the comment goes. A request can collect several official responses; the newest approved one is pinned below the description and all are labelled in the thread.
-- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), and `vote-button.php`, `request.php` and `official-response.php` (since M5).
+- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), `vote-button.php`, `request.php` and `official-response.php` (since M5), and the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7).
 - **Pattern:** "Feature request page" puts the form, a heading and the board on one page (M4).
 
 ### 5.7 Admin
@@ -348,9 +365,11 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
 - **Requests list.** A sortable Votes column, then Status (with its colour), Board and Categories. Filters for status, board and category; a filter only shows when there is something to choose.
 - **Status in Quick Edit and Bulk Edit.** A dropdown labelled "Request status", because WordPress already has a field called Status there for Published, Pending and so on. Bulk Edit starts at "No Change". A small script selects the request's current status when Quick Edit opens.
 - **Pending badge.** The Feature Requests menu shows moderators how many requests wait for approval, the way WordPress shows pending comments.
-- **Edit screen.** A Request details box shows the vote count, the users who voted (the 20 most recent by name), how many guests voted, who submitted the request, and whether a spam check flagged it. A submitter's name and email appear here and in the new request email, nowhere else. The board and the status each have a box with one dropdown, titled "Board" and "Request status". Subscriber counts and the "notify subscribers" switch arrive with M7.
-- **One status hook.** `mwtfrs_status_changed( $request_id, $old_status, $new_status )` fires once per change, whether it comes from the edit screen, Quick Edit, Bulk Edit, the REST API, WP-CLI or other code, because all of them end in `wp_set_object_terms()`. The old status is read on `add_term_relationship`, just before WordPress adds the new one, since WordPress doesn't report the previous terms when terms are appended. A new request getting its first status is not a change, and neither is a change that other code undid. M7's notifier listens to this hook.
-- **Settings page** (Feature Requests → Settings): the default board and status, the new request emails and who gets them, the "How we use your data" note for guests (see 5.10), and deleting data on uninstall. Settings that a save doesn't send keep their value, so saving one setting from code can't reset the others; the form's checkboxes send 0 when unticked.
+- **Edit screen.** A Request details box shows the vote count, the users who voted (the 20 most recent by name), how many guests voted, who submitted the request, and whether a spam check flagged it. A submitter's name and email appear here and in the new request email, nowhere else. The board and the status each have a box with one dropdown, titled "Board" and "Request status". Since M7 the details box also counts the request's followers, and the status box has the switch that emails them (see below).
+- **One status hook.** `mwtfrs_status_changed( $request_id, $old_status, $new_status )` fires once per change, whether it comes from the edit screen, Quick Edit, Bulk Edit, the REST API, WP-CLI or other code, because all of them end in `wp_set_object_terms()`. The old status is read on `add_term_relationship`, just before WordPress adds the new one, since WordPress doesn't report the previous terms when terms are appended. A new request getting its first status is not a change, and neither is a change that other code undid. The notifier listens to this hook (see 5.8).
+- **Notify switch (M7).** Next to the status on the edit screen, in Quick Edit and in Bulk Edit there is a ticked box, "Email followers when the status changes". Unticking it changes the status without an email. It counts only in a form that WordPress accepted for that request, so the REST API and other code can't carry it; code uses the `mwtfrs_notify_status_change` filter instead.
+- **Profile (M7).** A user's profile screen lists the requests they follow, each with a box to stop following, and has the choice "Follow the requests I vote for or suggest". Those who may edit a user see the same on that user's edit screen.
+- **Settings page** (Feature Requests → Settings): the default board and status, the new request emails and who gets them, whether users can follow requests and whether voting follows (M7), the "How we use your data" note for guests (see 5.10), and deleting data on uninstall. Settings that a save doesn't send keep their value, so saving one setting from code can't reset the others; the form's checkboxes send 0 when unticked.
 - **Boards screen.** Each board's form has who can vote, who can suggest features, whether new requests wait for approval, and the board's page.
 - **Board page.** A request's page links back to the page that shows its board ("← Back to Feature Requests"). The plugin can't know this page by itself, because the board is a block that can sit on any page. So the board remembers the first published page it is shown on, and the page can also be chosen on the board's form. If that page stops being published, the link goes away and the board takes the next page it is shown on.
 - **Statuses screen.** Each status's form has its colour (the browser's colour picker), its position, and a "Closed for voting" switch. The list shows the colour and whether voting is open, in workflow order. A new status gets a colour and the last position from wherever it is created. The "show on roadmap" flag gets its field in 1.1, with the roadmap.
@@ -359,11 +378,25 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
 ### 5.8 Notifications
 
 - The **new request** email (M4) is one `wp_mail()` to the moderators, sent when the request is submitted: the addresses in settings, or the site admin email. It says whether the request waits for approval and links to its edit screen. A site can turn it off.
-- Sending to subscribers runs through **Action Scheduler**, bundled via Composer and loaded only if no other copy is present. WooCommerce ships the same library.
-- Subscribers get one scheduled action per batch of 50.
-- Templates are plain PHP with text and HTML versions, can be overridden, and can be filtered.
-- All strings are translatable and sent in the site locale.
-- Every mail has a List-Unsubscribe header and a one-click token link.
+- **Emails to followers (M7)** are the status change email and the approval email. Both go to a logged-in user as a follower of a request, so both end with the link that stops them.
+- **Background sending.** They run through **Action Scheduler**, bundled via Composer. Every copy on a site registers itself and the newest one runs, so ours is always loaded and WooCommerce's newer copy wins where it exists. It is pinned to 3.9, the last line that supports WordPress 6.6; version 4 needs WordPress 6.8. Tools → Scheduled Actions shows the work under the group `feature-request-system`.
+- **Status changes.** `StatusNotifier` listens to `mwtfrs_status_changed`.
+  - It schedules one action per batch of 50 followers. A batch is a range of subscription IDs, so users who follow after the change aren't in any batch, and a batch reads its followers when it runs, so users who stopped following in between get nothing.
+  - The emails are due **five minutes after the change**. The request remembers the one announcement that waits (`_mwtfrs_status_notice`: its ID, the status the followers know, the new status, who made the change, and when it is due). A later change replaces it, and the batches of the replaced announcement then send nothing. So a change that is corrected in time is never announced, and changes in a row become one email from the first status to the last.
+  - Nothing is sent for a request that isn't published, for a change made with the notify switch unticked (which also drops an announcement that was waiting), or to the user who made the change. A batch also sends nothing if the request's status is no longer the announced one when it runs.
+  - Filters: `mwtfrs_notify_status_change`, `mwtfrs_status_email_delay` and `mwtfrs_status_email_batch_size`.
+- **Approval.** When a request that waited for approval is published, the user who suggested it gets an email, if they follow it and didn't approve it themselves. Visitors who suggested a request without an account aren't emailed: their address isn't verified, and the form tells them only the team sees it.
+- **The emails** are plain text, like WordPress's own, so they work in every mail program and with plugins that wrap all site email in a design. `Mailer` sends each one in the language of the recipient's account.
+  - The text comes from a template in `templates/emails/`, which a theme can override. A template gets its values as plain text and escapes them like any template; the result is turned back into plain text before sending.
+  - The `mwtfrs_follower_email` filter can change an email or stop it.
+  - HTML versions were planned and left out: plain text does the job, and a second version of every template would have to be kept in step.
+- **Stopping the emails.** Every email ends with a link: the home URL with a `mwtfrs_unsubscribe` parameter that holds the subscription's secret token. It works without logging in.
+  - Opening the link only asks. The user stops following when the page's button is pressed. Programs that open every link in an email to scan it therefore can't unsubscribe anybody.
+  - The emails carry `List-Unsubscribe` and `List-Unsubscribe-Post` headers. A mail program's own unsubscribe button posts to the link, which stops the emails without a further step.
+  - The page also offers to stop all emails at once. That ends every subscription of the user and turns off following by itself for them, so their next vote doesn't bring the emails back.
+  - A request that isn't public is neither named nor linked on the page.
+  - WordPress encodes long headers when it sends with PHP's `mail()`, which not every mail program reads. The headers arrive as written on sites that send through SMTP or a mail service. The link in the email works either way.
+- All strings are translatable.
 
 ### 5.9 Capabilities
 
@@ -382,7 +415,7 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
   - It is empty by default, which shows nothing. The settings field offers a suggested text built from what the plugin does on that site. The suggestion mentions Akismet only when Akismet is connected, which covers what the form's short "Only our team sees this" note leaves out.
   - It is one site-wide text, not one per board. Logged-in users don't see it, because the form asks them for nothing.
 - **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy.
-- **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It handles multisite by looping over sites.
+- **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It also deletes each user's choice about following and cancels the emails that still wait. Action Scheduler's own tables stay, because other plugins may use them. It handles multisite by looping over sites.
 - **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
 - **Default board and status** can't be deleted from the admin or REST. If code such as WP-CLI deletes one anyway, the oldest remaining term becomes the default and the affected requests move to it.
 
@@ -401,15 +434,15 @@ feature-request-system/
 │   ├── Voting/                     # VoteRepository, VoteService, VoterIdentity
 │   ├── Security/                   # RateLimiter, RequestOrigin
 │   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, SimilarRequests
-│   ├── Notifications/              # SubscriptionRepository, Notifier, Mailer, templates/
-│   ├── Rest/                       # BoardsController, RequestsController, VotesController, MeController, SubscriptionsController
+│   ├── Notifications/              # NewRequestEmail, SubscriptionRepository, Subscriptions, StatusNotifier, ApprovalEmail, Mailer, Unsubscribe, Queue
+│   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, Response
 │   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
-│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, VoteForm, VoteStore, Template
-│   ├── Admin/                      # RequestList, StatusQuickEdit, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions
+│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, VoteForm, FollowForm, RequestNotice, VoteStore, Template
+│   ├── Admin/                      # RequestList, StatusQuickEdit, NotifySwitch, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions, ProfileFollows
 │   ├── Privacy/                    # Exporter, Eraser, PolicyText
 │   └── Cli/                        # `wp mwtfrs recount|seed`
 ├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss), shared/
-├── templates/                      # overridable PHP partials, and the block template single-request.html
+├── templates/                      # overridable PHP partials, emails/ (plain text), and the block template single-request.html
 ├── languages/
 ├── tests/
 │   ├── php/Integration/            # WP test suite: slices end to end
@@ -425,7 +458,7 @@ feature-request-system/
 | Area | Choice |
 |---|---|
 | Version control | `git init` on day one, GitHub repo, conventional commits, PR per milestone |
-| PHP deps | Composer: PSR-4 autoload; runtime dependency `woocommerce/action-scheduler` only |
+| PHP deps | Composer: PSR-4 autoload; runtime dependency `woocommerce/action-scheduler` only, pinned to 3.9 while the minimum is WordPress 6.6 |
 | PHP QA | `wp-coding-standards/wpcs` 3, `phpcompatibility/phpcompatibility-wp`, PHPStan level 6 with `szepeviktor/phpstan-wordpress` |
 | PHP tests | PHPUnit 9 + `yoast/phpunit-polyfills`, with WordPress core and its test library from Composer (`roots/wordpress-no-content`, `wp-phpunit/wp-phpunit`) against a MySQL database |
 | JS/CSS | `@wordpress/scripts` (build, lint, format), block.json, Interactivity API |
@@ -457,7 +490,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M4** ✅ | Submission (2–3 days) | Submit block and form, similar requests while typing, moderation flow, SpamGuard, admin new-request email | E2E: submit leads to pending, admin approves, it appears on the board. Tests: honeypot, timing and rate limit reject submissions; emails are never returned by public REST |
 | **M5** ✅ | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
 | **M6** ✅ | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and showing the board on a published page sets that page |
-| **M7** | Close the loop (2–3 days) | Subscriptions, auto-subscribe on vote, follow, Notifier via Action Scheduler, templates, unsubscribe | Tests: a status change on a request with 120 subscribers schedules 3 batches; unsubscribe token works; no mail goes to unsubscribed addresses |
+| **M7** ✅ | Close the loop (2–3 days) | Subscriptions table, following by voting, by suggesting and with the Follow button, status emails in batches through Action Scheduler with a five-minute wait, the approval email, plain text email templates, the unsubscribe link, the notify switch, followed requests on the profile | Tests: a status change on a request with 120 followers schedules 3 batches; the unsubscribe link works without logging in, and opening it alone unsubscribes nobody; no mail goes to someone who stopped following; a change corrected in time is never announced. E2E: follow and stop, a vote follows, a status change emails the follower and the link in the email stops the emails |
 | **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
 | M9 | 1.1 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests | Per-feature slices with tests |
@@ -484,6 +517,7 @@ About 17–22 working days to reach 1.0.0.
 | Small market with many new 2026 entrants | Lead with "close the loop" and polish; target plugin, theme and SaaS makers directly (dogfood it on cornelraiu.com for your own plugins) |
 | Slug dormancy: the approved slug has had no code for years | SVN repo exists with an empty trunk. Commit a real release soon, and email plugins@wordpress.org first if unsure whether the slug is still yours. |
 | Guest vote stuffing | Off by default, cookie plus IP-hash rate limits, verified-email guests in 1.1, admin can see and remove votes |
-| Email sending at scale on shared hosts | Batched Action Scheduler jobs; recommend an SMTP plugin in the docs |
+| Email sending at scale on shared hosts | Batched Action Scheduler jobs; recommend an SMTP plugin in the docs. The batches aren't spaced out, so a host's hourly limit can still be hit by a request with very many followers; a sending rate is a candidate for 1.1 |
+| Action Scheduler 4 needs WordPress 6.8 | Pinned to 3.9 (WordPress 6.5+). Move to 4 when the plugin's minimum WordPress version reaches 6.8 |
 | Scope creep (the v0.5 failure mode) | Milestones are vertical slices; nothing moves to 1.x until 1.0 ships |
 | **Local:** if v0.5 was active in this WordPress install, the stored active-plugin path `feature-request-system/feature-request-system.php` now points at this folder, so the new plugin activates itself as soon as its main file exists | Check Plugins → Installed before M0, or deactivate v0.5 first |

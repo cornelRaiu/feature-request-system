@@ -45,8 +45,8 @@ final class VotesApiTest extends TestCase {
 		$second = $this->vote( 'POST', $request );
 
 		$this->assertSame( 200, $first->get_status() );
-		$this->assertSame( [ 'votes' => 1, 'voted' => true ], $first->get_data() );
-		$this->assertSame( [ 'votes' => 1, 'voted' => true ], $second->get_data() );
+		$this->assertSame( [ 'votes' => 1, 'voted' => true, 'following' => true ], $first->get_data() );
+		$this->assertSame( [ 'votes' => 1, 'voted' => true, 'following' => true ], $second->get_data() );
 		$this->assertCount( 1, $this->vote_rows( $request ) );
 		$this->assertSame( '1', get_post_meta( $request, RequestPostType::META_VOTES, true ) );
 	}
@@ -56,8 +56,8 @@ final class VotesApiTest extends TestCase {
 		$request = $this->create_request();
 		$this->vote( 'POST', $request );
 
-		$this->assertSame( [ 'votes' => 0, 'voted' => false ], $this->vote( 'DELETE', $request )->get_data() );
-		$this->assertSame( [ 'votes' => 0, 'voted' => false ], $this->vote( 'DELETE', $request )->get_data() );
+		$this->assertSame( [ 'votes' => 0, 'voted' => false, 'following' => false ], $this->vote( 'DELETE', $request )->get_data() );
+		$this->assertSame( [ 'votes' => 0, 'voted' => false, 'following' => false ], $this->vote( 'DELETE', $request )->get_data() );
 		$this->assertSame( [], $this->vote_rows( $request ) );
 	}
 
@@ -71,7 +71,7 @@ final class VotesApiTest extends TestCase {
 		}
 		$this->vote( 'POST', $other );
 
-		$this->assertSame( [ 'votes' => 3, 'voted' => true ], $response->get_data() );
+		$this->assertSame( [ 'votes' => 3, 'voted' => true, 'following' => true ], $response->get_data() );
 		$this->assertSame( '1', get_post_meta( $other, RequestPostType::META_VOTES, true ) );
 	}
 

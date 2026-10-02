@@ -44,6 +44,10 @@ const { state } = store( 'mwtfrs/votes', {
 					context.votes = data.votes;
 					context.voted = data.voted;
 					state.voted[ context.id ] = data.voted;
+					// A vote can make a logged-in user follow the request, and taking it back can end that.
+					if ( typeof data.following === 'boolean' ) {
+						context.following = data.following;
+					}
 					state.announcement = data.voted
 						? state.strings.added
 						: state.strings.removed;

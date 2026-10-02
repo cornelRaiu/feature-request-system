@@ -12,11 +12,16 @@ use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Frontend\FollowForm;
 use FeatureRequestSystem\Frontend\RequestItem;
+use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Frontend\VoteStore;
+use FeatureRequestSystem\Notifications\Subscriptions;
+use FeatureRequestSystem\Settings;
 use FeatureRequestSystem\Voting\VoterIdentity;
+use FeatureRequestSystem\Voting\VoteService;
 use WP_Block_Templates_Registry;
 use WP_Block_Type_Registry;
 use WP_REST_Request;
@@ -109,11 +114,64 @@ final class RequestViewTest extends TestCase {
 	public function test_result_of_a_vote_without_javascript_is_shown(): void {
 		$request = $this->request();
 		$notice  = [
-			VoteForm::PARAM_NOTICE  => 'added',
-			VoteForm::PARAM_REQUEST => (string) $request,
+			RequestNotice::PARAM         => 'added',
+			RequestNotice::PARAM_REQUEST => (string) $request,
 		];
 
 		$this->assertStringContainsString( '<span data-wp-text="context.message">Your vote was added.</span>', $this->content_of( $request, $notice ) );
+	}
+
+	public function test_logged_in_users_get_a_follow_form_that_says_whether_they_follow(): void {
+		$user = self::factory()->user->create();
+		wp_set_current_user( $user );
+		$request = $this->request();
+
+		$before = $this->follow_form( $this->content_of( $request ) );
+
+		$this->assertStringContainsString( 'action="' . admin_url( 'admin-post.php' ) . '"', $before );
+		$this->assertStringContainsString( 'data-wp-on--submit="actions.toggleFollow"', $before );
+		$this->assertStringContainsString( 'name="action" value="' . FollowForm::ACTION . '"', $before );
+		$this->assertStringContainsString( 'name="request_id" value="' . $request . '"', $before );
+		$this->assertStringContainsString( 'name="redirect_to" value="' . esc_url( get_permalink( $request ) ) . '"', $before );
+		$this->assertStringContainsString( 'name="_wpnonce" value="' . wp_create_nonce( FollowForm::ACTION ) . '"', $before );
+		$this->assertSame( [ 'Get an email when the status changes.', 'Follow' ], $this->visible_texts( $before ) );
+
+		Subscriptions::follow( $request );
+		$after = $this->follow_form( $this->content_of( $request ) );
+
+		$this->assertSame( [ 'You get an email when the status changes.', 'Stop following' ], $this->visible_texts( $after ) );
+	}
+
+	public function test_voting_makes_the_page_show_that_the_user_follows(): void {
+		wp_set_current_user( self::factory()->user->create() );
+		$request = $this->request();
+
+		VoteService::cast( $request );
+
+		$this->assertSame( [ 'You get an email when the status changes.', 'Stop following' ], $this->visible_texts( $this->follow_form( $this->content_of( $request ) ) ) );
+	}
+
+	public function test_there_is_no_follow_form_for_guests_or_when_the_site_does_not_email_followers(): void {
+		$request = $this->request();
+		$this->assertStringNotContainsString( 'mwtfrs-follow', $this->content_of( $request ), 'Guests cannot follow.' );
+
+		wp_set_current_user( self::factory()->user->create() );
+		$pending = $this->create_request( [ 'post_status' => 'pending' ] );
+		$this->assertStringNotContainsString( 'mwtfrs-follow', RequestView::render_details( $pending, '' ), 'A request that waits for approval cannot be followed.' );
+
+		Settings::update( Settings::NOTIFY_FOLLOWERS, false );
+		$this->assertStringNotContainsString( 'mwtfrs-follow', $this->content_of( $request ), 'The site turned the emails off.' );
+	}
+
+	public function test_result_of_following_without_javascript_is_shown(): void {
+		wp_set_current_user( self::factory()->user->create() );
+		$request = $this->request();
+		$notice  = [
+			RequestNotice::PARAM         => 'following',
+			RequestNotice::PARAM_REQUEST => (string) $request,
+		];
+
+		$this->assertStringContainsString( '<span data-wp-text="context.message">You now follow this request.</span>', $this->content_of( $request, $notice ) );
 	}
 
 	public function test_details_stay_out_of_excerpts_the_rest_api_and_other_content(): void {
@@ -269,6 +327,29 @@ final class RequestViewTest extends TestCase {
 		update_comment_meta( $comment, OfficialResponse::META, 1 );
 
 		return $comment;
+	}
+
+	/**
+	 * Returns the follow form in a request's content.
+	 *
+	 * @param string $html Content of the request's page.
+	 */
+	private function follow_form( string $html ): string {
+		$this->assertSame( 1, preg_match( '#<form class="mwtfrs-follow".*?</form>#s', $html, $match ), 'The page has one follow form.' );
+
+		return $match[0];
+	}
+
+	/**
+	 * Returns the texts of a follow form that are not hidden: what a visitor reads without JavaScript.
+	 *
+	 * @param string $form HTML of the form.
+	 * @return string[]
+	 */
+	private function visible_texts( string $form ): array {
+		preg_match_all( '#<span(?: class="mwtfrs-follow__text")?(?: data-wp-bind--hidden="[^"]*")?>([^<]+)</span>#', $form, $visible );
+
+		return $visible[1];
 	}
 
 	/**

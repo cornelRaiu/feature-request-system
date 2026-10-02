@@ -10,6 +10,8 @@ namespace FeatureRequestSystem\Install;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Notifications\Queue;
+use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Settings;
 
@@ -37,6 +39,11 @@ final class Uninstaller {
 		Schema::drop_tables();
 		Capabilities::revoke();
 		self::delete_rate_limit_counters();
+
+		// Emails that were still waiting to go out, and each user's choice about following.
+		// Action Scheduler's own tables stay, because other plugins may use them.
+		Queue::cancel_all();
+		delete_metadata( 'user', 0, Subscriptions::META_AUTO_FOLLOW, '', true );
 
 		delete_option( Settings::OPTION );
 		delete_option( Installer::OPTION_DB_VERSION );

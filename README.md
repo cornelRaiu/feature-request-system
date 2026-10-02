@@ -80,10 +80,22 @@ CI runs the lint and static checks, the PHP tests on PHP 7.4 to 8.4 against Word
 |---|---|---|
 | `mwtfrs_request_submitted` | action | Runs after a request is submitted from the front end. Receives the request ID. |
 | `mwtfrs_status_changed` | action | Runs once when a request moves to another status, however the change was made. Receives the request ID, the old status term and the new status term. |
+| `mwtfrs_vote_cast` | action | Runs after a vote is added, not when someone votes again for a request they already voted for. Receives the request ID and the voter's user ID, 0 for a guest. |
+| `mwtfrs_vote_retracted` | action | Runs after a vote is taken back. Receives the request ID and the voter's user ID, 0 for a guest. |
+| `mwtfrs_notify_status_change` | filter | Return `false` to change a status without an email to the request's followers. Receives `true`, the request ID, the old status term and the new status term. |
+| `mwtfrs_status_email_delay` | filter | Changes how many seconds pass between a status change and its emails. Defaults to 300. With 0, changes in a row are no longer merged into one email. |
+| `mwtfrs_status_email_batch_size` | filter | Changes how many followers one background run emails. Defaults to 50. |
+| `mwtfrs_follower_email` | filter | Changes an email to a follower, or stops it when it returns `false`. Receives the email (`to`, `subject`, `message`, `headers`), the template name (`status-changed` or `request-approved`), the request and the user. |
 | `mwtfrs_verify_captcha` | filter | Return `true` to accept a submission, or a `WP_Error` to refuse it with that message. Receives `true` and the submitted fields. |
 | `mwtfrs_is_spam` | filter | Return `true` to hold a submission for review as spam. Receives the verdict so far and the title, description, name and email. |
 | `mwtfrs_rate_limit` | filter | Changes a rate limit. Receives the limit per hour, the action (`vote` or `submit`) and the scope (`voter` or `ip`). |
 | `mwtfrs_client_ip` | filter | Returns the visitor's IP address, for sites behind a trusted proxy. Defaults to `REMOTE_ADDR`. |
+
+## Background work
+
+The emails to a request's followers are sent by [Action Scheduler](https://actionscheduler.org), which Composer installs as the plugin's only runtime dependency. It is pinned to 3.9, the last line that runs on WordPress 6.6; version 4 needs WordPress 6.8. When another plugin brings a newer copy, that copy runs.
+
+On a site, Tools → Scheduled Actions lists the plugin's work under the group `feature-request-system`. In the PHP tests, `TestCase::run_waiting_actions()` runs what is waiting, and `tests_retrieve_phpmailer_instance()` holds the emails it sent.
 
 ## Rules
 

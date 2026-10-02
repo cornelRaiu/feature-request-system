@@ -54,6 +54,7 @@ final class SettingsPageTest extends TestCase {
 				Settings::NOTIFY_EMAILS            => 'team@example.com, not an email; lead@example.com',
 				Settings::DATA_USE_NOTE            => 'We <em>only</em> use it to <a href="https://example.org/contact" onclick="steal()">reply</a>.<script>alert(1)</script>',
 				Settings::DELETE_DATA_ON_UNINSTALL => '1',
+				Settings::SUBSCRIBE_VOTERS         => '0',
 				'made_up'                          => 'ignored',
 			]
 		);
@@ -66,6 +67,8 @@ final class SettingsPageTest extends TestCase {
 				Settings::NOTIFY_NEW_REQUESTS      => false,
 				Settings::NOTIFY_EMAILS            => 'team@example.com, lead@example.com',
 				Settings::DATA_USE_NOTE            => 'We <em>only</em> use it to <a href="https://example.org/contact">reply</a>.alert(1)',
+				Settings::NOTIFY_FOLLOWERS         => true,
+				Settings::SUBSCRIBE_VOTERS         => false,
 			],
 			get_option( Settings::OPTION )
 		);
@@ -114,6 +117,15 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'value="team@example.com"', $html );
 		$this->assertStringContainsString( '>We only use it to reply.</textarea>', $html );
 		$this->assertStringContainsString( '[' . Settings::DELETE_DATA_ON_UNINSTALL . ']" value="1">', $html, 'Deleting data on uninstall starts unticked.' );
+
+		foreach ( [ Settings::NOTIFY_FOLLOWERS, Settings::SUBSCRIBE_VOTERS ] as $follower_setting ) {
+			$this->assertStringContainsString(
+				'<input type="hidden" name="' . Settings::OPTION . '[' . $follower_setting . ']" value="0"><label><input type="checkbox" name="' . Settings::OPTION . '[' . $follower_setting . ']" value="1" checked=\'checked\'>',
+				$html,
+				'Following starts on: ' . $follower_setting
+			);
+		}
+		$this->assertStringContainsString( 'The emails go out 5 minutes after the last change', $html );
 	}
 
 	public function test_suggested_note_mentions_akismet_only_when_it_is_connected(): void {

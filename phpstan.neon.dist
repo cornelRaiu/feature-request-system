@@ -11,6 +11,7 @@ parameters:
 		- tests/phpstan/constants.php
 	scanFiles:
 		- tests/phpstan/akismet.php
+		- vendor/woocommerce/action-scheduler/functions.php
 		- tests/phpstan/wp-cli.php
 	dynamicConstantNames:
 		- COOKIEPATH

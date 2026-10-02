@@ -27,7 +27,7 @@ final class Installer {
 	/**
 	 * Database version of this code. Increase it whenever the tables or seeded data change.
 	 */
-	public const DB_VERSION = 1;
+	public const DB_VERSION = 2;
 
 	/**
 	 * Option that stores the database version a site is on.

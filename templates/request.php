@@ -1,9 +1,11 @@
 <?php
 /**
- * Details of a single feature request: its vote button, status and categories.
+ * Details of a single feature request: its vote button, status and categories, and for
+ * logged-in users the Follow button.
  *
  * To change the markup, copy this file to yourtheme/feature-request-system/request.php.
- * Keep the data-wp-* attributes: they make voting work without reloading the page.
+ * Keep the data-wp-* attributes and the form fields: they make voting and following work,
+ * with and without JavaScript.
  * Every value is escaped here, at output. The vote button has its own template,
  * vote-button.php.
  *
@@ -54,6 +56,21 @@ $mwtfrs_item = $args['item'];
 						<span class="mwtfrs-category"><?php echo esc_html( $mwtfrs_category ); ?></span>
 					<?php endforeach; ?>
 				</p>
+			<?php endif; ?>
+
+			<?php if ( $args['follow'] ) : ?>
+				<form class="mwtfrs-follow" method="post" action="<?php echo esc_url( $args['follow']['url'] ); ?>" data-wp-on--submit="actions.toggleFollow">
+					<input type="hidden" name="action" value="<?php echo esc_attr( $args['follow']['action'] ); ?>">
+					<input type="hidden" name="request_id" value="<?php echo (int) $mwtfrs_item['id']; ?>">
+					<input type="hidden" name="redirect_to" value="<?php echo esc_url( $args['follow']['redirect_to'] ); ?>">
+					<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $args['follow']['nonce'] ); ?>">
+					<span class="mwtfrs-follow__text" data-wp-bind--hidden="context.following"><?php esc_html_e( 'Get an email when the status changes.', 'feature-request-system' ); ?></span>
+					<span class="mwtfrs-follow__text" data-wp-bind--hidden="!context.following"><?php esc_html_e( 'You get an email when the status changes.', 'feature-request-system' ); ?></span>
+					<button type="submit" class="mwtfrs-follow__button" data-wp-bind--disabled="context.followBusy">
+						<span data-wp-bind--hidden="context.following"><?php esc_html_e( 'Follow', 'feature-request-system' ); ?></span>
+						<span data-wp-bind--hidden="!context.following"><?php esc_html_e( 'Stop following', 'feature-request-system' ); ?></span>
+					</button>
+				</form>
 			<?php endif; ?>
 
 			<p class="mwtfrs-request__message" role="status" data-wp-bind--hidden="!context.message">

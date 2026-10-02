@@ -33,7 +33,7 @@ if ( version_compare( PHP_VERSION, '7.4', '<' ) || version_compare( get_bloginfo
 	return;
 }
 
-if ( ! is_readable( __DIR__ . '/vendor/autoload.php' ) ) {
+if ( ! is_readable( __DIR__ . '/vendor/autoload.php' ) || ! is_readable( __DIR__ . '/vendor/woocommerce/action-scheduler/action-scheduler.php' ) ) {
 	add_action(
 		'admin_notices',
 		static function () {
@@ -49,5 +49,9 @@ if ( ! is_readable( __DIR__ . '/vendor/autoload.php' ) ) {
 }
 
 require_once __DIR__ . '/vendor/autoload.php';
+
+// Action Scheduler sends the emails to a request's followers in the background. Many plugins
+// bring a copy. Each copy must be loaded before plugins_loaded, and the newest one then runs.
+require_once __DIR__ . '/vendor/woocommerce/action-scheduler/action-scheduler.php';
 
 FeatureRequestSystem\Plugin::boot( __FILE__ );

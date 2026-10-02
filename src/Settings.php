@@ -51,6 +51,17 @@ final class Settings {
 	public const DATA_USE_NOTE = 'data_use_note';
 
 	/**
+	 * Whether logged-in users can follow requests and get an email when a request's
+	 * status changes. Off means nobody is emailed about a request they follow.
+	 */
+	public const NOTIFY_FOLLOWERS = 'notify_followers';
+
+	/**
+	 * Whether voting for a request also follows it.
+	 */
+	public const SUBSCRIBE_VOTERS = 'subscribe_voters';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -63,6 +74,8 @@ final class Settings {
 			self::NOTIFY_NEW_REQUESTS      => true,
 			self::NOTIFY_EMAILS            => '',
 			self::DATA_USE_NOTE            => '',
+			self::NOTIFY_FOLLOWERS         => true,
+			self::SUBSCRIBE_VOTERS         => true,
 		];
 	}
 

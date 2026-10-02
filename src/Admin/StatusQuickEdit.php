@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Admin;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Plugin;
 use WP_Post;
 
@@ -142,13 +143,24 @@ final class StatusQuickEdit {
 		foreach ( StatusTaxonomy::sort( is_array( $statuses ) ? $statuses : [] ) as $status ) {
 			printf( '<option value="%1$d">%2$s</option>', (int) $status->term_id, esc_html( $status->name ) );
 		}
-		echo '</select></label></div></fieldset>';
+		echo '</select></label>';
+
+		if ( Subscriptions::enabled() ) {
+			printf(
+				'<div class="inline-edit-group">%1$s<p class="description">%2$s</p></div>',
+				// WordPress gives labels here the height of a text field, which pulls the lines of a long label apart.
+				NotifySwitch::field( __( 'Email followers when the status changes', 'feature-request-system' ), 'line-height:1.5;margin:0.6em 0' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in field().
+				esc_html( NotifySwitch::timing() )
+			);
+		}
+
+		echo '</div></fieldset>';
 	}
 
 	/**
 	 * Whether the current request is a Quick Edit or Bulk Edit save that WordPress accepted.
 	 */
-	private static function is_quick_or_bulk_edit(): bool {
+	public static function is_quick_or_bulk_edit(): bool {
 		$quick = isset( $_POST['_inline_edit'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_inline_edit'] ) ), 'inlineeditnonce' );
 		$bulk  = isset( $_REQUEST['bulk_edit'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ), 'bulk-posts' );
 

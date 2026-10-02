@@ -11,6 +11,8 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Notifications\SubscriptionRepository;
+use FeatureRequestSystem\Notifications\Subscriptions;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
@@ -93,5 +95,33 @@ final class TermSelectBox {
 			);
 		}
 		echo '</select>';
+
+		if ( StatusTaxonomy::NAME === $taxonomy->name ) {
+			self::render_notify_switch( $post );
+		}
+	}
+
+	/**
+	 * Prints the switch that decides whether a status change is emailed to the request's followers.
+	 *
+	 * @param WP_Post $post Request being edited.
+	 */
+	private static function render_notify_switch( WP_Post $post ): void {
+		$followers = SubscriptionRepository::count( $post->ID );
+		if ( ! $followers || ! Subscriptions::enabled() ) {
+			return;
+		}
+
+		$label = sprintf(
+			/* translators: %s: number of followers. */
+			_n( 'Email %s follower when the status changes', 'Email %s followers when the status changes', $followers, 'feature-request-system' ),
+			number_format_i18n( $followers )
+		);
+
+		printf(
+			'<p>%1$s</p><p class="description">%2$s</p>',
+			NotifySwitch::field( $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in field().
+			esc_html( NotifySwitch::timing() )
+		);
 	}
 }

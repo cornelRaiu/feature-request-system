@@ -7,12 +7,16 @@
 
 namespace FeatureRequestSystem\Tests\Integration;
 
+use ActionScheduler;
+use ActionScheduler_Action;
+use ActionScheduler_Store;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Installer;
+use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Submission\SpamGuard;
 use WP_UnitTest_Factory;
 use WP_UnitTestCase;
@@ -88,6 +92,70 @@ abstract class TestCase extends WP_UnitTestCase {
 	 */
 	protected function default_board(): int {
 		return RequestTerms::default_term( BoardTaxonomy::NAME );
+	}
+
+	/**
+	 * Makes new users follow a request.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param int    $count      How many users.
+	 * @param string $source     Why they follow it, one of SubscriptionRepository's SOURCE constants.
+	 * @return int[] The users' IDs, in the order they started following.
+	 */
+	protected function create_followers( int $request_id, int $count, string $source = SubscriptionRepository::SOURCE_FOLLOW ): array {
+		$users = self::factory()->user->create_many( $count );
+		foreach ( $users as $user ) {
+			SubscriptionRepository::add( $request_id, $user, $source );
+		}
+
+		return $users;
+	}
+
+	/**
+	 * Returns the background actions that wait to run a hook, oldest first.
+	 *
+	 * @param string $hook Hook the actions run.
+	 * @return ActionScheduler_Action[] Actions by their ID.
+	 */
+	protected function waiting_actions( string $hook ): array {
+		return as_get_scheduled_actions(
+			[
+				'hook'     => $hook,
+				'status'   => ActionScheduler_Store::STATUS_PENDING,
+				'per_page' => -1,
+				'orderby'  => 'action_id',
+				'order'    => 'ASC',
+			]
+		);
+	}
+
+	/**
+	 * Runs the background actions that wait to run a hook, as Action Scheduler does once they are due.
+	 *
+	 * @param string $hook Hook the actions run.
+	 * @return int How many actions ran.
+	 */
+	protected function run_waiting_actions( string $hook ): int {
+		$actions = $this->waiting_actions( $hook );
+		foreach ( array_keys( $actions ) as $action_id ) {
+			ActionScheduler::runner()->process_action( $action_id, 'tests' );
+		}
+
+		return count( $actions );
+	}
+
+	/**
+	 * Returns the addresses that were emailed during the test, in the order the emails were sent.
+	 *
+	 * @return string[]
+	 */
+	protected function emailed(): array {
+		$addresses = [];
+		foreach ( tests_retrieve_phpmailer_instance()->mock_sent as $email ) {
+			$addresses[] = $email['to'][0][0];
+		}
+
+		return $addresses;
 	}
 
 	/**

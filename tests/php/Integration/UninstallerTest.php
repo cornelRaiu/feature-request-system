@@ -7,6 +7,8 @@
 
 namespace FeatureRequestSystem\Tests\Integration;
 
+use ActionScheduler;
+use ActionScheduler_Store;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\ContentTypes;
@@ -15,6 +17,9 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Installer;
 use FeatureRequestSystem\Install\Schema;
 use FeatureRequestSystem\Install\Uninstaller;
+use FeatureRequestSystem\Notifications\Queue;
+use FeatureRequestSystem\Notifications\StatusNotifier;
+use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Settings;
 
@@ -73,6 +78,10 @@ final class UninstallerTest extends TestCase {
 		self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
 		$unrelated = self::factory()->post->create();
 		set_transient( RateLimiter::TRANSIENT_PREFIX . 'vote_ip_0123456789abcdef_2026100112', 3, HOUR_IN_SECONDS );
+		$user = self::factory()->user->create();
+		Subscriptions::set_automatic( $user, false );
+		Queue::schedule( time() + HOUR_IN_SECONDS, StatusNotifier::HOOK, [ $published, 'notice', 1, 50 ] );
+		$theirs = as_schedule_single_action( time() + HOUR_IN_SECONDS, 'another_plugins_hook', [], 'another-plugin' );
 
 		Uninstaller::run();
 
@@ -95,8 +104,13 @@ final class UninstallerTest extends TestCase {
 		}
 
 		$drops = $this->drop_queries();
-		$this->assertCount( 1, $drops );
+		$this->assertCount( 2, $drops );
 		$this->assertStringContainsString( Schema::table( Schema::VOTES ), $drops[0] );
+		$this->assertStringContainsString( Schema::table( Schema::SUBSCRIPTIONS ), $drops[1] );
+
+		$this->assertSame( '', get_user_meta( $user, Subscriptions::META_AUTO_FOLLOW, true ), "A user's choice about following is removed." );
+		$this->assertFalse( as_has_scheduled_action( StatusNotifier::HOOK ), 'Emails that were waiting are cancelled.' );
+		$this->assertSame( ActionScheduler_Store::STATUS_PENDING, ActionScheduler::store()->get_status( $theirs ), "Another plugin's background work is untouched." );
 
 		global $wpdb;
 		$counters = $wpdb->get_var(

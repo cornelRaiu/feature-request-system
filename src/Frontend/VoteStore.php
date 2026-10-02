@@ -13,7 +13,8 @@ use stdClass;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The Interactivity API store that vote buttons use, on the board and on a request's page.
+ * The Interactivity API store that vote buttons use, on the board and on a request's page,
+ * and the Follow button on a request's page.
  */
 final class VoteStore {
 
@@ -36,9 +37,12 @@ final class VoteStore {
 				'voted'        => new stdClass(),
 				'announcement' => '',
 				'strings'      => [
-					'added'   => __( 'Vote added.', 'feature-request-system' ),
-					'removed' => __( 'Vote removed.', 'feature-request-system' ),
-					'error'   => __( 'Your vote could not be saved. Check your connection and try again.', 'feature-request-system' ),
+					'added'       => __( 'Vote added.', 'feature-request-system' ),
+					'removed'     => __( 'Vote removed.', 'feature-request-system' ),
+					'error'       => __( 'Your vote could not be saved. Check your connection and try again.', 'feature-request-system' ),
+					'following'   => __( 'You now follow this request.', 'feature-request-system' ),
+					'unfollowed'  => __( 'You no longer follow this request.', 'feature-request-system' ),
+					'followError' => __( 'That could not be saved. Check your connection and try again.', 'feature-request-system' ),
 				],
 			]
 		);

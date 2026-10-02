@@ -29,16 +29,6 @@ final class VoteForm {
 	public const ACTION = 'mwtfrs_vote';
 
 	/**
-	 * URL parameter with the notice code after a vote.
-	 */
-	public const PARAM_NOTICE = 'fr-notice';
-
-	/**
-	 * URL parameter with the request the notice is about.
-	 */
-	public const PARAM_REQUEST = 'fr-request';
-
-	/**
 	 * Notice codes for the voting errors.
 	 */
 	private const ERROR_NOTICES = [
@@ -95,38 +85,8 @@ final class VoteForm {
 	public static function process( array $input, string $origin, string $referer ): string {
 		$request_id = absint( $input['request_id'] ?? 0 );
 		$back       = wp_validate_redirect( esc_url_raw( (string) ( $input['redirect_to'] ?? '' ) ), home_url( '/' ) );
-		$notice     = self::toggle( $request_id, (string) ( $input['_wpnonce'] ?? '' ), $origin, $referer );
 
-		return add_query_arg(
-			[
-				self::PARAM_NOTICE  => $notice,
-				self::PARAM_REQUEST => $request_id,
-			],
-			$back
-		) . '#' . RequestItem::dom_id( $request_id );
-	}
-
-	/**
-	 * Returns the notice from the current URL, if it is about a request on this page.
-	 *
-	 * @return array{request: int, message: string, login: bool}|null
-	 */
-	public static function notice_from_request(): ?array {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Only picks a message to display.
-		$code    = isset( $_GET[ self::PARAM_NOTICE ] ) && is_string( $_GET[ self::PARAM_NOTICE ] ) ? sanitize_key( $_GET[ self::PARAM_NOTICE ] ) : '';
-		$request = isset( $_GET[ self::PARAM_REQUEST ] ) ? absint( $_GET[ self::PARAM_REQUEST ] ) : 0;
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-
-		$message = self::message( $code );
-		if ( '' === $message || ! $request ) {
-			return null;
-		}
-
-		return [
-			'request' => $request,
-			'message' => $message,
-			'login'   => 'login' === $code,
-		];
+		return RequestNotice::url( $back, self::toggle( $request_id, (string) ( $input['_wpnonce'] ?? '' ), $origin, $referer ), $request_id );
 	}
 
 	/**
@@ -156,27 +116,5 @@ final class VoteForm {
 		}
 
 		return $result['voted'] ? 'added' : 'removed';
-	}
-
-	/**
-	 * Returns the message for a notice code, or '' for an unknown code.
-	 *
-	 * @param string $code Notice code.
-	 */
-	private static function message( string $code ): string {
-		$messages = [
-			'added'    => __( 'Your vote was added.', 'feature-request-system' ),
-			'removed'  => __( 'Your vote was removed.', 'feature-request-system' ),
-			'login'    => __( 'Log in to vote on this request.', 'feature-request-system' ),
-			'closed'   => __( 'Voting is closed for this request.', 'feature-request-system' ),
-			'disabled' => __( 'Voting is turned off for this board.', 'feature-request-system' ),
-			'limit'    => __( 'Too many votes in a short time. Try again later.', 'feature-request-system' ),
-			'missing'  => __( 'This request is not open for voting.', 'feature-request-system' ),
-			'expired'  => __( 'This page has expired. Reload it and try again.', 'feature-request-system' ),
-			'origin'   => __( 'Your vote could not be verified. Reload the page and try again.', 'feature-request-system' ),
-			'error'    => __( 'Your vote could not be saved. Try again.', 'feature-request-system' ),
-		];
-
-		return $messages[ $code ] ?? '';
 	}
 }

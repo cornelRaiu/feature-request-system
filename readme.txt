@@ -42,7 +42,7 @@ Each new request is emailed to the site's administration email address, with a l
 
 Feature Requests in the admin lists every request with its votes, status, board and categories. Sort by votes to see what people want most, and filter by status, board or category. The menu shows how many requests wait for approval.
 
-Change a request's status from its edit screen, from Quick Edit, or for many requests at once with Bulk Edit. The edit screen also shows who voted for the request and who submitted it.
+Change a request's status from its edit screen, from Quick Edit, or for many requests at once with Bulk Edit. The edit screen also shows who voted for the request, how many users follow it and who submitted it.
 
 = Boards and statuses =
 
@@ -64,6 +64,18 @@ Editors and administrators can change the mark on any comment written by an edit
 
 In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
 
+= Following requests and emails =
+
+Logged-in users can follow a request with the Follow button on its page. A user who votes for a request follows it too, and so does a user who suggests one. Followers get an email when the request's status changes, and the user who suggested a request gets one when you approve it.
+
+The emails are plain text. They go out in the background, 50 at a time, so saving a request never waits for mail. A status email goes out five minutes after the change: if you pick the wrong status, correct it within that time and nobody hears about it, and several changes in a row become one email.
+
+Every email ends with a link that stops the emails about that request, without logging in. The page behind the link can also stop all of them at once. On their profile, users see the requests they follow, can stop following any of them, and choose whether voting makes them follow.
+
+To change a status without an email, untick "Email followers when the status changes" next to the status, on the edit screen, in Quick Edit or in Bulk Edit. Under Feature Requests → Settings you can turn following off altogether, or only for votes.
+
+Visitors without an account cannot follow and are not emailed.
+
 = Spam protection =
 
 The form stops most spam without a captcha:
@@ -79,6 +91,8 @@ Developers can add a captcha through the `mwtfrs_verify_captcha` filter, or anot
 
 The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `submit-form.php`, `vote-button.php`, `request.php` or `official-response.php`.
 
+The text of the emails to followers can be changed the same way: copy `emails/status-changed.php` or `emails/request-approved.php` to `feature-request-system/emails` in your theme.
+
 = Privacy =
 
 Everything is stored in your own WordPress database.
@@ -86,6 +100,8 @@ Everything is stored in your own WordPress database.
 Under Feature Requests → Settings you can write a "How we use your data" note. Visitors without an account can open it on the form, under the name and email fields, followed by a link to your privacy policy page. The settings page suggests a text to start from.
 
 People who suggest a feature are not stored as post authors, so their names never appear in author archives or other public data. The name and email a visitor gives are stored privately with their request and shown only to moderators. The plugin stores no IP addresses; rate limits use short-lived, hashed counters.
+
+For each logged-in user, the plugin stores which requests they follow, so it can email them. Those emails go to the address of the user's account, through your site's own mail setup. Who follows a request is never shown publicly; moderators see how many users follow it.
 
 = External services =
 
@@ -101,9 +117,23 @@ The board and the form are built for any theme. Block themes and classic themes 
 
 Not by default. Each board has a setting for who can suggest features: everyone, logged-in users, or nobody. Change it under Feature Requests → Boards. Visitors without an account can leave their name and email, and those are never shown publicly.
 
+= I changed a status. Why did the followers get no email yet? =
+
+Status emails go out five minutes after the last change, so that a status picked by mistake can be corrected first. They are sent in the background by WordPress's scheduled tasks, which run when someone visits the site. On a site with few visitors that can take a little longer.
+
+The user who changes the status gets no email about their own change.
+
+= What is the Scheduled Actions screen under Tools? =
+
+It belongs to Action Scheduler, the library this plugin uses to send emails in the background. WooCommerce and many other plugins use it too. The screen lists the emails that wait to be sent and those that were, under the group feature-request-system.
+
+= Do mail programs show their own unsubscribe button? =
+
+Each email carries the headers that mail programs such as Gmail use for that button, and using it stops the emails about that request. Mail programs rely on those headers only for mail that is sent through SMTP or a mail service and signed by your domain. With PHP's built-in mail function, which WordPress uses unless you set up something else, the button may not appear. The link at the end of the email works in every case.
+
 = How do I delete the plugin's data? =
 
-Deleting the plugin keeps your requests and votes, in case you install it again. To remove everything, tick "Delete all requests, votes, boards, statuses and settings when the plugin is deleted" under Feature Requests → Settings before you delete it.
+Deleting the plugin keeps your requests and votes, in case you install it again. To remove everything, tick "Delete all requests, votes, followers, boards, statuses and settings when the plugin is deleted" under Feature Requests → Settings before you delete it. The tables of Action Scheduler stay, because other plugins may use them.
 
 == Changelog ==
 

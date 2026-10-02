@@ -32,6 +32,16 @@ final class SettingsPage {
 	public const GROUP = 'mwtfrs_options';
 
 	/**
+	 * Settings shown as a checkbox. Each has its label next to the box, not in the row's title.
+	 */
+	private const CHECKBOXES = [
+		Settings::NOTIFY_NEW_REQUESTS,
+		Settings::NOTIFY_FOLLOWERS,
+		Settings::SUBSCRIBE_VOTERS,
+		Settings::DELETE_DATA_ON_UNINSTALL,
+	];
+
+	/**
 	 * Adds the page and registers what it saves.
 	 */
 	public static function add_hooks(): void {
@@ -76,6 +86,7 @@ final class SettingsPage {
 
 		$sections = [
 			'requests'  => [ __( 'New requests', 'feature-request-system' ), '' ],
+			'followers' => [ __( 'Followers', 'feature-request-system' ), __( 'A follower of a request gets an email when its status changes, and whoever suggested a request gets one when it is approved. Every email has a link to stop following. Only logged-in users can follow.', 'feature-request-system' ) ],
 			'guests'    => [ __( 'Visitors without an account', 'feature-request-system' ), __( 'Each board decides whether visitors without an account can vote or suggest features. Set that on the board, under Feature Requests → Boards.', 'feature-request-system' ) ],
 			'uninstall' => [ __( 'Uninstalling', 'feature-request-system' ), '' ],
 		];
@@ -97,11 +108,13 @@ final class SettingsPage {
 			Settings::DEFAULT_STATUS           => [ __( 'Status of new requests', 'feature-request-system' ), 'requests', 'render_default_status' ],
 			Settings::NOTIFY_NEW_REQUESTS      => [ __( 'Email about new requests', 'feature-request-system' ), 'requests', 'render_notify' ],
 			Settings::NOTIFY_EMAILS            => [ __( 'Send those emails to', 'feature-request-system' ), 'requests', 'render_notify_emails' ],
+			Settings::NOTIFY_FOLLOWERS         => [ __( 'Following', 'feature-request-system' ), 'followers', 'render_notify_followers' ],
+			Settings::SUBSCRIBE_VOTERS         => [ __( 'Voters', 'feature-request-system' ), 'followers', 'render_subscribe_voters' ],
 			Settings::DATA_USE_NOTE            => [ __( 'How we use your data', 'feature-request-system' ), 'guests', 'render_data_use_note' ],
 			Settings::DELETE_DATA_ON_UNINSTALL => [ __( 'Data', 'feature-request-system' ), 'uninstall', 'render_delete_data' ],
 		];
 		foreach ( $fields as $key => list( $title, $section, $callback ) ) {
-			$labelled = in_array( $key, [ Settings::NOTIFY_NEW_REQUESTS, Settings::DELETE_DATA_ON_UNINSTALL ], true ) ? [] : [ 'label_for' => self::id( $key ) ];
+			$labelled = in_array( $key, self::CHECKBOXES, true ) ? [] : [ 'label_for' => self::id( $key ) ];
 			add_settings_field( $key, $title, [ self::class, $callback ], self::SLUG, $section, $labelled );
 		}
 	}
@@ -178,6 +191,22 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Prints the switch for following requests.
+	 */
+	public static function render_notify_followers(): void {
+		self::checkbox( Settings::NOTIFY_FOLLOWERS, __( 'Let users follow requests, and email the followers of a request when its status changes', 'feature-request-system' ) );
+		echo '<p class="description">' . esc_html( NotifySwitch::timing() ) . '</p>';
+	}
+
+	/**
+	 * Prints the switch for following by voting.
+	 */
+	public static function render_subscribe_voters(): void {
+		self::checkbox( Settings::SUBSCRIBE_VOTERS, __( 'A user who votes for a request also follows it', 'feature-request-system' ) );
+		echo '<p class="description">' . esc_html__( 'Taking the vote back ends it. Users can turn this off for themselves in their profile, and from any of the emails.', 'feature-request-system' ) . '</p>';
+	}
+
+	/**
 	 * Prints the note for visitors who suggest a feature without an account.
 	 */
 	public static function render_data_use_note(): void {
@@ -196,7 +225,7 @@ final class SettingsPage {
 	 * Prints the switch for deleting data on uninstall.
 	 */
 	public static function render_delete_data(): void {
-		self::checkbox( Settings::DELETE_DATA_ON_UNINSTALL, __( 'Delete all requests, votes, boards, statuses and settings when the plugin is deleted', 'feature-request-system' ) );
+		self::checkbox( Settings::DELETE_DATA_ON_UNINSTALL, __( 'Delete all requests, votes, followers, boards, statuses and settings when the plugin is deleted', 'feature-request-system' ) );
 	}
 
 	/**

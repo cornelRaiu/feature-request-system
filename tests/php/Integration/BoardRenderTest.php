@@ -13,10 +13,11 @@ use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\Board;
 use FeatureRequestSystem\Frontend\BoardQuery;
-use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\RequestItem;
+use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Frontend\VoteStore;
 use FeatureRequestSystem\Voting\VoterIdentity;
@@ -206,8 +207,8 @@ final class BoardRenderTest extends TestCase {
 		$voted = $this->request_with_votes( 'Dark mode', 1 );
 		$this->request_with_votes( 'Export to CSV', 0 );
 		$_GET  = [
-			VoteForm::PARAM_NOTICE  => 'added',
-			VoteForm::PARAM_REQUEST => (string) $voted,
+			RequestNotice::PARAM  => 'added',
+			RequestNotice::PARAM_REQUEST => (string) $voted,
 		];
 
 		$html = $this->render();
@@ -221,8 +222,8 @@ final class BoardRenderTest extends TestCase {
 	public function test_login_notice_shows_a_login_link(): void {
 		$request = $this->request_with_votes( 'Dark mode', 0 );
 		$_GET    = [
-			VoteForm::PARAM_NOTICE  => 'login',
-			VoteForm::PARAM_REQUEST => (string) $request,
+			RequestNotice::PARAM  => 'login',
+			RequestNotice::PARAM_REQUEST => (string) $request,
 		];
 
 		$html = $this->render();

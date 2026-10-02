@@ -20,6 +20,11 @@ final class Schema {
 	public const VOTES = 'mwtfrs_votes';
 
 	/**
+	 * Subscriptions table without the site prefix. One row per user per request they follow.
+	 */
+	public const SUBSCRIPTIONS = 'mwtfrs_subscriptions';
+
+	/**
 	 * Returns a table name with the current site's prefix.
 	 *
 	 * @param string $name Table name without prefix, one of this class's constants.
@@ -33,17 +38,21 @@ final class Schema {
 	/**
 	 * Creates the tables, or adds missing columns and indexes to existing ones.
 	 *
-	 * The voter_key column holds a SHA-256 hash of the voter (a user ID, or a random
-	 * token for guests). The unique key on request_id and voter_key is what enforces
-	 * one vote per voter per request.
+	 * In the votes table, voter_key holds a SHA-256 hash of the voter (a user ID, or a
+	 * random token for guests). The unique key on request_id and voter_key is what
+	 * enforces one vote per voter per request.
+	 *
+	 * In the subscriptions table, token is the secret in a subscription's unsubscribe
+	 * link, and source says how the user came to follow the request.
 	 */
 	public static function create_tables(): void {
 		global $wpdb;
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$votes   = self::table( self::VOTES );
-		$collate = $wpdb->get_charset_collate();
+		$votes         = self::table( self::VOTES );
+		$subscriptions = self::table( self::SUBSCRIPTIONS );
+		$collate       = $wpdb->get_charset_collate();
 
 		// dbDelta() needs each column on its own line and two spaces after PRIMARY KEY.
 		dbDelta(
@@ -61,6 +70,21 @@ final class Schema {
   KEY request_created (request_id,created_at)
 ) {$collate};"
 		);
+
+		dbDelta(
+			"CREATE TABLE {$subscriptions} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  request_id bigint(20) unsigned NOT NULL,
+  user_id bigint(20) unsigned NOT NULL,
+  token char(32) NOT NULL,
+  source varchar(20) NOT NULL,
+  created_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY request_user (request_id,user_id),
+  KEY token (token),
+  KEY user_id (user_id)
+) {$collate};"
+		);
 	}
 
 	/**
@@ -69,6 +93,8 @@ final class Schema {
 	public static function drop_tables(): void {
 		global $wpdb;
 
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::table( self::VOTES ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall removes the plugin's own table.
+		foreach ( [ self::VOTES, self::SUBSCRIPTIONS ] as $table ) {
+			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::table( $table ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Uninstall removes the plugin's own tables.
+		}
 	}
 }

@@ -58,11 +58,21 @@ final class RequestDetailsBoxTest extends TestCase {
 		$this->assertStringContainsString( '<p>2 more users</p>', $html );
 	}
 
+	public function test_box_counts_the_followers(): void {
+		$request = $this->create_request();
+		$this->create_followers( $request, 1 );
+		$this->assertStringContainsString( '<p>1 follower</p>', $this->box( $request ) );
+
+		$this->create_followers( $request, 2 );
+		$this->assertStringContainsString( '<p>3 followers</p>', $this->box( $request ) );
+	}
+
 	public function test_requests_without_votes_say_so(): void {
 		$html = $this->box( $this->create_request() );
 
 		$this->assertStringContainsString( '<strong>0 votes</strong>', $html );
 		$this->assertStringNotContainsString( '<ul>', $html );
+		$this->assertStringNotContainsString( 'follower', $html );
 		$this->assertStringNotContainsString( 'Submitted by', $html, 'A request written in the admin has no submitter.' );
 	}
 

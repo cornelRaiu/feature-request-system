@@ -50,6 +50,16 @@ final class VoteService {
 	public const ERROR_RATE_LIMITED = 'mwtfrs_rate_limited';
 
 	/**
+	 * Action fired after a vote is added. Receives the request ID and the voter's user ID, 0 for a guest.
+	 */
+	public const ACTION_CAST = 'mwtfrs_vote_cast';
+
+	/**
+	 * Action fired after a vote is taken back. Receives the request ID and the voter's user ID, 0 for a guest.
+	 */
+	public const ACTION_RETRACTED = 'mwtfrs_vote_retracted';
+
+	/**
 	 * Adds the hooks that keep votes consistent with requests.
 	 */
 	public static function add_hooks(): void {
@@ -109,10 +119,16 @@ final class VoteService {
 			return self::rate_limited( $wait );
 		}
 
-		VoteRepository::add( $request_id, $voter, get_current_user_id() );
+		$added = VoteRepository::add( $request_id, $voter, get_current_user_id() );
+		$votes = VoteCount::sync( $request_id );
+
+		// Voting again is not a new vote, so it is not announced again.
+		if ( $added ) {
+			do_action( self::ACTION_CAST, $request_id, get_current_user_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+		}
 
 		return [
-			'votes' => VoteCount::sync( $request_id ),
+			'votes' => $votes,
 			'voted' => true,
 		];
 	}
@@ -143,10 +159,15 @@ final class VoteService {
 			return self::rate_limited( $wait );
 		}
 
-		VoteRepository::remove( $request_id, $voter );
+		$removed = VoteRepository::remove( $request_id, $voter );
+		$votes   = VoteCount::sync( $request_id );
+
+		if ( $removed ) {
+			do_action( self::ACTION_RETRACTED, $request_id, get_current_user_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+		}
 
 		return [
-			'votes' => VoteCount::sync( $request_id ),
+			'votes' => $votes,
 			'voted' => false,
 		];
 	}

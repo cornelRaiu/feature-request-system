@@ -26,5 +26,6 @@ final class RestApi {
 		VotesController::register_routes();
 		StateController::register_routes();
 		RequestsController::register_routes();
+		SubscriptionsController::register_routes();
 	}
 }

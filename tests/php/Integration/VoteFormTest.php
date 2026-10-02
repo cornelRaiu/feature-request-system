@@ -13,6 +13,7 @@ use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\RequestItem;
+use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Voting\VoterIdentity;
 
@@ -84,8 +85,8 @@ final class VoteFormTest extends TestCase {
 
 	public function test_notice_is_read_from_the_url_only_when_known(): void {
 		$_GET = [
-			VoteForm::PARAM_NOTICE  => 'added',
-			VoteForm::PARAM_REQUEST => '12',
+			RequestNotice::PARAM  => 'added',
+			RequestNotice::PARAM_REQUEST => '12',
 		];
 		$this->assertSame(
 			[
@@ -93,11 +94,11 @@ final class VoteFormTest extends TestCase {
 				'message' => 'Your vote was added.',
 				'login'   => false,
 			],
-			VoteForm::notice_from_request()
+			RequestNotice::from_request()
 		);
 
-		$_GET[ VoteForm::PARAM_NOTICE ] = 'made-up';
-		$this->assertNull( VoteForm::notice_from_request() );
+		$_GET[ RequestNotice::PARAM ] = 'made-up';
+		$this->assertNull( RequestNotice::from_request() );
 	}
 
 	/**

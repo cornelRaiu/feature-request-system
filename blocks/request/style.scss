@@ -1,6 +1,6 @@
 /**
- * A single feature request: its vote button, status and categories above the
- * description, and the official response below it.
+ * A single feature request: its vote button, status, categories and Follow
+ * button above the description, and the official response below it.
  */
 
 @use "../shared/base";
@@ -31,6 +31,55 @@
 	display: grid;
 	gap: 0.375rem;
 	min-width: 0;
+}
+
+/* Follow button, for logged-in users */
+
+.mwtfrs-follow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.375rem 0.75rem;
+	margin: 0;
+	font-size: 0.875em;
+}
+
+.mwtfrs-follow__text {
+	color: var(--mwtfrs-muted);
+}
+
+// The repeated class outranks themes that style every button, as for the
+// vote button.
+.mwtfrs-follow .mwtfrs-follow__button.mwtfrs-follow__button.mwtfrs-follow__button {
+	min-height: 2rem;
+	margin: 0;
+	padding: 0.125rem 0.75rem;
+	border: 1px solid var(--mwtfrs-line);
+	border-radius: 4px;
+	box-shadow: none;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: 1.2;
+	text-decoration: none;
+	text-transform: none;
+	cursor: pointer;
+
+	&:hover {
+		border-color: currentcolor;
+		background: transparent;
+		color: inherit;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentcolor;
+		outline-offset: 2px;
+	}
+
+	&:disabled {
+		cursor: progress;
+		opacity: 0.7;
+	}
 }
 
 /* Official response, pinned below the description */

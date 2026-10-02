@@ -49,6 +49,63 @@ final class InstallerTest extends TestCase {
 		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $vote, [ 'request_id' => 11 ] ) ), 'Same voter, other request.' );
 	}
 
+	public function test_subscriptions_table_has_the_planned_columns_and_keys(): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::SUBSCRIPTIONS );
+
+		$this->assertSame( [ 'id', 'request_id', 'user_id', 'token', 'source', 'created_at' ], $wpdb->get_col( 'DESCRIBE ' . $table ) );
+		$this->assertEqualsCanonicalizing( [ 'PRIMARY', 'request_user', 'token', 'user_id' ], array_unique( $wpdb->get_col( 'SHOW INDEX FROM ' . $table, 2 ) ) );
+	}
+
+	public function test_subscriptions_table_holds_one_row_per_user_and_request(): void {
+		global $wpdb;
+
+		$table        = Schema::table( Schema::SUBSCRIPTIONS );
+		$subscription = [
+			'request_id' => 10,
+			'user_id'    => 1,
+			'token'      => str_repeat( 'a', 32 ),
+			'source'     => 'vote',
+			'created_at' => '2026-10-02 12:00:00',
+		];
+
+		$this->assertSame( 1, $wpdb->insert( $table, $subscription ) );
+
+		$suppress = $wpdb->suppress_errors();
+		$this->assertFalse( $wpdb->insert( $table, $subscription ), 'Same user, same request.' );
+		$wpdb->suppress_errors( $suppress );
+
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $subscription, [ 'request_id' => 11 ] ) ), 'Same user, other request.' );
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $subscription, [ 'user_id' => 2 ] ) ), 'Other user, same request.' );
+	}
+
+	public function test_a_site_on_the_previous_database_version_gets_its_tables_brought_up_to_date(): void {
+		// dbDelta() reads a table's columns, then creates the table or adds what is missing.
+		$examined = [];
+		add_filter(
+			'query',
+			static function ( string $query ) use ( &$examined ): string {
+				if ( preg_match( '/^\s*DESCRIBE\s+(\S+?);?\s*$/i', $query, $match ) ) {
+					$examined[] = trim( $match[1], '`' );
+				}
+
+				return $query;
+			},
+			99
+		);
+
+		Installer::maybe_upgrade();
+		$this->assertSame( [], $examined, 'A site on the current version is left alone.' );
+
+		update_option( Installer::OPTION_DB_VERSION, 1 );
+		Installer::maybe_upgrade();
+
+		$this->assertSame( [ Schema::table( Schema::VOTES ), Schema::table( Schema::SUBSCRIPTIONS ) ], $examined );
+		$this->assertSame( 2, Installer::DB_VERSION );
+		$this->assertSame( Installer::DB_VERSION, (int) get_option( Installer::OPTION_DB_VERSION ) );
+	}
+
 	public function test_install_seeds_six_statuses_in_workflow_order(): void {
 		$statuses = StatusTaxonomy::sort(
 			get_terms(
