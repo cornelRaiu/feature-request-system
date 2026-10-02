@@ -4,13 +4,39 @@
  *
  * Usage: node bin/render-assets.js
  *
- * Needs the Chromium that Playwright installs (npx playwright install chromium).
+ * Needs the Chromium that Playwright installs (npx playwright install chromium), and a
+ * connection to Google Fonts, where the banner's font comes from.
  */
 const path = require( 'node:path' );
 const { pathToFileURL } = require( 'node:url' );
 const { chromium } = require( '@playwright/test' );
 
 const assets = path.join( __dirname, '..', '.wordpress-org' );
+
+/**
+ * Loads the banner's font, and stops when it cannot: the banner would quietly fall back to another font.
+ *
+ * @param {import('@playwright/test').Page} page Page with the banner.
+ */
+async function loadFont( page ) {
+	const missing = await page.evaluate( async () => {
+		const weights = [ 400, 500, 600, 700 ];
+		const faces = await Promise.all(
+			weights.map( ( weight ) =>
+				document.fonts.load( `${ weight } 16px "IBM Plex Sans"` )
+			)
+		);
+		return weights.filter( ( weight, index ) => ! faces[ index ].length );
+	} );
+
+	if ( missing.length ) {
+		throw new Error(
+			`IBM Plex Sans ${ missing.join(
+				', '
+			) } did not load. The banner needs a connection to fonts.googleapis.com.`
+		);
+	}
+}
 
 ( async () => {
 	const browser = await chromium.launch();
@@ -26,6 +52,7 @@ const assets = path.join( __dirname, '..', '.wordpress-org' );
 		await page.goto(
 			pathToFileURL( path.join( assets, 'src', 'banner.html' ) ).href
 		);
+		await loadFont( page );
 		await page.evaluate( ( zoom ) => {
 			document.documentElement.style.zoom = zoom;
 		}, scale );

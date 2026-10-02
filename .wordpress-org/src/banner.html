@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Banner</title>
+<!-- An open font, so that the banner looks the same whichever computer renders it. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
 	* { box-sizing: border-box; margin: 0; }
 	html, body { width: 1544px; height: 500px; }
@@ -13,12 +15,13 @@
 		gap: 40px;
 		padding: 0 88px;
 		overflow: hidden;
-		background: linear-gradient(120deg, #312e81 0%, #4338ca 55%, #6d5ce8 100%);
+		background: radial-gradient(ellipse 820px 560px at 76% 50%, #1e2f55 0%, rgba(30, 47, 85, 0) 72%), #14213d;
 		color: #fff;
-		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+		font-family: "IBM Plex Sans", sans-serif;
 	}
-	h1 { font-size: 68px; line-height: 1.05; font-weight: 700; letter-spacing: -1.5px; }
-	p.tagline { margin-top: 26px; font-size: 30px; line-height: 1.35; color: #dcd9ff; white-space: nowrap; }
+	.logo { display: block; width: 92px; height: 92px; margin-bottom: 30px; }
+	h1 { font-size: 64px; line-height: 1.04; font-weight: 700; letter-spacing: -1px; }
+	p.tagline { margin-top: 22px; font-size: 28px; line-height: 1.35; color: #c9d1e1; white-space: nowrap; }
 	.cards { display: grid; gap: 18px; transform: rotate(-3deg) translateX(24px); }
 	.card {
 		display: grid;
@@ -28,32 +31,44 @@
 		padding: 22px 28px;
 		border-radius: 18px;
 		background: #fff;
-		color: #1e1b4b;
-		box-shadow: 0 18px 40px rgba(17, 12, 66, 0.35);
+		color: #14213d;
+		box-shadow: 0 18px 40px rgba(4, 9, 22, 0.45);
 	}
 	.vote {
 		display: grid;
 		justify-items: center;
 		gap: 4px;
 		padding: 12px 0;
-		border: 2px solid #d9d6f5;
+		border: 2px solid #d6dbe5;
 		border-radius: 12px;
 		font-size: 26px;
 		font-weight: 700;
 		line-height: 1;
 	}
-	.vote.is-pressed { border-color: #4338ca; background: #4338ca; color: #fff; }
+	.vote.is-pressed { border-color: #f2a541; background: #f2a541; }
 	.vote svg { width: 26px; height: 26px; fill: currentColor; }
-	.title { font-size: 28px; font-weight: 650; line-height: 1.2; }
-	.status { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 20px; font-weight: 600; color: #4b4873; }
+	.title { font-size: 28px; font-weight: 600; line-height: 1.2; }
+	.status { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 20px; font-weight: 500; color: #4f5866; }
 	.status::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--dot); }
 </style>
 </head>
 <body>
 	<div>
+		<!-- The icon, on a tile a shade lighter than the banner. -->
+		<svg class="logo" viewBox="0 0 256 256" aria-hidden="true">
+			<rect width="256" height="256" rx="56" fill="#1e2f55"/>
+			<rect x="64" y="46" width="128" height="40" rx="14" fill="#fff" fill-opacity="0.45"/>
+			<rect x="50" y="78" width="156" height="50" rx="16" fill="#fff" fill-opacity="0.7"/>
+			<rect x="36" y="118" width="184" height="94" rx="22" fill="#fff"/>
+			<rect x="56" y="140" width="50" height="50" rx="13" fill="#f2a541"/>
+			<path d="M69 171 81 159 93 171" fill="none" stroke="#14213d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+			<rect x="120" y="148" width="80" height="12" rx="6" fill="#14213d" fill-opacity="0.85"/>
+			<rect x="120" y="170" width="52" height="10" rx="5" fill="#14213d" fill-opacity="0.4"/>
+		</svg>
 		<h1>Feature Request System</h1>
 		<p class="tagline">Collect requests. Let people vote.<br>Tell them when the status changes.</p>
 	</div>
+	<!-- The statuses carry the plugin's default colours. -->
 	<div class="cards">
 		<div class="card">
 			<div class="vote is-pressed"><svg viewBox="0 0 24 24"><path d="M12 4 4.5 12.5h5V20h5v-7.5h5z"/></svg>128</div>

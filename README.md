@@ -58,7 +58,7 @@ putenv( 'WP_TESTS_DB_HOST=127.0.0.1:33061' );
 | `bin/build-zip.sh` | Builds `dist/feature-request-system/` and the release zip |
 | `wp mwtfrs recount` | On a site running the plugin: recounts every request's votes and fixes stored counts |
 | `wp mwtfrs seed` | On a site running the plugin: creates 30 sample requests with votes. `--requests=1000 --votes=50000` makes a large board; `--delete` removes the sample requests again |
-| `node bin/render-assets.js` | Renders the WordPress.org icon and banner from their sources in `.wordpress-org/` |
+| `node bin/render-assets.js` | Renders the WordPress.org icon and banner from their sources in `.wordpress-org/`; the banner's font comes from Google Fonts |
 | `node bin/screenshots.js` | Takes the WordPress.org screenshots on a throwaway site (same settings as the end-to-end tests) |
 
 ### End-to-end tests
