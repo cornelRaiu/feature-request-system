@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * Reads and writes rows in the subscriptions table. One row per user per request they
  * follow, enforced by a unique key.
  *
- * @phpstan-type Subscription array{id: int, request_id: int, user_id: int, token: string, source: string}
+ * @phpstan-type Subscription array{id: int, request_id: int, user_id: int, token: string, source: string, created_at: string}
  */
 final class SubscriptionRepository {
 
@@ -102,11 +102,12 @@ final class SubscriptionRepository {
 	 * Makes a user stop following every request.
 	 *
 	 * @param int $user_id User ID.
+	 * @return int How many requests the user was following.
 	 */
-	public static function remove_user( int $user_id ): void {
+	public static function remove_user( int $user_id ): int {
 		global $wpdb;
 
-		$wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), [ 'user_id' => $user_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+		return (int) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), [ 'user_id' => $user_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
 	}
 
 	/**
@@ -122,7 +123,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source FROM %i WHERE request_id = %d AND user_id = %d',
+				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE request_id = %d AND user_id = %d',
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$request_id,
 				$user_id
@@ -144,7 +145,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; a secret must not be cached.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source FROM %i WHERE token = %s',
+				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE token = %s',
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$token
 			)
@@ -190,7 +191,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read at the moment the emails go out.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source FROM %i WHERE request_id = %d AND id BETWEEN %d AND %d ORDER BY id ASC',
+				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE request_id = %d AND id BETWEEN %d AND %d ORDER BY id ASC',
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$request_id,
 				$first_id,
@@ -215,22 +216,24 @@ final class SubscriptionRepository {
 	}
 
 	/**
-	 * Returns the subscriptions of a user, newest first.
+	 * Returns the subscriptions of a user, newest first, a page at a time.
 	 *
 	 * @param int $user_id User ID.
 	 * @param int $limit   Most subscriptions to return.
+	 * @param int $offset  Subscriptions to skip.
 	 * @return array<int, array<string, int|string>>
 	 * @phpstan-return list<Subscription>
 	 */
-	public static function of_user( int $user_id, int $limit ): array {
+	public static function of_user( int $user_id, int $limit, int $offset = 0 ): array {
 		global $wpdb;
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT %d',
+				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$user_id,
-				$limit
+				$limit,
+				$offset
 			)
 		);
 
@@ -267,6 +270,7 @@ final class SubscriptionRepository {
 				'user_id'    => (int) $row->user_id,
 				'token'      => (string) $row->token,
 				'source'     => (string) $row->source,
+				'created_at' => (string) $row->created_at,
 			];
 		}
 

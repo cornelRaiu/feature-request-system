@@ -30,4 +30,12 @@ class WP_CLI {
 	 */
 	public static function success( $message ): void {
 	}
+
+	/**
+	 * Prints a line.
+	 *
+	 * @param string $message Message to print.
+	 */
+	public static function log( $message ): void {
+	}
 }

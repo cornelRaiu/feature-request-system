@@ -69,7 +69,7 @@ final class UnsubscribeTest extends TestCase {
 		$this->assertSame( 'Stop following this request?', $page['title'] );
 		$this->assertStringContainsString( '<p>You will get no more emails about &quot;Dark mode&quot;.</p>', $page['html'] );
 		$this->assertStringContainsString( '<form method="post" action="' . esc_url( Unsubscribe::url( $this->token ) ) . '"><p><button type="submit" class="button button-large">Stop following</button>', $page['html'] );
-		$this->assertStringContainsString( '<a href="' . esc_url( get_permalink( $this->request ) ) . '">Keep following and go to the request</a>', $page['html'] );
+		$this->assertStringContainsString( '<a href="' . esc_url( get_permalink( $this->request ) ) . '" rel="noreferrer">Keep following and go to the request</a>', $page['html'] );
 	}
 
 	public function test_posting_to_the_link_stops_the_emails_about_that_request_only(): void {
@@ -109,7 +109,7 @@ final class UnsubscribeTest extends TestCase {
 
 			$this->assertSame( 404, $page['status'], $case );
 			$this->assertSame( 'This link no longer works', $page['title'], $case );
-			$this->assertStringContainsString( '<a href="' . esc_url( home_url( '/' ) ) . '">Go to Test Site</a>', $page['html'], $case );
+			$this->assertStringContainsString( '<a href="' . esc_url( home_url( '/' ) ) . '" rel="noreferrer">Go to Test Site</a>', $page['html'], $case );
 		}
 		$this->assertTrue( Subscriptions::is_following( $this->request, $bystander ) );
 		$this->assertTrue( Subscriptions::wants_automatic( $bystander ) );
@@ -191,7 +191,7 @@ final class UnsubscribeTest extends TestCase {
 		$page = Unsubscribe::process( $this->token, false, false );
 
 		$this->assertStringNotContainsString( '<script', $page['html'] );
-		$this->assertStringContainsString( 'Dark &lt;script&gt;alert(1)&lt;/script&gt; mode', $page['html'] );
+		$this->assertStringContainsString( 'Dark &lt; script&gt;alert(1)&lt; /script&gt; mode', $page['html'] );
 	}
 
 	public function test_a_visit_to_the_link_ends_with_the_page_and_other_visits_are_left_alone(): void {

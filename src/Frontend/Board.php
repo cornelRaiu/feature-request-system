@@ -87,8 +87,8 @@ final class Board {
 					'sort'     => BoardQuery::PARAM_SORT,
 				],
 				'status_all'         => BoardQuery::STATUS_ALL,
-				'statuses'           => self::term_options( StatusTaxonomy::NAME ),
-				'categories'         => self::term_options( CategoryTaxonomy::NAME ),
+				'statuses'           => self::term_options( StatusTaxonomy::NAME, [] ),
+				'categories'         => self::term_options( CategoryTaxonomy::NAME, BoardSettings::categories( $board->term_id ) ),
 				'sorts'              => [
 					BoardQuery::SORT_TOP => __( 'Most votes', 'feature-request-system' ),
 					BoardQuery::SORT_NEW => __( 'Newest', 'feature-request-system' ),
@@ -198,13 +198,15 @@ final class Board {
 	 * Terms for a filter dropdown, keyed by slug. Statuses keep their workflow order.
 	 *
 	 * @param string $taxonomy Status or category taxonomy.
+	 * @param int[]  $only     Term IDs to choose from, or an empty array for every term.
 	 * @return array<string, string>
 	 */
-	private static function term_options( string $taxonomy ): array {
+	private static function term_options( string $taxonomy, array $only ): array {
 		$terms = get_terms(
 			[
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => CategoryTaxonomy::NAME === $taxonomy,
+				'include'    => $only,
 			]
 		);
 		if ( ! is_array( $terms ) ) {

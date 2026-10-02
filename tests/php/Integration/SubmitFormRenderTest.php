@@ -62,7 +62,7 @@ final class SubmitFormRenderTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'name="name"', $html );
-		$this->assertStringContainsString( 'name="email"', $html );
+		$this->assertStringContainsString( 'name="email" maxlength="254"', $html );
 		$this->assertStringNotContainsString( '_wpnonce', $html );
 		$this->assertSame( '', wp_interactivity_state( SubmitForm::BLOCK )['nonce'], 'The script state carries no nonce either.' );
 	}
@@ -107,6 +107,28 @@ final class SubmitFormRenderTest extends TestCase {
 		wp_set_current_user( self::factory()->user->create() );
 
 		$this->assertStringContainsString( '<option value="' . $category . '">Reports &amp; exports</option>', $this->render() );
+	}
+
+	public function test_a_board_limited_to_some_categories_offers_only_those(): void {
+		$offered = self::factory()->term->create(
+			[
+				'taxonomy' => CategoryTaxonomy::NAME,
+				'name'     => 'Billing',
+			]
+		);
+		self::factory()->term->create(
+			[
+				'taxonomy' => CategoryTaxonomy::NAME,
+				'name'     => 'Mobile app',
+			]
+		);
+		BoardSettings::update( $this->default_board(), [ BoardSettings::CATEGORIES => [ $offered ] ] );
+		wp_set_current_user( self::factory()->user->create() );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<option value="' . $offered . '">Billing</option>', $html );
+		$this->assertStringNotContainsString( 'Mobile app', $html );
 	}
 
 	public function test_result_of_a_post_without_javascript_is_shown_in_the_form(): void {

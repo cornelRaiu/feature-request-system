@@ -9,13 +9,15 @@ namespace FeatureRequestSystem\Admin;
 
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\CategoryTaxonomy;
 use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Adds each board's settings to the forms that add and edit a board: who can vote, who
- * can suggest features, whether new requests wait for approval, and the board's page.
+ * can suggest features, whether new requests wait for approval, the board's page and the
+ * categories its requests can have.
  */
 final class BoardFields {
 
@@ -33,6 +35,12 @@ final class BoardFields {
 	 * Nonce action.
 	 */
 	public const NONCE_ACTION = 'mwtfrs_save_board';
+
+	/**
+	 * HTML id of the one field that is a group of boxes. Its title names the group and is
+	 * not the label of a single control.
+	 */
+	private const GROUP = 'mwtfrs-board-categories';
 
 	/**
 	 * Adds the fields and saves them.
@@ -53,7 +61,8 @@ final class BoardFields {
 		foreach ( self::fields( BoardSettings::defaults() ) as $id => list( $label, $control, $help ) ) {
 			printf(
 				'<div class="form-field">%1$s%2$s%3$s</div>',
-				self::label( $id, $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in label().
+				// The title of a group of boxes is text on its own line, as a label is on this form.
+				self::GROUP === $id ? '<span style="display:block;padding:2px 0">' . esc_html( $label ) . '</span>' : self::label( $id, $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in label().
 				$control, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped values in fields().
 				'' !== $help ? '<p>' . esc_html( $help ) . '</p>' : ''
 			);
@@ -69,7 +78,7 @@ final class BoardFields {
 		foreach ( self::fields( BoardSettings::get( $board->term_id ) ) as $id => list( $label, $control, $help ) ) {
 			printf(
 				'<tr class="form-field"><th scope="row">%1$s</th><td>%2$s%3$s</td></tr>',
-				self::label( $id, $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in label().
+				self::GROUP === $id ? esc_html( $label ) : self::label( $id, $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in label().
 				$control, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped values in fields().
 				'' !== $help ? '<p class="description">' . esc_html( $help ) . '</p>' : ''
 			);
@@ -105,6 +114,8 @@ final class BoardFields {
 				// An unticked box sends nothing.
 				BoardSettings::MODERATION => ! empty( $sent[ BoardSettings::MODERATION ] ),
 				BoardSettings::PAGE       => absint( $sent[ BoardSettings::PAGE ] ?? 0 ),
+				// No ticked box sends nothing, which means every category.
+				BoardSettings::CATEGORIES => isset( $sent[ BoardSettings::CATEGORIES ] ) && is_array( $sent[ BoardSettings::CATEGORIES ] ) ? $sent[ BoardSettings::CATEGORIES ] : [],
 			]
 		);
 	}
@@ -112,7 +123,7 @@ final class BoardFields {
 	/**
 	 * The fields, by HTML id: their label, their control and their help text.
 	 *
-	 * @param array<string, string|bool|int> $settings Settings to show.
+	 * @param array<string, string|bool|int|int[]> $settings Settings to show.
 	 * @return array<string, array{0: string, 1: string, 2: string}>
 	 */
 	private static function fields( array $settings ): array {
@@ -160,7 +171,43 @@ final class BoardFields {
 				'' !== $page ? $page : esc_html__( 'No pages yet.', 'feature-request-system' ),
 				__( 'The page that shows this board. Each request links back to it. Filled in by itself the first time the board is shown on a page.', 'feature-request-system' ),
 			],
+			self::GROUP               => [
+				__( 'Categories', 'feature-request-system' ),
+				self::category_boxes( array_map( 'intval', (array) $settings[ BoardSettings::CATEGORIES ] ) ),
+				__( 'The categories that people can choose for a request on this board, and that the board can be filtered by. Tick none to offer every category.', 'feature-request-system' ),
+			],
 		];
+	}
+
+	/**
+	 * Returns a checkbox for every category.
+	 *
+	 * @param int[] $chosen Term IDs of the ticked categories.
+	 */
+	private static function category_boxes( array $chosen ): string {
+		$categories = get_terms(
+			[
+				'taxonomy'   => CategoryTaxonomy::NAME,
+				'hide_empty' => false,
+				'orderby'    => 'name',
+			]
+		);
+		if ( ! is_array( $categories ) || ! $categories ) {
+			return esc_html__( 'No categories yet.', 'feature-request-system' );
+		}
+
+		$html = '<fieldset id="' . esc_attr( self::GROUP ) . '"><legend class="screen-reader-text">' . esc_html__( 'Categories', 'feature-request-system' ) . '</legend>';
+		foreach ( $categories as $category ) {
+			$html .= sprintf(
+				'<label style="display:block"><input type="checkbox" name="%1$s[]" value="%2$d"%3$s> %4$s</label>',
+				esc_attr( self::name( BoardSettings::CATEGORIES ) ),
+				(int) $category->term_id,
+				checked( in_array( $category->term_id, $chosen, true ), true, false ),
+				esc_html( $category->name )
+			);
+		}
+
+		return $html . '</fieldset>';
 	}
 
 	/**

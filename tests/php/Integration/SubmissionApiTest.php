@@ -163,6 +163,21 @@ final class SubmissionApiTest extends TestCase {
 		$this->assertSame( 0, $this->count_requests() );
 	}
 
+	/**
+	 * A link to .../requests?_method=POST&title=... on a page of this site arrives as a
+	 * GET: with a Referer of this site and without an Origin.
+	 */
+	public function test_guest_submissions_need_the_origin_header_and_a_referer_of_this_site_is_not_enough(): void {
+		$this->allow_guests();
+
+		$response = $this->submit( [], [ 'Referer' => home_url( '/feature-requests/' ) ] );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( VotesController::ERROR_INVALID_ORIGIN, $response->get_data()['code'] );
+		$this->assertSame( 403, $this->submit()->get_status() );
+		$this->assertSame( 0, $this->count_requests() );
+	}
+
 	public function test_boards_can_stop_taking_requests(): void {
 		BoardSettings::update( $this->default_board(), [ BoardSettings::SUBMITTING => BoardSettings::NOBODY ] );
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
@@ -246,18 +261,43 @@ final class SubmissionApiTest extends TestCase {
 		$this->assertSame( 0, $this->count_requests() );
 	}
 
+	public function test_a_board_limited_to_some_categories_refuses_the_others(): void {
+		wp_set_current_user( self::factory()->user->create() );
+		$allowed = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$other   = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		BoardSettings::update( $this->default_board(), [ BoardSettings::CATEGORIES => [ $allowed ] ] );
+
+		$refused = $this->submit( [ 'category' => $other ] );
+		$this->assertSame( 400, $refused->get_status() );
+		$this->assertSame( 'category', $refused->get_data()['data']['reason'] );
+
+		$accepted = $this->submit( [ 'category' => $allowed ] );
+		$this->assertSame( 201, $accepted->get_status() );
+		$this->assertSame( [ $allowed ], $this->term_ids( $accepted->get_data()['id'], CategoryTaxonomy::NAME ) );
+
+		$this->assertSame( 201, $this->submit( [ 'title' => 'No category at all' ] )->get_status(), 'A category stays optional.' );
+	}
+
 	public function test_guest_names_and_emails_are_checked(): void {
 		$this->allow_guests();
 		$cases = [
-			'name-long' => [ 'name' => str_repeat( 'a', SubmissionService::MAX_NAME + 1 ) ],
-			'email'     => [ 'email' => 'not-an-email' ],
+			'name-long'  => [ 'name' => str_repeat( 'a', SubmissionService::MAX_NAME + 1 ) ],
+			'email'      => [ 'email' => 'not-an-email' ],
+			// An address that is valid in form, one character over the longest a mail server takes.
+			'email-long' => [ 'email' => str_repeat( 'a', SubmissionService::MAX_EMAIL - 11 ) . '@example.com' ],
 		];
 
-		foreach ( $cases as $reason => $fields ) {
+		foreach ( $cases as $case => $fields ) {
+			$reason   = 'email-long' === $case ? 'email' : $case;
 			$response = $this->submit( $fields, $this->same_site() );
-			$this->assertSame( 400, $response->get_status(), $reason );
-			$this->assertSame( $reason, $response->get_data()['data']['reason'], $reason );
+			$this->assertSame( 400, $response->get_status(), $case );
+			$this->assertSame( $reason, $response->get_data()['data']['reason'], $case );
 		}
+		$this->assertSame( 0, $this->count_requests() );
+
+		$longest = str_repeat( 'a', SubmissionService::MAX_EMAIL - 12 ) . '@example.com';
+		$this->assertSame( SubmissionService::MAX_EMAIL, strlen( $longest ) );
+		$this->assertSame( 201, $this->submit( [ 'email' => $longest ], $this->same_site() )->get_status(), 'The longest address is accepted.' );
 	}
 
 	public function test_logged_in_users_cannot_attach_a_different_name_or_email(): void {

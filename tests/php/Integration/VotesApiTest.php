@@ -147,11 +147,23 @@ final class VotesApiTest extends TestCase {
 		$this->assertArrayNotHasKey( VoterIdentity::COOKIE, $_COOKIE );
 	}
 
-	public function test_guest_vote_without_an_origin_falls_back_to_the_referer(): void {
+	/**
+	 * A link to .../vote?_method=POST on a page of this site arrives as a GET: with a
+	 * Referer of this site and without an Origin.
+	 */
+	public function test_guest_votes_need_the_origin_header_and_a_referer_of_this_site_is_not_enough(): void {
 		$this->allow_guests();
+		$request = $this->create_request();
 
-		$this->assertSame( 200, $this->vote( 'POST', $this->create_request(), [ 'Referer' => home_url( '/roadmap/?sort=top' ) ] )->get_status() );
-		$this->assertSame( 403, $this->vote( 'POST', $this->create_request() )->get_status() );
+		foreach ( [ 'POST', 'DELETE' ] as $method ) {
+			$response = $this->vote( $method, $request, [ 'Referer' => home_url( '/roadmap/?sort=top' ) ] );
+
+			$this->assertSame( 403, $response->get_status() );
+			$this->assertSame( VotesController::ERROR_INVALID_ORIGIN, $response->get_data()['code'] );
+		}
+		$this->assertSame( 403, $this->vote( 'POST', $request )->get_status() );
+		$this->assertSame( [], $this->vote_rows( $request ) );
+		$this->assertArrayNotHasKey( VoterIdentity::COOKIE, $_COOKIE );
 	}
 
 	public function test_logged_in_users_rely_on_the_rest_nonce_instead_of_the_origin(): void {

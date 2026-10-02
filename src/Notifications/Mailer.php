@@ -43,7 +43,13 @@ final class Mailer {
 	public static function send( array $subscription, string $template, callable $compose ): bool {
 		$user    = get_userdata( $subscription['user_id'] );
 		$request = get_post( $subscription['request_id'] );
-		if ( ! $user || ! $request || ! is_email( $user->user_email ) ) {
+		if ( ! $user ) {
+			// On a network of sites, deleting a user does not reach the tables of every site. What is left is tidied here.
+			SubscriptionRepository::remove( $subscription['request_id'], $subscription['user_id'] );
+
+			return false;
+		}
+		if ( ! $request || ! is_email( $user->user_email ) ) {
 			return false;
 		}
 
@@ -88,10 +94,17 @@ final class Mailer {
 	/**
 	 * Turns stored text, which may contain tags or entities, into plain text for an email.
 	 *
+	 * The result holds no tag, also where it ends up shown as HTML after all: with a mail
+	 * plugin that sends plain emails as HTML, or in the file of a personal data export. A
+	 * visitor can type a tag as entities (&lt;a href=...&gt;), and those only become a tag
+	 * here, when they are decoded. So every "<" that could open a tag gets a space after it.
+	 *
 	 * @param string $html Text that may contain tags or entities.
 	 */
 	public static function plain( string $html ): string {
-		return html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES, 'UTF-8' );
+		$text = html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES, 'UTF-8' );
+
+		return (string) preg_replace( '/<(?=[a-z\/!?])/i', '< ', $text );
 	}
 
 	/**

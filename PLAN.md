@@ -1,6 +1,6 @@
 # Feature Request System: Rebuild Plan
 
-Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M7 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
+Status: approved 2026-09-30 with the recommended option for every decision (D1–D6) · M0 to M8 done · Slug: `feature-request-system` (reserved on WordPress.org, SVN exists, trunk empty)
 
 Previous attempts are kept for reference only:
 - `../feature-request-system-0/` (v0, the original 2020-era plugin)
@@ -191,7 +191,7 @@ Differentiators, in delivery order:
 4. **Trust boundaries are explicit.**
    - Every REST route has a real `permission_callback`.
    - Public responses are built from allow-listed fields and never include emails, IPs or user agents.
-   - Client IP comes from `REMOTE_ADDR`, with a `mwtfrs_client_ip` filter for sites behind a trusted proxy.
+   - Client IP comes from `REMOTE_ADDR`, with a `mwtfrs_client_ip` filter for sites behind a trusted proxy. An IPv6 address counts as its /64 network, and an IPv4 address written as IPv6 as that IPv4 address (M8).
 5. **Stored counts are always initialised.** Every request has `_mwtfrs_votes = 0` from the moment it's created (v0 lost posts from vote-sorted lists because this meta was missing).
 6. **Use core wherever it fits.** Comments, post statuses, taxonomies, capabilities, the Settings API, privacy tools, list tables and the Interactivity API.
 7. **One coding standard, checked in CI:** WPCS 3, PHPStan level 6, ESLint and Stylelint from `@wordpress/scripts`.
@@ -230,7 +230,7 @@ Differentiators, in delivery order:
 - No `author` support: front-end submitters are not WordPress post authors (`post_author` is 0), so their names stay out of author archives, oEmbed data and the public users endpoint. Built in M4.
 
 **Taxonomies**
-- `mwtfrs_board`: not hierarchical, one per request. Term meta holds the board settings as JSON (who can submit or vote, whether guests are allowed, moderation, allowed categories).
+- `mwtfrs_board`: not hierarchical, one per request. Term meta holds the board's settings as one array: who can vote, who can submit (each: everyone, logged-in users or nobody), moderation, the board's page, and the categories its requests can have (M8; none chosen means every category).
 - `mwtfrs_status`: exactly one per request. Term meta: `color`, `order`, `is_closed`, `on_roadmap`. Default statuses are seeded on activation. **Status lives only in this taxonomy, never in meta as well** (v0.5 kept both).
 - `mwtfrs_category`: hierarchical and optional.
 
@@ -263,7 +263,7 @@ Differentiators, in delivery order:
 
 The subscriptions table holds only what 1.0 uses: one row per user per request they follow. No email address is stored, because a user's emails go to the address of their account, which can change. When guests can follow (1.1), the table gets `email` and `confirmed_at` columns, and its unique key becomes `(request_id, user_id, email)`.
 
-No IP addresses are stored. Rate limiting uses transients keyed on `hash_hmac('sha256', ip, daily_rotating_salt)`, which expire on their own.
+No IP addresses are stored. Rate limit counters are keyed on an HMAC of the address with WordPress's salt, and on the hour. They are rows in the options table named as transients are, or entries in the object cache when the site has a persistent one, and they expire on their own.
 
 **Vote count sync.** `VoteService::cast()` / `retract()`:
 1. `INSERT IGNORE` or `DELETE` the vote row.
@@ -272,7 +272,7 @@ No IP addresses are stored. Rate limiting uses transients keyed on `hash_hmac('s
 
 This is idempotent and self-correcting, and there's no read-increment-write race (v0 had one). A WP-CLI command `wp mwtfrs recount` rebuilds all counts.
 
-**Options.** `mwtfrs_settings` holds one array with a typed schema, sanitised via `register_setting` with a `sanitize_callback` and defaults. Also `mwtfrs_db_version` and `mwtfrs_salt`.
+**Options.** `mwtfrs_settings` holds one array with a typed schema, sanitised via `register_setting` with a `sanitize_callback` and defaults. Also `mwtfrs_db_version`. The plugin keeps no secret of its own: hashes and tokens use WordPress's salts.
 
 **Following (M7).** `Subscriptions` holds the rules:
 - Only logged-in users follow, and only published requests without a password. A user can always stop, also when the request is no longer public.
@@ -280,6 +280,8 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 - Choosing to follow (source `follow`) replaces the weaker reason, so taking back a vote later doesn't end it. A user who suggests a request follows it (source `author`).
 - Nobody comes to follow while the site has the emails turned off. A user who turned off following by itself only follows by choosing to.
 - Subscriptions go when their request or their user is deleted. Trashing a request keeps them.
+- A deleted user's votes stay, so counts stay correct, but lose the user ID and get a random voter key (M8). Some databases give the ID of a deleted user to the next new user, who must not inherit votes.
+- On a network of sites, "logged-in" means any user of the network, as for WordPress comments. A user who is removed from one site stops following there and keeps their votes. A user who is deleted from the network is handled on every site they belonged to; a subscription whose user no longer exists is deleted when its next email would go out (M8).
 - `VoteService` announces votes with two actions, `mwtfrs_vote_cast` and `mwtfrs_vote_retracted`, which is how following hears of them.
 
 ### 5.4 Identity and anti-abuse
@@ -290,24 +292,28 @@ This is idempotent and self-correcting, and there's no read-increment-write race
   - Votes: 30 per hour per voter and 60 per hour per IP hash. Retracting counts as an attempt too.
   - Submissions: 5 per hour per voter and 10 per hour per IP hash.
   - Moderators (anyone who can edit others' requests) are exempt.
-  - Counters are fixed one-hour windows in transients (`mwtfrs_rate_limit` filter to change a limit, `mwtfrs_client_ip` for sites behind a trusted proxy). They are abuse protection, not accounting; the votes table's unique key is what prevents duplicate votes.
+  - Counters are fixed one-hour windows (`mwtfrs_rate_limit` filter to change a limit, `mwtfrs_client_ip` for sites behind a trusted proxy). The votes table's unique key, not the counters, is what prevents duplicate votes.
+  - An attempt is counted first, in one statement (`INSERT … ON DUPLICATE KEY UPDATE`, or `wp_cache_incr` with a persistent object cache), and judged after, so requests that arrive together can't all pass on the same count (M8). Measured with 200 simultaneous guest votes against 8 PHP workers: 60 were accepted, the limit; with a count that is read and then written, 124 were.
+  - The visitor's own counter is raised first. Once it is over its limit, further attempts don't use up what others at the same address may still do.
+  - Behind a proxy that hides the visitors' addresses, all visitors share one address counter until the site names the right header through `mwtfrs_client_ip`. The readme explains this.
 - **Frozen votes:** while a request's status is closed, or its board has voting turned off, votes can neither be cast nor retracted.
 - **Submissions** (built in M4):
   - A honeypot field, and a minimum 3 seconds between rendering the form and submitting it, checked with an HMAC-signed timestamp. The timestamp has no maximum age, so a form served from a page cache keeps working. With JavaScript, the form waits out the rest of the 3 seconds itself, so quick people are never refused.
   - Refusals don't say which check failed.
   - The `mwtfrs_verify_captcha` filter lets a captcha plugin refuse a submission, and the `mwtfrs_is_spam` filter lets a spam service flag one. The Akismet adapter uses the second when Akismet is active and has a key. A flagged request is held as `pending` with `_mwtfrs_flagged_as_spam`, never deleted, because spam checks sometimes get it wrong.
   - Text is saved as plain text: tags are stripped, and square brackets are stored as entities so a shortcode in a visitor's text displays instead of running.
+  - A web address in a request stays text (M8). WordPress would embed an address that stands alone on a line: the server would fetch what a visitor typed, and the page would load a player from that site. `PlainDescription` turns that off for requests, on the page, in the classic editor's preview and in its fetch-ahead. A moderator who wants a video uses `[embed]`. A request written with blocks, on a site that turns the block editor on for requests, is left alone.
+  - A guest's email address may be 254 characters long, the longest a mail server takes.
 - **CSRF:**
   - REST uses the core `wp_rest` nonce for logged-in users. There is no second custom nonce (v0.5 broke voting by adding one).
-  - Guest REST writes are protected by SameSite cookies plus an `Origin`/`Referer` check that compares scheme, host and port. Origins added through WordPress's `allowed_http_origins` filter also count as the site.
+  - Guest REST writes need the `Origin` header of this site: scheme, host and port are compared, and origins added through WordPress's `allowed_http_origins` filter count too.
+  - The `Referer` is not accepted on the REST routes (M8). WordPress lets a GET act as a POST with `?_method=POST`, and a GET has a Referer but no Origin, so a link or an image on any page of the site would otherwise make its visitors vote or submit. A guest's no-JavaScript form post may still fall back on the Referer: it only reads a real POST body.
   - No-JavaScript form posts use `wp_nonce_field`.
 
 ### 5.5 REST API (`mwtfrs/v1`)
 
 | Method and route | Who | Purpose |
 |---|---|---|
-| `GET /boards/{board}/requests` | public (board visibility) | List with `status`, `category`, `search`, `sort=top\|new\|trending`, `page`. Only published requests. |
-| `GET /requests/{id}` | public | Single request (allow-listed fields). |
 | `POST /boards/{board}/requests` | per board setting | Submit a request. Returns `{id, status, url, message}`; `status` is `pending` or `publish`. Built in M4. |
 | `GET /boards/{board}/similar?q=` | public | Top 5 published requests whose titles share a meaningful word with `q`, most shared words first, then most votes. Built in M4. |
 | `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`, and for logged-in users `{following}`, because a vote can make them follow. Built in M2. |
@@ -316,7 +322,9 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 | `POST` / `DELETE /requests/{id}/subscription` | logged-in users | Follow a request, or stop. Returns `{following}`. Built in M7. |
 | `POST /requests/{id}/merge` (1.1) | `edit_others_mwtfrs_requests` | Merge into a target request. |
 
-Every route declares `args` with a type, `enum` and `sanitize_callback`. Every response comes from a `prepare_item()` that uses an explicit allow-list of fields.
+Every route declares its `args` with a type, and returns only the fields listed above.
+
+Routes for reading requests were planned and left out, because nothing calls them: the board is rendered on the server. Requests can be read through WordPress's own REST API (`/wp/v2/mwtfrs_request`), which shows published requests with their title, text and terms. It never returns who submitted a request, and votes and followers aren't part of it.
 
 Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled` or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
 
@@ -355,6 +363,12 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - Only comments written by moderators can be marked, so the mark always means "from the team". Any moderator can remove it, even after the comment's author left the team.
   - The checkbox carries a nonce. WordPress accepts comments from logged-in users without one, so without it another site could make a moderator post an "official" comment.
   - The mark is comment meta, so it goes when the comment goes. A request can collect several official responses; the newest approved one is pinned below the description and all are labelled in the thread.
+- **Turning the styles off (M8).** A site that styles the blocks itself returns false from the `mwtfrs_load_styles` filter, and the blocks then load no stylesheet.
+- **Accessibility (M8).** The target is WCAG 2.2 level AA. The end-to-end tests run axe on the board, the form, the request page, the unsubscribe pages and the plugin's parts of the admin screens, in a block theme and a classic theme, and also check that nothing overflows at a width of 320 pixels and that controls are at least 24 pixels in size.
+  - Faint text is the text colour at 85%, which keeps 4.5:1 against the page in any theme whose own text has 7:1. It was 70%, which fell just short in Twenty Twenty-One.
+  - The edges of text fields and of the Follow button are the text colour at 60%, for the 3:1 that WCAG asks of a control's boundary. Decorative lines stay at 20%.
+  - Fields keep to the width of the form in themes that give fields a margin.
+  - The board's search form has a name for screen readers.
 - **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), `vote-button.php`, `request.php` and `official-response.php` (since M5), and the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7).
 - **Pattern:** "Feature request page" puts the form, a heading and the board on one page (M4).
 
@@ -404,18 +418,24 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
 - They are granted to Administrator (all) and Editor (all except settings) on activation.
 - **Deactivation doesn't remove caps; uninstall does.**
 - Front-end submitting and voting use board settings (roles, logged-in, guests), not caps, so site owners don't need a role editor.
+- Adding a board or a status over the REST API takes the capability to manage them (M8). In a taxonomy without parents, WordPress would allow it to anyone who may assign its terms, as with tags.
 
 ### 5.10 Privacy, uninstall, upgrades
 
-- **Privacy exporter and eraser:** covers requests authored, votes, subscriptions and guest emails. On erasure, votes are anonymised (user_id set to 0 and voter_key re-hashed), so counts stay correct.
-- **Suggested privacy policy text** is added via `wp_add_privacy_policy_content`.
+- **Privacy exporter and eraser (M8).** A person is found by their email address: as the user with that address, and as a visitor who gave it when they suggested a request. Visitors who voted without an account can't be found, because their votes hang on a random cookie.
+  - The export holds the requests the person suggested (with the name and email a visitor gave), their votes, the requests they follow and why, and whether they turned off following by voting.
+  - Erasing keeps what the site needs and cuts its tie to the person. Requests stay, without their submitter. Votes stay, so counts stay correct, but get a new random voter key and no user ID. Subscriptions and the stored choice are deleted. Comments are handled by WordPress itself.
+  - Both work a page at a time, 100 items per step.
+- **Plain text in emails and exports (M8).** `Mailer::plain()` returns text that holds no tag, also where it is shown as HTML after all: with a mail plugin that sends plain emails as HTML, or in the file of a personal data export. A visitor can type a tag as entities, which only becomes a tag when the entities are decoded, so every `<` that could open a tag gets a space after it.
+- **The unsubscribe page** sends `Referrer-Policy: no-referrer`, and its links carry `rel="noreferrer"` (M8), so the page a follower goes to next, and the scripts on it, don't learn the address with the token.
+- **Suggested privacy policy text (M8)** goes to WordPress's policy guide through `wp_add_privacy_policy_content`. It says what is stored about submitters, voters and followers, names the guest voter cookie (`mwtfrs_vid`, one year), explains the hashed rate limit counters, and mentions Akismet only when Akismet checks new requests.
 - **"How we use your data" note (built in M6).** A settings field holds text the site owner writes for visitors who submit without an account. When it is set, the form shows it under the name and email fields, in a section the visitor opens ("How we use your data"), followed by a link to the site's privacy policy page when WordPress has one.
   - The section is a `<details>` element, not a tooltip or a modal. It works without JavaScript and on touch screens, suits keyboards and screen readers, holds several sentences and adds no script. A tooltip can't hold a paragraph and fails on phones; a modal needs script and focus handling for a few sentences of text.
   - The text allows links and emphasis only. It is sanitised when saved and again when shown. Every guest gets the same text, so cached pages stay correct.
   - It is empty by default, which shows nothing. The settings field offers a suggested text built from what the plugin does on that site. The suggestion mentions Akismet only when Akismet is connected, which covers what the form's short "Only our team sees this" note leaves out.
   - It is one site-wide text, not one per board. Logged-in users don't see it, because the form asks them for nothing.
 - **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy.
-- **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It also deletes each user's choice about following and cancels the emails that still wait. Action Scheduler's own tables stay, because other plugins may use them. It handles multisite by looping over sites.
+- **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It also deletes each user's choice about following, cancels the emails that still wait, and removes the map of the category tree that WordPress keeps in an option of its own (`mwtfrs_category_children`; found in M8 by uninstalling on a real site). Action Scheduler's own tables stay, because other plugins may use them. It handles multisite by looping over sites.
 - **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
 - **Default board and status** can't be deleted from the admin or REST. If code such as WP-CLI deletes one anyway, the oldest remaining term becomes the default and the affected requests move to it.
 
@@ -429,25 +449,27 @@ feature-request-system/
 ├── composer.json / package.json
 ├── src/
 │   ├── Plugin.php                  # wiring only: instantiates services, registers hooks
-│   ├── Install/                    # Installer (tables, terms, caps), Migrations, Uninstaller
+│   ├── Install/                    # Installer (tables, terms, caps, upgrades), Schema, Uninstaller
 │   ├── Content/                    # RequestPostType, BoardTaxonomy, StatusTaxonomy, CategoryTaxonomy, BoardSettings
 │   ├── Voting/                     # VoteRepository, VoteService, VoterIdentity
 │   ├── Security/                   # RateLimiter, RequestOrigin
 │   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, SimilarRequests
 │   ├── Notifications/              # NewRequestEmail, SubscriptionRepository, Subscriptions, StatusNotifier, ApprovalEmail, Mailer, Unsubscribe, Queue
-│   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, Response
+│   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, ManagedTermsController, Response
 │   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
-│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, VoteForm, FollowForm, RequestNotice, VoteStore, Template
+│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, PlainDescription, VoteForm, FollowForm, RequestNotice, VoteStore, Template
 │   ├── Admin/                      # RequestList, StatusQuickEdit, NotifySwitch, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions, ProfileFollows
-│   ├── Privacy/                    # Exporter, Eraser, PolicyText
-│   └── Cli/                        # `wp mwtfrs recount|seed`
+│   ├── Privacy/                    # PersonalData (exporter and eraser), PolicyText, DepartedUsers
+│   └── Cli/                        # Commands (`wp mwtfrs recount|seed`), SampleData
 ├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss), shared/
 ├── templates/                      # overridable PHP partials, emails/ (plain text), and the block template single-request.html
-├── languages/
+├── languages/                      # feature-request-system.pot
+├── .wordpress-org/                 # icon, banner and screenshots for the listing, with their sources
 ├── tests/
 │   ├── php/Integration/            # WP test suite: slices end to end
 │   ├── php/Unit/
-│   └── e2e/                        # Playwright
+│   ├── e2e/                        # Playwright
+│   └── manual/                     # test-plan.md: what to try by hand before a release
 └── build/                          # compiled by @wordpress/scripts (gitignored; in release zip)
 ```
 
@@ -462,9 +484,9 @@ feature-request-system/
 | PHP QA | `wp-coding-standards/wpcs` 3, `phpcompatibility/phpcompatibility-wp`, PHPStan level 6 with `szepeviktor/phpstan-wordpress` |
 | PHP tests | PHPUnit 9 + `yoast/phpunit-polyfills`, with WordPress core and its test library from Composer (`roots/wordpress-no-content`, `wp-phpunit/wp-phpunit`) against a MySQL database |
 | JS/CSS | `@wordpress/scripts` (build, lint, format), block.json, Interactivity API |
-| E2E | Playwright with `@wordpress/e2e-test-utils-playwright` on `wp-env` |
+| E2E | Playwright with `@wordpress/e2e-test-utils-playwright` on `wp-env`, and axe (`@axe-core/playwright`) for accessibility |
 | Local development | Herd site for manual QA; PHP tests run against Herd's MySQL (database `frs_tests`), so Docker is only needed for E2E |
-| CI (GitHub Actions) | Lint (PHP/JS/CSS) → PHPStan → PHPUnit matrix (PHP 7.4 to 8.4 × WordPress 6.6 and latest) → E2E → **Plugin Check** (`wordpress/plugin-check-action`) → build zip artefact |
+| CI (GitHub Actions) | Lint (PHP/JS/CSS) → PHPStan → PHPUnit matrix (PHP 7.4 to 8.4 × WordPress 6.6 and latest, plus one run as a multisite network) → E2E → **Plugin Check** (`wordpress/plugin-check-action`) → build zip artefact |
 | Release | `.distignore`; `bin/build-zip.sh`; tag → `10up/action-wordpress-plugin-deploy` to SVN; WordPress.org banner, icon and screenshots in `.wordpress-org/` |
 | Versioning | Semantic versioning. First public release is **1.0.0**; v0 and v0.5 were never published. |
 
@@ -491,7 +513,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M5** ✅ | Single request and comments (2 days) | Single template (block and classic), comments, Official response, status badge | E2E: comment, admin marks it Official, it shows pinned |
 | **M6** ✅ | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and showing the board on a published page sets that page |
 | **M7** ✅ | Close the loop (2–3 days) | Subscriptions table, following by voting, by suggesting and with the Follow button, status emails in batches through Action Scheduler with a five-minute wait, the approval email, plain text email templates, the unsubscribe link, the notify switch, followed requests on the profile | Tests: a status change on a request with 120 followers schedules 3 batches; the unsubscribe link works without logging in, and opening it alone unsubscribes nobody; no mail goes to someone who stopped following; a change corrected in time is never announced. E2E: follow and stop, a vote follows, a status change emails the follower and the link in the email stops the emails |
-| **M8** | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes) | Plugin Check clean; axe finds no serious issues; board renders in under 150 ms of server time on Herd with that dataset |
+| **M8** ✅ | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes). Also: categories per board, the filter that turns the stylesheets off, `wp mwtfrs seed`, an independent security review with its fixes, and a manual test plan (`tests/manual/test-plan.md`, 129 cases) | Plugin Check 2.1.0 finds no errors and no warnings. axe finds no violation of WCAG 2.2 AA in Twenty Twenty-Five and Twenty Twenty-One. With 1,000 requests and 50,000 votes the board block renders in about 16 ms with 14 to 21 queries, and its page answers in 56 ms, against 41 ms for a page without it. 418 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network; 43 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6. 175 rules were broken on purpose: 27 had no test and got one, and two new tests that could not fail were corrected. The security review found nothing critical or high; its two medium and six low findings are fixed (section 5.4 and 5.10) |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
 | M9 | 1.1 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests | Per-feature slices with tests |
 | M10 | 1.2 | Changelog / releases with shipped notifications, IdeaPush and SFR importers, webhooks | Importers tested against fixture dumps of each plugin |

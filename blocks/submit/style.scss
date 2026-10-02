@@ -36,13 +36,15 @@
 		font-size: 0.875em;
 		font-weight: 600;
 	}
+}
 
-	input,
-	select,
-	textarea {
-		box-sizing: border-box;
-		width: 100%;
-	}
+// Some themes give fields a margin. With the full width on top of it, the
+// fields would stick out of the form. Two classes, because classic themes
+// load their stylesheet after this one.
+.mwtfrs-submit .mwtfrs-submit__field :is(input, select, textarea) {
+	box-sizing: border-box;
+	width: 100%;
+	margin-inline: 0;
 }
 
 // The look of the fields has zero specificity, so a theme's own form styles

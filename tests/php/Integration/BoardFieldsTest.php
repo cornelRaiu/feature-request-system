@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Tests\Integration;
 use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Frontend\Board;
 
 /**
@@ -87,10 +88,86 @@ final class BoardFieldsTest extends TestCase {
 				BoardSettings::SUBMITTING => BoardSettings::NOBODY,
 				BoardSettings::MODERATION => false,
 				BoardSettings::PAGE       => $page,
+				BoardSettings::CATEGORIES => [],
 			],
 			BoardSettings::get( $this->default_board() ),
 			'An unticked moderation box turns moderation off.'
 		);
+	}
+
+	public function test_the_forms_offer_every_category_and_show_the_ones_the_board_is_limited_to(): void {
+		ob_start();
+		do_action( BoardTaxonomy::NAME . '_add_form_fields', BoardTaxonomy::NAME );
+		$this->assertStringContainsString( 'No categories yet.', (string) ob_get_clean() );
+
+		$billing = self::factory()->term->create(
+			[
+				'taxonomy' => CategoryTaxonomy::NAME,
+				'name'     => 'Billing',
+			]
+		);
+		$reports = self::factory()->term->create(
+			[
+				'taxonomy' => CategoryTaxonomy::NAME,
+				'name'     => 'Reports & exports',
+			]
+		);
+		BoardSettings::update( $this->default_board(), [ BoardSettings::CATEGORIES => [ $reports ] ] );
+		$name = BoardFields::FIELD . '[' . BoardSettings::CATEGORIES . '][]';
+
+		ob_start();
+		do_action( BoardTaxonomy::NAME . '_edit_form_fields', get_term( $this->default_board() ), BoardTaxonomy::NAME );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th scope="row">Categories</th>', $html, 'The title names the group. It is not the label of one box.' );
+		$this->assertStringContainsString( '<legend class="screen-reader-text">Categories</legend>', $html );
+		$this->assertStringContainsString( '<input type="checkbox" name="' . $name . '" value="' . $billing . '"> Billing</label>', $html );
+		$this->assertStringContainsString( '<input type="checkbox" name="' . $name . '" value="' . $reports . '" checked=\'checked\'> Reports &amp; exports</label>', $html );
+		$this->assertStringContainsString( 'Tick none to offer every category.', $html );
+
+		ob_start();
+		do_action( BoardTaxonomy::NAME . '_add_form_fields', BoardTaxonomy::NAME );
+		$add = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<span style="display:block;padding:2px 0">Categories</span><fieldset id="mwtfrs-board-categories">', $add );
+		$this->assertStringContainsString( '<input type="checkbox" name="' . $name . '" value="' . $reports . '"> Reports &amp; exports</label>', $add, 'Nothing is ticked for a new board.' );
+		foreach ( [ $html, $add ] as $form ) {
+			$this->assertStringNotContainsString( 'for="mwtfrs-board-categories"', $form, 'A group of boxes is not what a label points at.' );
+		}
+	}
+
+	public function test_a_category_name_cannot_add_markup_to_the_forms(): void {
+		global $wpdb;
+
+		$category = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		// WordPress cleans names when it saves them. This one reached the database another way.
+		$wpdb->update( $wpdb->terms, [ 'name' => 'Bill<script>alert(1)</script>ing' ], [ 'term_id' => $category ] );
+		clean_term_cache( $category, CategoryTaxonomy::NAME );
+
+		ob_start();
+		do_action( BoardTaxonomy::NAME . '_edit_form_fields', get_term( $this->default_board() ), BoardTaxonomy::NAME );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Bill&lt;script&gt;alert(1)&lt;/script&gt;ing', $html );
+		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
+	public function test_saving_the_form_limits_the_board_to_the_ticked_categories(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		$kept    = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$dropped = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		BoardSettings::update( $this->default_board(), [ BoardSettings::CATEGORIES => [ $kept, $dropped ] ] );
+		$_POST = [
+			BoardFields::NONCE_FIELD => wp_create_nonce( BoardFields::NONCE_ACTION ),
+			BoardFields::FIELD       => [ BoardSettings::CATEGORIES => [ (string) $kept ] ],
+		];
+
+		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
+		$this->assertSame( [ $kept ], BoardSettings::categories( $this->default_board() ) );
+
+		$_POST[ BoardFields::FIELD ] = [];
+		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas again' ] );
+		$this->assertSame( [], BoardSettings::get( $this->default_board() )[ BoardSettings::CATEGORIES ], 'No ticked box means every category.' );
 	}
 
 	public function test_a_new_board_gets_the_settings_chosen_on_the_add_form(): void {

@@ -256,6 +256,23 @@ final class StatusNotifierTest extends TestCase {
 		$this->assertSame( 0, $failures, 'No email is attempted, so none fails.' );
 	}
 
+	/**
+	 * On a network of sites, a user can be deleted without this site's table hearing of it.
+	 */
+	public function test_a_follower_whose_account_no_longer_exists_is_skipped_and_forgotten(): void {
+		$request  = $this->create_request();
+		$follower = $this->create_followers( $request, 1 )[0];
+		SubscriptionRepository::add( $request, 999999, SubscriptionRepository::SOURCE_VOTE );
+		$this->assertSame( 2, SubscriptionRepository::count( $request ) );
+
+		$this->change_status( $request, 'planned' );
+		$this->run_waiting_actions( StatusNotifier::HOOK );
+
+		$this->assertSame( $this->emails_of( [ $follower ] ), $this->emailed() );
+		$this->assertSame( 1, SubscriptionRepository::count( $request ) );
+		$this->assertNull( SubscriptionRepository::find( $request, 999999 ) );
+	}
+
 	public function test_someone_who_follows_after_the_change_is_not_told_about_it(): void {
 		$request = $this->create_request();
 		$before  = $this->create_followers( $request, 2 );

@@ -10,7 +10,12 @@
 	--mwtfrs-gap: var(--wp--preset--spacing--30, 1rem);
 	--mwtfrs-radius: 8px;
 	--mwtfrs-line: color-mix(in srgb, currentcolor 20%, transparent);
-	--mwtfrs-muted: color-mix(in srgb, currentcolor 70%, transparent);
+	// The edge of a text field or a plain button is all that shows where it is,
+	// so it has to stand out from the page (WCAG asks for 3:1).
+	--mwtfrs-field-line: color-mix(in srgb, currentcolor 60%, transparent);
+	// Faint enough to step back, strong enough to read: still 4.5:1 against the
+	// page in any theme whose own text has 7:1.
+	--mwtfrs-muted: color-mix(in srgb, currentcolor 85%, transparent);
 	// Real colours as fallbacks: currentcolor would resolve against a
 	// filled button's own text colour and hide its content.
 	--mwtfrs-accent: var(--wp--preset--color--contrast, #1e1e1e);
@@ -41,7 +46,7 @@
 @mixin field {
 	min-height: 2.5rem;
 	padding: 0.25rem 0.5rem;
-	border: 1px solid var(--mwtfrs-line);
+	border: 1px solid var(--mwtfrs-field-line);
 	border-radius: 4px;
 	background: transparent;
 	color: inherit;

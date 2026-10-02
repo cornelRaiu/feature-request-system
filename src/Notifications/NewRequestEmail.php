@@ -39,8 +39,8 @@ final class NewRequestEmail {
 			return;
 		}
 
-		$site    = self::plain( (string) get_bloginfo( 'name' ) );
-		$title   = self::plain( $request->post_title );
+		$site    = Mailer::plain( (string) get_bloginfo( 'name' ) );
+		$title   = Mailer::plain( $request->post_title );
 		$pending = 'pending' === $request->post_status;
 		$board   = RequestTerms::term_of( $request_id, BoardTaxonomy::NAME );
 
@@ -54,14 +54,14 @@ final class NewRequestEmail {
 			/* translators: %s: request title. */
 			sprintf( __( 'Title: %s', 'feature-request-system' ), $title ),
 			/* translators: %s: board name. */
-			sprintf( __( 'Board: %s', 'feature-request-system' ), $board ? self::plain( $board->name ) : '-' ),
+			sprintf( __( 'Board: %s', 'feature-request-system' ), $board ? Mailer::plain( $board->name ) : '-' ),
 			/* translators: %s: name and email of the person who submitted the request. */
 			sprintf( __( 'Submitted by: %s', 'feature-request-system' ), self::submitter( $request_id ) ),
 		];
 
 		if ( '' !== $request->post_content ) {
 			$lines[] = '';
-			$lines[] = self::plain( $request->post_content );
+			$lines[] = Mailer::plain( $request->post_content );
 		}
 
 		$lines[] = '';
@@ -102,7 +102,7 @@ final class NewRequestEmail {
 		if ( $user_id ) {
 			$user = get_userdata( $user_id );
 
-			return $user ? sprintf( '%1$s <%2$s>', self::plain( $user->display_name ), $user->user_email ) : __( 'a user who has since been deleted', 'feature-request-system' );
+			return $user ? sprintf( '%1$s <%2$s>', Mailer::plain( $user->display_name ), $user->user_email ) : __( 'a user who has since been deleted', 'feature-request-system' );
 		}
 
 		$name  = (string) get_post_meta( $request_id, RequestPostType::META_SUBMITTER_NAME, true );
@@ -112,14 +112,5 @@ final class NewRequestEmail {
 		}
 
 		return '' !== $name ? sprintf( '%1$s <%2$s>', $name, $email ) : $email;
-	}
-
-	/**
-	 * Turns stored HTML text into plain text for the email.
-	 *
-	 * @param string $html Text that may contain tags or entities.
-	 */
-	private static function plain( string $html ): string {
-		return html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES, 'UTF-8' );
 	}
 }

@@ -111,7 +111,8 @@ final class RequestsController {
 			return $allowed;
 		}
 
-		if ( ! is_user_logged_in() && ! RequestOrigin::is_same_site( (string) $request->get_header( 'origin' ), (string) $request->get_header( 'referer' ) ) ) {
+		// The Origin header only, never the Referer: RequestOrigin says why.
+		if ( ! is_user_logged_in() && ! RequestOrigin::is_same_site( (string) $request->get_header( 'origin' ) ) ) {
 			return new WP_Error(
 				VotesController::ERROR_INVALID_ORIGIN,
 				__( 'Requests from visitors who are not logged in must be sent from this site.', 'feature-request-system' ),

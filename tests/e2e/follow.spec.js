@@ -217,7 +217,7 @@ test.describe( 'Following a feature request', () => {
 			storageState: { cookies: [], origins: [] },
 		} );
 		const visitor = await context.newPage();
-		await visitor.goto( link );
+		const opened = await visitor.goto( link );
 		await expect(
 			visitor.getByRole( 'heading', {
 				name: 'Stop following this request?',
@@ -229,6 +229,20 @@ test.describe( 'Following a feature request', () => {
 			)
 		).toBeVisible();
 		expect( isFollowing( request.id, 'e2e-follower' ) ).toBe( true );
+
+		// The link holds a secret. The page a follower goes to from here must not learn it.
+		expect( opened.headers()[ 'referrer-policy' ] ).toBe( 'no-referrer' );
+		await visitor
+			.getByRole( 'link', {
+				name: 'Keep following and go to the request',
+			} )
+			.click();
+		await expect(
+			visitor.getByRole( 'heading', { name: 'Dark mode', level: 1 } )
+		).toBeVisible();
+		expect( await visitor.evaluate( () => document.referrer ) ).toBe( '' );
+		expect( isFollowing( request.id, 'e2e-follower' ) ).toBe( true );
+		await visitor.goto( link );
 
 		await visitor
 			.getByRole( 'button', { name: 'Stop following', exact: true } )

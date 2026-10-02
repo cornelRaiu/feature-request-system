@@ -107,6 +107,9 @@ final class Uninstaller {
 			foreach ( $term_ids as $term_id ) {
 				wp_delete_term( (int) $term_id, $taxonomy );
 			}
+
+			// WordPress keeps a map of parents and children for a taxonomy in an option named after it, and writes it again after each deletion.
+			delete_option( $taxonomy . '_children' );
 		}
 	}
 }

@@ -183,6 +183,41 @@ test.describe( 'Feature request admin', () => {
 		await guest.close();
 	} );
 
+	test( 'a board limited to some categories offers only those on its form', async ( {
+		page,
+	} ) => {
+		const form = setUp( [] );
+		wpEval( `
+			use FeatureRequestSystem\\Content\\CategoryTaxonomy;
+			foreach ( [ 'Billing', 'Mobile app' ] as $name ) {
+				if ( ! term_exists( $name, CategoryTaxonomy::NAME ) ) {
+					wp_insert_term( $name, CategoryTaxonomy::NAME );
+				}
+			}
+		` );
+
+		await page.goto( form.url );
+		const category = page.getByLabel( 'Category' ).last();
+		await expect(
+			category.locator( 'option', { hasText: 'Mobile app' } )
+		).toHaveCount( 1 );
+
+		await page.goto( '/wp-admin/edit-tags.php?taxonomy=mwtfrs_board' );
+		await page.locator( '#the-list a.row-title' ).first().click();
+		const boxes = page.getByRole( 'group', { name: 'Categories' } );
+		await boxes.getByLabel( 'Billing' ).check();
+		await page.getByRole( 'button', { name: 'Update' } ).click();
+		await expect( boxes.getByLabel( 'Billing' ) ).toBeChecked();
+
+		await page.goto( form.url );
+		await expect(
+			category.locator( 'option', { hasText: 'Billing' } )
+		).toHaveCount( 1 );
+		await expect(
+			category.locator( 'option', { hasText: 'Mobile app' } )
+		).toHaveCount( 0 );
+	} );
+
 	test( 'a request links back to the page that shows its board', async ( {
 		page,
 	} ) => {

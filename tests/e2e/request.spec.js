@@ -14,16 +14,18 @@ const { wpEval } = require( './wp-cli' );
  * @param {number}  [options.votes]       Votes the request starts with.
  * @param {string}  [options.teamComment] Text of a comment by the admin.
  * @param {boolean} [options.official]    Whether that comment is marked as official.
- * @return {{url: string, comment: number}} The request's page, and the ID of the admin's comment.
+ * @param {string}  [options.details]     The request's description.
+ * @return {{id: number, url: string, comment: number}} The request's ID and page, and the ID of the admin's comment.
  */
 function setUpRequest( {
 	title,
 	votes = 0,
 	teamComment = '',
 	official = false,
+	details = 'Described in a sentence or two.',
 } ) {
 	const data = Buffer.from(
-		JSON.stringify( { title, votes, teamComment, official } )
+		JSON.stringify( { title, votes, teamComment, official, details } )
 	).toString( 'base64' );
 
 	return JSON.parse(
@@ -49,7 +51,7 @@ function setUpRequest( {
 				'post_type'      => RequestPostType::NAME,
 				'post_status'    => 'publish',
 				'post_title'     => $data['title'],
-				'post_content'   => 'Described in a sentence or two.',
+				'post_content'   => $data['details'],
 				'comment_status' => 'open',
 			] );
 			for ( $i = 0; $i < $data['votes']; $i++ ) {
@@ -72,7 +74,7 @@ function setUpRequest( {
 				}
 			}
 
-			echo wp_json_encode( [ 'url' => get_permalink( $id ), 'comment' => $comment ?? 0 ] );
+			echo wp_json_encode( [ 'id' => $id, 'url' => get_permalink( $id ), 'comment' => $comment ?? 0 ] );
 		` )
 	);
 }
@@ -220,6 +222,37 @@ test.describe( 'Feature request page', () => {
 		await expect(
 			page.getByRole( 'region', { name: 'Official response' } )
 		).toHaveCount( 0 );
+	} );
+
+	test( 'a web address in the description stays text, on the page and in the editor', async ( {
+		page,
+	} ) => {
+		// WordPress would turn the address of a video file in a paragraph of its own into a player.
+		const address = 'https://files.example.net/clip.mp4';
+		const request = setUpRequest( {
+			title: 'Screen recording',
+			details: `See this clip:\n\n${ address }\n\nThanks.`,
+		} );
+
+		await page.goto( request.url );
+		await expect( page.getByText( address ) ).toBeVisible();
+		await expect( page.locator( 'video' ) ).toHaveCount( 0 );
+
+		const previews = [];
+		page.on( 'request', ( sent ) => {
+			if ( ( sent.postData() || '' ).includes( 'parse-embed' ) ) {
+				previews.push( sent.url() );
+			}
+		} );
+		await page.goto(
+			`/wp-admin/post.php?post=${ request.id }&action=edit`
+		);
+		const editor = page.frameLocator( '#content_ifr' );
+		await expect( editor.locator( 'body' ) ).toContainText( address );
+		await page.waitForLoadState( 'networkidle' );
+
+		await expect( editor.locator( '.wpview' ) ).toHaveCount( 0 );
+		expect( previews ).toEqual( [] );
 	} );
 
 	test.describe( 'without JavaScript', () => {

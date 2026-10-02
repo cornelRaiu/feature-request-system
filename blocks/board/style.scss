@@ -44,10 +44,15 @@
 
 .mwtfrs-board__field--search {
 	flex: 1 1 14rem;
+}
 
-	input {
-		width: 100%;
-	}
+// Some themes give fields a margin. With the full width on top of it, the
+// field would stick out of the board. Two classes, because classic themes
+// load their stylesheet after this one.
+.mwtfrs-board .mwtfrs-board__field--search input {
+	box-sizing: border-box;
+	width: 100%;
+	margin-inline: 0;
 }
 
 .mwtfrs-board__apply {

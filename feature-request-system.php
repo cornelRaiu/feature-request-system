@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Feature Request System
  * Plugin URI:        https://www.cornelraiu.com/feature-request-system
- * Description:       Let users submit and vote on feature requests, share your roadmap, and tell every voter when you ship.
+ * Description:       Collect feature requests, let people vote, and email everyone who follows a request when its status changes.
  * Version:           0.1.0
  * Requires at least: 6.6
  * Requires PHP:      7.4
@@ -11,6 +11,7 @@
  * License:           GPLv3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       feature-request-system
+ * Domain Path:       /languages
  *
  * @package FeatureRequestSystem
  */

@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Content;
 
 use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Rest\ManagedTermsController;
 use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
@@ -30,19 +31,21 @@ final class BoardTaxonomy {
 			self::NAME,
 			RequestPostType::NAME,
 			[
-				'labels'               => self::labels(),
-				'public'               => false,
-				'show_ui'              => true,
-				'show_admin_column'    => true,
-				'show_in_quick_edit'   => false,
-				'show_in_rest'         => true,
-				'show_tagcloud'        => false,
-				'hierarchical'         => false,
-				'rewrite'              => false,
+				'labels'                => self::labels(),
+				'public'                => false,
+				'show_ui'               => true,
+				'show_admin_column'     => true,
+				'show_in_quick_edit'    => false,
+				'show_in_rest'          => true,
+				// Adding one over the REST API takes the capability to manage them.
+				'rest_controller_class' => ManagedTermsController::class,
+				'show_tagcloud'         => false,
+				'hierarchical'          => false,
+				'rewrite'               => false,
 				// TermSelectBox adds a box with one dropdown instead.
-				'meta_box_cb'          => false,
-				'meta_box_sanitize_cb' => 'taxonomy_meta_box_sanitize_cb_checkboxes',
-				'capabilities'         => Capabilities::term_caps(),
+				'meta_box_cb'           => false,
+				'meta_box_sanitize_cb'  => 'taxonomy_meta_box_sanitize_cb_checkboxes',
+				'capabilities'          => Capabilities::term_caps(),
 			]
 		);
 	}

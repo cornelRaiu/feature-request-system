@@ -24,7 +24,7 @@ $mwtfrs_params  = $args['params'];
 	<?php echo wp_interactivity_data_wp_context( $args['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
 	data-wp-init="callbacks.hydrate"
 >
-	<form class="mwtfrs-board__filters" method="get" action="<?php echo esc_url( $args['page_url'] ); ?>" role="search">
+	<form class="mwtfrs-board__filters" method="get" action="<?php echo esc_url( $args['page_url'] ); ?>" role="search" aria-label="<?php esc_attr_e( 'Search and filter requests', 'feature-request-system' ); ?>">
 		<?php foreach ( $args['hidden_fields'] as $mwtfrs_name => $mwtfrs_value ) : ?>
 			<input type="hidden" name="<?php echo esc_attr( $mwtfrs_name ); ?>" value="<?php echo esc_attr( $mwtfrs_value ); ?>">
 		<?php endforeach; ?>

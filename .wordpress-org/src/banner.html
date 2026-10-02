@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Banner</title>
+<style>
+	* { box-sizing: border-box; margin: 0; }
+	html, body { width: 1544px; height: 500px; }
+	body {
+		display: grid;
+		grid-template-columns: 1fr 640px;
+		align-items: center;
+		gap: 40px;
+		padding: 0 88px;
+		overflow: hidden;
+		background: linear-gradient(120deg, #312e81 0%, #4338ca 55%, #6d5ce8 100%);
+		color: #fff;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	}
+	h1 { font-size: 68px; line-height: 1.05; font-weight: 700; letter-spacing: -1.5px; }
+	p.tagline { margin-top: 26px; font-size: 30px; line-height: 1.35; color: #dcd9ff; white-space: nowrap; }
+	.cards { display: grid; gap: 18px; transform: rotate(-3deg) translateX(24px); }
+	.card {
+		display: grid;
+		grid-template-columns: 84px 1fr;
+		align-items: center;
+		gap: 24px;
+		padding: 22px 28px;
+		border-radius: 18px;
+		background: #fff;
+		color: #1e1b4b;
+		box-shadow: 0 18px 40px rgba(17, 12, 66, 0.35);
+	}
+	.vote {
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		padding: 12px 0;
+		border: 2px solid #d9d6f5;
+		border-radius: 12px;
+		font-size: 26px;
+		font-weight: 700;
+		line-height: 1;
+	}
+	.vote.is-pressed { border-color: #4338ca; background: #4338ca; color: #fff; }
+	.vote svg { width: 26px; height: 26px; fill: currentColor; }
+	.title { font-size: 28px; font-weight: 650; line-height: 1.2; }
+	.status { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 20px; font-weight: 600; color: #4b4873; }
+	.status::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--dot); }
+</style>
+</head>
+<body>
+	<div>
+		<h1>Feature Request System</h1>
+		<p class="tagline">Collect requests. Let people vote.<br>Tell them when the status changes.</p>
+	</div>
+	<div class="cards">
+		<div class="card">
+			<div class="vote is-pressed"><svg viewBox="0 0 24 24"><path d="M12 4 4.5 12.5h5V20h5v-7.5h5z"/></svg>128</div>
+			<div><div class="title">Dark mode</div><div class="status" style="--dot:#6d4fc2">Planned</div></div>
+		</div>
+		<div class="card">
+			<div class="vote"><svg viewBox="0 0 24 24"><path d="M12 4 4.5 12.5h5V20h5v-7.5h5z"/></svg>94</div>
+			<div><div class="title">Export to CSV</div><div class="status" style="--dot:#2f5bd3">In Progress</div></div>
+		</div>
+		<div class="card">
+			<div class="vote"><svg viewBox="0 0 24 24"><path d="M12 4 4.5 12.5h5V20h5v-7.5h5z"/></svg>61</div>
+			<div><div class="title">Weekly email digest</div><div class="status" style="--dot:#1f8a55">Shipped</div></div>
+		</div>
+	</div>
+</body>
+</html>

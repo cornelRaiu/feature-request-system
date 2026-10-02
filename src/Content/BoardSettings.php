@@ -40,6 +40,11 @@ final class BoardSettings {
 	public const PAGE = 'page';
 
 	/**
+	 * Setting: term IDs of the categories that the board's requests can have. Empty means every category.
+	 */
+	public const CATEGORIES = 'categories';
+
+	/**
 	 * Everyone may take part, including visitors who are not logged in.
 	 */
 	public const ANYONE = 'anyone';
@@ -57,7 +62,7 @@ final class BoardSettings {
 	/**
 	 * Default value of every setting.
 	 *
-	 * @return array<string, string|bool|int>
+	 * @return array<string, string|bool|int|int[]>
 	 */
 	public static function defaults(): array {
 		return [
@@ -65,6 +70,7 @@ final class BoardSettings {
 			self::SUBMITTING => self::LOGGED_IN,
 			self::MODERATION => true,
 			self::PAGE       => 0,
+			self::CATEGORIES => [],
 		];
 	}
 
@@ -72,7 +78,7 @@ final class BoardSettings {
 	 * Returns a board's settings, using the default for anything missing or invalid.
 	 *
 	 * @param int $board_id Board term ID. 0 returns the defaults.
-	 * @return array<string, string|bool|int>
+	 * @return array<string, string|bool|int|int[]>
 	 */
 	public static function get( int $board_id ): array {
 		$stored = $board_id ? get_term_meta( $board_id, self::META, true ) : [];
@@ -119,6 +125,33 @@ final class BoardSettings {
 	}
 
 	/**
+	 * The categories a board's requests can have, as term IDs. Empty means every category.
+	 *
+	 * Categories that were deleted since the board was saved are left out. A board whose
+	 * chosen categories are all gone is no longer limited.
+	 *
+	 * @param int $board_id Board term ID.
+	 * @return int[]
+	 */
+	public static function categories( int $board_id ): array {
+		$chosen = (array) self::get( $board_id )[ self::CATEGORIES ];
+		if ( ! $chosen ) {
+			return [];
+		}
+
+		$existing = get_terms(
+			[
+				'taxonomy'   => CategoryTaxonomy::NAME,
+				'include'    => $chosen,
+				'hide_empty' => false,
+				'fields'     => 'ids',
+			]
+		);
+
+		return is_array( $existing ) ? array_map( 'intval', $existing ) : [];
+	}
+
+	/**
 	 * Saves settings for a board. Settings not passed, and invalid values, leave the current value in place.
 	 *
 	 * @param int                  $board_id Board term ID.
@@ -131,9 +164,9 @@ final class BoardSettings {
 	/**
 	 * Applies the valid values from $settings on top of $base. Unknown keys and invalid values are dropped.
 	 *
-	 * @param array<string, mixed>           $settings Raw settings.
-	 * @param array<string, string|bool|int> $base     Valid settings to start from.
-	 * @return array<string, string|bool|int>
+	 * @param array<string, mixed>                 $settings Raw settings.
+	 * @param array<string, string|bool|int|int[]> $base     Valid settings to start from.
+	 * @return array<string, string|bool|int|int[]>
 	 */
 	private static function sanitize( array $settings, array $base ): array {
 		$clean = $base;
@@ -150,6 +183,10 @@ final class BoardSettings {
 
 		if ( isset( $settings[ self::PAGE ] ) && is_numeric( $settings[ self::PAGE ] ) ) {
 			$clean[ self::PAGE ] = max( 0, (int) $settings[ self::PAGE ] );
+		}
+
+		if ( isset( $settings[ self::CATEGORIES ] ) && is_array( $settings[ self::CATEGORIES ] ) ) {
+			$clean[ self::CATEGORIES ] = array_values( array_unique( array_filter( array_map( 'absint', $settings[ self::CATEGORIES ] ) ) ) );
 		}
 
 		return $clean;

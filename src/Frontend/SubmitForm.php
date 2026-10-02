@@ -114,7 +114,7 @@ final class SubmitForm {
 				],
 				'id_prefix'          => wp_unique_id( 'mwtfrs-submit-' ),
 				'board_id'           => $board->term_id,
-				'categories'         => self::categories(),
+				'categories'         => self::categories( $board->term_id ),
 				'guest_fields'       => ! $logged_in,
 				'data_use'           => DataUseNote::html(),
 				'privacy_url'        => get_privacy_policy_url(),
@@ -122,6 +122,7 @@ final class SubmitForm {
 					'title'       => SubmissionService::MAX_TITLE,
 					'description' => SubmissionService::MAX_DESCRIPTION,
 					'name'        => SubmissionService::MAX_NAME,
+					'email'       => SubmissionService::MAX_EMAIL,
 				],
 				'form_url'           => admin_url( 'admin-post.php' ),
 				'form_action'        => self::ACTION,
@@ -255,16 +256,18 @@ final class SubmitForm {
 	}
 
 	/**
-	 * Categories for the dropdown, by ID, alphabetically.
+	 * Categories for the dropdown, by ID, alphabetically: the ones the board is limited to, or all of them.
 	 *
+	 * @param int $board_id Board term ID.
 	 * @return array<int, string>
 	 */
-	private static function categories(): array {
+	private static function categories( int $board_id ): array {
 		$terms = get_terms(
 			[
 				'taxonomy'   => CategoryTaxonomy::NAME,
 				'hide_empty' => false,
 				'orderby'    => 'name',
+				'include'    => BoardSettings::categories( $board_id ),
 			]
 		);
 

@@ -136,6 +136,59 @@ final class VoteRepository {
 	}
 
 	/**
+	 * Returns the votes of a user, oldest first, a page at a time.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $limit   Most votes to return.
+	 * @param int $offset  Votes to skip.
+	 * @return array<int, array{request_id: int, created_at: string}>
+	 */
+	public static function of_user( int $user_id, int $limit, int $offset ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read for a personal data export.
+			$wpdb->prepare(
+				'SELECT request_id, created_at FROM %i WHERE user_id = %d ORDER BY id ASC LIMIT %d OFFSET %d',
+				Schema::table( Schema::VOTES ),
+				$user_id,
+				$limit,
+				$offset
+			)
+		);
+
+		$votes = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$votes[] = [
+				'request_id' => (int) $row->request_id,
+				'created_at' => (string) $row->created_at,
+			];
+		}
+
+		return $votes;
+	}
+
+	/**
+	 * Cuts the tie between a user and their votes. The votes stay, so every count stays
+	 * correct, but nothing says any more whose they are.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int How many votes were made anonymous.
+	 */
+	public static function anonymise_user( int $user_id ): int {
+		global $wpdb;
+
+		// Each vote gets a new voter key that cannot be worked out from the user: a hash of the row and a secret thrown away here.
+		return (int) $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'UPDATE %i SET voter_key = SHA2( CONCAT( %s, id ), 256 ), user_id = 0 WHERE user_id = %d',
+				Schema::table( Schema::VOTES ),
+				wp_generate_password( 64, false ),
+				$user_id
+			)
+		);
+	}
+
+	/**
 	 * Counts the votes for a request.
 	 *
 	 * @param int $request_id Request ID.

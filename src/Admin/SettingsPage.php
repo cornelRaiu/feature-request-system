@@ -278,8 +278,9 @@ final class SettingsPage {
 			add_settings_error(
 				Settings::OPTION,
 				Settings::NOTIFY_EMAILS,
+				// WordPress prints the message as HTML, and this part of it was typed.
 				/* translators: %s: list of email addresses. */
-				sprintf( __( 'These are not valid email addresses and were left out: %s', 'feature-request-system' ), implode( ', ', $invalid ) )
+				sprintf( esc_html__( 'These are not valid email addresses and were left out: %s', 'feature-request-system' ), esc_html( implode( ', ', $invalid ) ) )
 			);
 		}
 

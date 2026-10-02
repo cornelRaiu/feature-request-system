@@ -78,6 +78,11 @@ final class SubmissionService {
 	public const MAX_NAME = 60;
 
 	/**
+	 * Longest email address a visitor may give, in characters. No working address is longer.
+	 */
+	public const MAX_EMAIL = 254;
+
+	/**
 	 * Checks whether the current visitor may submit to a board.
 	 *
 	 * @param int $board_id Board term ID.
@@ -130,7 +135,7 @@ final class SubmissionService {
 			);
 		}
 
-		$submission = self::validate( $fields );
+		$submission = self::validate( $fields, $board_id );
 		if ( is_wp_error( $submission ) ) {
 			return $submission;
 		}
@@ -178,10 +183,11 @@ final class SubmissionService {
 	/**
 	 * Cleans the submitted fields and checks them.
 	 *
-	 * @param array<string, mixed> $fields Submitted fields.
+	 * @param array<string, mixed> $fields   Submitted fields.
+	 * @param int                  $board_id Board the request is for.
 	 * @return array{title: string, description: string, category: int, name: string, email: string}|WP_Error
 	 */
-	private static function validate( array $fields ) {
+	private static function validate( array $fields, int $board_id ) {
 		$title       = sanitize_text_field( self::text( $fields, 'title' ) );
 		$description = sanitize_textarea_field( self::text( $fields, 'description' ) );
 		$category    = absint( self::text( $fields, 'category' ) );
@@ -193,9 +199,9 @@ final class SubmissionService {
 			'title'        => '' === $title,
 			'title-long'   => mb_strlen( $title ) > self::MAX_TITLE,
 			'details-long' => mb_strlen( $description ) > self::MAX_DESCRIPTION,
-			'category'     => $category && ! term_exists( $category, CategoryTaxonomy::NAME ),
+			'category'     => $category && ! self::is_category_of( $category, $board_id ),
 			'name-long'    => mb_strlen( $name ) > self::MAX_NAME,
-			'email'        => '' !== $raw_email && ! is_email( $email ),
+			'email'        => '' !== $raw_email && ( strlen( $raw_email ) > self::MAX_EMAIL || ! is_email( $email ) ),
 		];
 
 		foreach ( $problems as $reason => $failed ) {
@@ -218,6 +224,18 @@ final class SubmissionService {
 			'name'        => $name,
 			'email'       => $email,
 		];
+	}
+
+	/**
+	 * Whether a category exists and the board's requests can have it.
+	 *
+	 * @param int $category_id Category term ID.
+	 * @param int $board_id    Board term ID.
+	 */
+	private static function is_category_of( int $category_id, int $board_id ): bool {
+		$allowed = BoardSettings::categories( $board_id );
+
+		return term_exists( $category_id, CategoryTaxonomy::NAME ) && ( ! $allowed || in_array( $category_id, $allowed, true ) );
 	}
 
 	/**

@@ -18,10 +18,13 @@ use FeatureRequestSystem\Frontend\Board;
 use FeatureRequestSystem\Frontend\BoardQuery;
 use FeatureRequestSystem\Frontend\RequestItem;
 use FeatureRequestSystem\Frontend\RequestNotice;
+use FeatureRequestSystem\Frontend\RequestView;
+use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Frontend\VoteStore;
 use FeatureRequestSystem\Voting\VoterIdentity;
 use FeatureRequestSystem\Voting\VoteService;
+use WP_Block_Type_Registry;
 
 /**
  * Renders the real block, the way a page does.
@@ -99,6 +102,76 @@ final class BoardRenderTest extends TestCase {
 
 		$_GET = [ BoardQuery::PARAM_SEARCH => 'CSV' ];
 		$this->assertTitles( [ 'Export to CSV' ], [ 'Dark mode' ], $this->render() );
+	}
+
+	public function test_a_board_limited_to_some_categories_can_only_be_filtered_by_those(): void {
+		$names = [];
+		foreach ( [ 'Billing', 'Mobile app' ] as $name ) {
+			$names[ $name ] = self::factory()->term->create(
+				[
+					'taxonomy' => CategoryTaxonomy::NAME,
+					'name'     => $name,
+				]
+			);
+			// The filter lists categories that have requests.
+			wp_set_object_terms( $this->create_request(), $names[ $name ], CategoryTaxonomy::NAME );
+		}
+
+		$this->assertStringContainsString( '>Billing</option>', $this->render() );
+		$this->assertStringContainsString( '>Mobile app</option>', $this->render() );
+
+		BoardSettings::update( $this->default_board(), [ BoardSettings::CATEGORIES => [ $names['Billing'] ] ] );
+
+		$this->assertStringContainsString( '>Billing</option>', $this->render() );
+		$this->assertStringNotContainsString( '>Mobile app</option>', $this->render() );
+		$this->assertStringContainsString( '>Planned</option>', $this->render(), 'Statuses are not limited.' );
+	}
+
+	public function test_the_stylesheets_load_with_the_blocks_unless_a_site_turns_them_off(): void {
+		$registry = WP_Block_Type_Registry::get_instance();
+		$names    = [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK ];
+		foreach ( $names as $name ) {
+			$this->assertCount( 1, $registry->get_registered( $name )->style_handles, $name );
+			$registry->unregister( $name );
+		}
+
+		add_filter( Blocks::FILTER_STYLES, '__return_false' );
+		Blocks::register();
+		$styled = [];
+		foreach ( $names as $name ) {
+			$styled[ $name ] = $registry->get_registered( $name )->style_handles;
+			$registry->unregister( $name );
+		}
+		remove_filter( Blocks::FILTER_STYLES, '__return_false' );
+		Blocks::register();
+
+		$this->assertSame( array_fill_keys( $names, [] ), $styled );
+		$this->assertCount( 1, $registry->get_registered( Board::BLOCK )->style_handles, 'Back to normal for the tests that follow.' );
+	}
+
+	public function test_a_longer_board_asks_the_database_no_more_questions(): void {
+		global $wpdb;
+
+		$category = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$queries  = [];
+		foreach ( [ 3, 20 ] as $shown ) {
+			while ( count( get_posts( [ 'post_type' => RequestPostType::NAME, 'numberposts' => -1, 'fields' => 'ids' ] ) ) < $shown ) {
+				$request = $this->request_with_votes( 'Request ' . wp_generate_password( 8, false ), 3 );
+				wp_set_object_terms( $request, $category, CategoryTaxonomy::NAME );
+				wp_set_object_terms( $request, $this->status( 'planned' ), StatusTaxonomy::NAME );
+			}
+
+			// As on a page view: nothing in the object cache yet.
+			wp_cache_flush();
+			$before = $wpdb->num_queries;
+			$html   = $this->render();
+
+			$queries[ $shown ] = $wpdb->num_queries - $before;
+			$this->assertSame( $shown, substr_count( $html, 'class="mwtfrs-request__title"' ) );
+		}
+
+		$this->assertSame( $queries[3], $queries[20], 'Requests, their votes, statuses and categories are read together, not one request at a time.' );
+		$this->assertLessThan( 25, $queries[20] );
 	}
 
 	public function test_closed_requests_are_hidden_unless_asked_for(): void {

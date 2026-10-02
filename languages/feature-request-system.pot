@@ -1,0 +1,1570 @@
+# Copyright (C) 2026 Cornel Raiu
+# This file is distributed under the GPLv3 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Feature Request System 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/feature-request-system\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-02T14:50:25+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: feature-request-system\n"
+
+#. Plugin Name of the plugin
+#: feature-request-system.php
+#: src/Privacy/PersonalData.php:66
+#: src/Privacy/PersonalData.php:81
+#: src/Privacy/PolicyText.php:33
+msgid "Feature Request System"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: feature-request-system.php
+msgid "https://www.cornelraiu.com/feature-request-system"
+msgstr ""
+
+#. Description of the plugin
+#: feature-request-system.php
+msgid "Collect feature requests, let people vote, and email everyone who follows a request when its status changes."
+msgstr ""
+
+#. Author of the plugin
+#: feature-request-system.php
+msgid "Cornel Raiu"
+msgstr ""
+
+#. Author URI of the plugin
+#: feature-request-system.php
+msgid "https://www.cornelraiu.com/"
+msgstr ""
+
+#: feature-request-system.php:29
+msgid "Feature Request System needs PHP 7.4 or later and WordPress 6.6 or later, so it is not running. Update PHP or WordPress to use it."
+msgstr ""
+
+#: feature-request-system.php:44
+msgid "Feature Request System is missing its vendor folder, so it is not running. Run composer install, or reinstall the plugin from WordPress.org."
+msgstr ""
+
+#: src/Admin/BoardFields.php:131
+msgid "Everyone, including visitors without an account"
+msgstr ""
+
+#: src/Admin/BoardFields.php:132
+msgid "Logged-in users"
+msgstr ""
+
+#: src/Admin/BoardFields.php:133
+msgid "Nobody"
+msgstr ""
+
+#: src/Admin/BoardFields.php:142
+msgid "&mdash; Not set &mdash;"
+msgstr ""
+
+#: src/Admin/BoardFields.php:149
+msgid "Who can vote"
+msgstr ""
+
+#: src/Admin/BoardFields.php:154
+msgid "Who can suggest features"
+msgstr ""
+
+#: src/Admin/BoardFields.php:159
+#: src/Admin/SettingsPage.php:88
+msgid "New requests"
+msgstr ""
+
+#: src/Admin/BoardFields.php:164
+msgid "Hold new requests until a moderator approves them"
+msgstr ""
+
+#: src/Admin/BoardFields.php:166
+msgid "Requests from editors and administrators are always published straight away."
+msgstr ""
+
+#: src/Admin/BoardFields.php:169
+msgid "Board page"
+msgstr ""
+
+#: src/Admin/BoardFields.php:171
+msgid "No pages yet."
+msgstr ""
+
+#: src/Admin/BoardFields.php:172
+msgid "The page that shows this board. Each request links back to it. Filled in by itself the first time the board is shown on a page."
+msgstr ""
+
+#: src/Admin/BoardFields.php:175
+#: src/Admin/BoardFields.php:199
+#: src/Admin/RequestList.php:63
+#: src/Content/CategoryTaxonomy.php:52
+#: src/Content/CategoryTaxonomy.php:54
+msgid "Categories"
+msgstr ""
+
+#: src/Admin/BoardFields.php:177
+msgid "The categories that people can choose for a request on this board, and that the board can be filtered by. Tick none to offer every category."
+msgstr ""
+
+#: src/Admin/BoardFields.php:196
+msgid "No categories yet."
+msgstr ""
+
+#: src/Admin/CommentActions.php:66
+#: src/Comments/CommentThread.php:72
+#: templates/official-response.php:16
+msgid "Official response"
+msgstr ""
+
+#: src/Admin/NotifySwitch.php:56
+msgid "The emails go out right after the change."
+msgstr ""
+
+#. translators: %s: number of minutes.
+#: src/Admin/NotifySwitch.php:61
+#, php-format
+msgid "The emails go out %s minute after the last change, so a status picked by mistake can still be corrected."
+msgid_plural "The emails go out %s minutes after the last change, so a status picked by mistake can still be corrected."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of requests.
+#: src/Admin/PendingBadge.php:47
+#, php-format
+msgid "%s request waiting for approval"
+msgid_plural "%s requests waiting for approval"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/ProfileFollows.php:62
+#: src/Frontend/Blocks.php:137
+#: src/Privacy/PersonalData.php:108
+msgid "Feature requests"
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:68
+#: src/Admin/SettingsPage.php:111
+msgid "Following"
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:72
+msgid "Follow the requests I vote for or suggest"
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:73
+msgid "Follow the requests this user votes for or suggests"
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:74
+msgid "A follower of a request gets an email when its status changes."
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:78
+#: src/Admin/ProfileFollows.php:116
+msgid "Followed requests"
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:112
+msgid "None."
+msgstr ""
+
+#: src/Admin/ProfileFollows.php:134
+#: src/Notifications/Unsubscribe.php:174
+#: templates/request.php:71
+msgid "Stop following"
+msgstr ""
+
+#. translators: %s: number of requests.
+#: src/Admin/ProfileFollows.php:145
+#, php-format
+msgid "And %s more."
+msgid_plural "And %s more."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Admin/RequestDetailsBox.php:44
+msgid "Request details"
+msgstr ""
+
+#. translators: %s: number of votes.
+#: src/Admin/RequestDetailsBox.php:59
+#: src/Submission/SimilarRequests.php:200
+#, php-format
+msgid "%s vote"
+msgid_plural "%s votes"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of users.
+#: src/Admin/RequestDetailsBox.php:73
+#, php-format
+msgid "%s more user"
+msgid_plural "%s more users"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of visitors who voted without an account.
+#: src/Admin/RequestDetailsBox.php:75
+#, php-format
+msgid "%s guest"
+msgid_plural "%s guests"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of users who follow the request.
+#: src/Admin/RequestDetailsBox.php:87
+#, php-format
+msgid "%s follower"
+msgid_plural "%s followers"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: name of the person who submitted the request, with their email if they gave one.
+#: src/Admin/RequestDetailsBox.php:94
+#, php-format
+msgid "Submitted by %s"
+msgstr ""
+
+#: src/Admin/RequestDetailsBox.php:98
+msgid "A spam check flagged this request, so it was held for review."
+msgstr ""
+
+#: src/Admin/RequestDetailsBox.php:110
+msgid "A user who has since been deleted"
+msgstr ""
+
+#: src/Admin/RequestList.php:60
+msgid "Votes"
+msgstr ""
+
+#: src/Admin/RequestList.php:61
+#: src/Content/StatusTaxonomy.php:235
+#: src/Privacy/PersonalData.php:253
+#: templates/board.php:38
+msgid "Status"
+msgstr ""
+
+#: src/Admin/RequestList.php:62
+#: src/Admin/TermSelectBox.php:38
+#: src/Content/BoardTaxonomy.php:92
+#: blocks/board/edit.js:19
+#: blocks/submit/edit.js:17
+#: build/board/index.js:1
+#: build/submit/index.js:1
+msgid "Board"
+msgstr ""
+
+#: src/Admin/RequestList.php:134
+#: templates/board.php:41
+msgid "All statuses"
+msgstr ""
+
+#: src/Admin/RequestList.php:134
+msgid "Filter by status"
+msgstr ""
+
+#: src/Admin/RequestList.php:135
+msgid "All boards"
+msgstr ""
+
+#: src/Admin/RequestList.php:135
+msgid "Filter by board"
+msgstr ""
+
+#: src/Admin/RequestList.php:136
+#: templates/board.php:52
+msgid "All categories"
+msgstr ""
+
+#: src/Admin/RequestList.php:136
+msgid "Filter by category"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:59
+msgid "Feature Request Settings"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:60
+msgid "Settings"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:89
+msgid "Followers"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:89
+msgid "A follower of a request gets an email when its status changes, and whoever suggested a request gets one when it is approved. Every email has a link to stop following. Only logged-in users can follow."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:90
+msgid "Visitors without an account"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:90
+msgid "Each board decides whether visitors without an account can vote or suggest features. Set that on the board, under Feature Requests → Boards."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:91
+msgid "Uninstalling"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:107
+#: blocks/shared/board-select.js:30
+#: build/board/index.js:1
+#: build/submit/index.js:1
+msgid "Default board"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:108
+msgid "Status of new requests"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:109
+msgid "Email about new requests"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:110
+msgid "Send those emails to"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:112
+msgid "Voters"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:113
+#: templates/submit-form.php:129
+msgid "How we use your data"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:114
+msgid "Data"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:161
+msgid "Requests go to this board when none is chosen. It cannot be deleted."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:169
+msgid "Every new request starts in this status. It cannot be deleted."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:176
+msgid "Email the team when someone suggests a feature"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:189
+msgid "One or more email addresses, separated by commas. Leave empty to use the site's administration email address."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:197
+msgid "Let users follow requests, and email the followers of a request when its status changes"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:205
+msgid "A user who votes for a request also follows it"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:206
+msgid "Taking the vote back ends it. Users can turn this off for themselves in their profile, and from any of the emails."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:218
+msgid "Shown on the form to visitors without an account, under the name and email fields, behind a \"How we use your data\" link. A link to your privacy policy page follows it. Links and emphasis are allowed. Leave empty to show nothing."
+msgstr ""
+
+#. translators: %s: suggested text.
+#: src/Admin/SettingsPage.php:220
+#, php-format
+msgid "A text to start from: %s"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:228
+msgid "Delete all requests, votes, followers, boards, statuses and settings when the plugin is deleted"
+msgstr ""
+
+#. translators: %s: list of email addresses.
+#: src/Admin/SettingsPage.php:283
+#, php-format
+msgid "These are not valid email addresses and were left out: %s"
+msgstr ""
+
+#: src/Admin/StatusFields.php:143
+#: src/Admin/StatusFields.php:214
+msgid "Colour"
+msgstr ""
+
+#: src/Admin/StatusFields.php:144
+#: src/Admin/StatusFields.php:224
+msgid "Voting"
+msgstr ""
+
+#: src/Admin/StatusFields.php:173
+msgid "Closed"
+msgstr ""
+
+#: src/Admin/StatusFields.php:174
+#: src/Content/StatusTaxonomy.php:148
+msgid "Open"
+msgstr ""
+
+#: src/Admin/StatusFields.php:216
+msgid "Shown next to the status wherever a request is listed."
+msgstr ""
+
+#: src/Admin/StatusFields.php:219
+msgid "Position"
+msgstr ""
+
+#: src/Admin/StatusFields.php:221
+msgid "Statuses are listed from the lowest number to the highest. Leave empty to put a new status last."
+msgstr ""
+
+#: src/Admin/StatusFields.php:229
+msgid "Closed for voting"
+msgstr ""
+
+#: src/Admin/StatusFields.php:231
+msgid "Requests in a closed status keep their votes, and nobody can add or remove one. Use it for statuses such as Shipped or Declined."
+msgstr ""
+
+#: src/Admin/StatusQuickEdit.php:65
+msgid "&mdash; No Change &mdash;"
+msgstr ""
+
+#: src/Admin/StatusQuickEdit.php:137
+#: src/Admin/TermSelectBox.php:40
+msgid "Request status"
+msgstr ""
+
+#: src/Admin/StatusQuickEdit.php:152
+msgid "Email followers when the status changes"
+msgstr ""
+
+#. translators: %s: number of followers.
+#: src/Admin/TermSelectBox.php:117
+#, php-format
+msgid "Email %s follower when the status changes"
+msgid_plural "Email %s followers when the status changes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Comments/CommentForm.php:59
+msgid "Post as the official response"
+msgstr ""
+
+#: src/Comments/OfficialResponseLink.php:48
+msgid "Remove official mark"
+msgstr ""
+
+#: src/Comments/OfficialResponseLink.php:49
+msgid "Mark as official response"
+msgstr ""
+
+#: src/Comments/OfficialResponseLink.php:83
+msgid "You are not allowed to change this comment."
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:77
+#: src/Content/RequestPostType.php:120
+#: src/Content/RequestPostType.php:122
+msgid "Feature Requests"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:91
+#: src/Content/BoardTaxonomy.php:93
+msgid "Boards"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:94
+msgid "All Boards"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:95
+msgid "Edit Board"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:96
+msgid "Update Board"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:97
+msgid "Add Board"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:98
+msgid "New Board Name"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:99
+msgid "Search Boards"
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:100
+msgid "No boards found."
+msgstr ""
+
+#: src/Content/BoardTaxonomy.php:101
+msgid "&larr; Go to Boards"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:53
+#: templates/board.php:50
+#: templates/submit-form.php:97
+msgid "Category"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:55
+msgid "All Categories"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:56
+msgid "Edit Category"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:57
+msgid "Update Category"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:58
+msgid "Add Category"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:59
+msgid "New Category Name"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:60
+msgid "Parent Category"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:61
+msgid "Parent Category:"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:62
+msgid "Search Categories"
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:63
+msgid "No categories found."
+msgstr ""
+
+#: src/Content/CategoryTaxonomy.php:64
+msgid "&larr; Go to Categories"
+msgstr ""
+
+#: src/Content/RequestPostType.php:121
+msgid "Feature Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:123
+msgid "All Requests"
+msgstr ""
+
+#: src/Content/RequestPostType.php:124
+msgid "Add Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:125
+msgid "Add Feature Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:126
+msgid "Edit Feature Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:127
+msgid "New Feature Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:128
+msgid "View Feature Request"
+msgstr ""
+
+#: src/Content/RequestPostType.php:129
+msgid "View Feature Requests"
+msgstr ""
+
+#: src/Content/RequestPostType.php:130
+msgid "Search Feature Requests"
+msgstr ""
+
+#: src/Content/RequestPostType.php:131
+msgid "No feature requests found."
+msgstr ""
+
+#: src/Content/RequestPostType.php:132
+msgid "No feature requests found in Trash."
+msgstr ""
+
+#: src/Content/RequestPostType.php:133
+msgid "Feature request published."
+msgstr ""
+
+#: src/Content/RequestPostType.php:134
+msgid "Feature request updated."
+msgstr ""
+
+#: src/Content/RequestPostType.php:135
+msgid "Filter feature requests list"
+msgstr ""
+
+#: src/Content/RequestPostType.php:136
+msgid "Feature requests list navigation"
+msgstr ""
+
+#: src/Content/RequestPostType.php:137
+msgid "Feature requests list"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:149
+msgid "Under Review"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:150
+msgid "Planned"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:151
+msgid "In Progress"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:152
+msgid "Shipped"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:153
+msgid "Declined"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:234
+#: src/Content/StatusTaxonomy.php:236
+msgid "Statuses"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:237
+msgid "All Statuses"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:238
+msgid "Edit Status"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:239
+msgid "Update Status"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:240
+msgid "Add Status"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:241
+msgid "New Status Name"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:242
+msgid "Search Statuses"
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:243
+msgid "No statuses found."
+msgstr ""
+
+#: src/Content/StatusTaxonomy.php:244
+msgid "&larr; Go to Statuses"
+msgstr ""
+
+#: src/Frontend/Blocks.php:127
+msgid "Feature Request System cannot show its blocks because the block files are missing. Run npm install and npm run build, or reinstall the plugin from WordPress.org."
+msgstr ""
+
+#: src/Frontend/Blocks.php:141
+msgid "Browse requests"
+msgstr ""
+
+#: src/Frontend/Blocks.php:147
+msgid "Feature request page"
+msgstr ""
+
+#: src/Frontend/Blocks.php:148
+msgid "A form for suggesting features, above the board where people vote."
+msgstr ""
+
+#: src/Frontend/Board.php:93
+msgid "Most votes"
+msgstr ""
+
+#: src/Frontend/Board.php:94
+msgid "Newest"
+msgstr ""
+
+#: src/Frontend/Board.php:131
+msgid "No requests match these filters."
+msgstr ""
+
+#: src/Frontend/Board.php:151
+msgid "No requests are open for voting right now."
+msgstr ""
+
+#: src/Frontend/Board.php:152
+msgid "No requests yet."
+msgstr ""
+
+#: src/Frontend/Board.php:241
+msgid "Previous"
+msgstr ""
+
+#: src/Frontend/Board.php:242
+msgid "Next"
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:81
+msgid "Your vote was added."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:82
+msgid "Your vote was removed."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:83
+#: src/Voting/VoteService.php:98
+msgid "Log in to vote on this request."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:84
+msgid "Voting is closed for this request."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:85
+#: src/Voting/VoteService.php:95
+msgid "Voting is turned off for this board."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:86
+msgid "Too many votes in a short time. Try again later."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:87
+msgid "This request is not open for voting."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:88
+#: src/Frontend/SubmitForm.php:249
+msgid "This page has expired. Reload it and try again."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:89
+msgid "Your vote could not be verified. Reload the page and try again."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:90
+msgid "Your vote could not be saved. Try again."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:91
+#: src/Frontend/VoteStore.php:43
+msgid "You now follow this request."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:92
+#: src/Frontend/VoteStore.php:44
+msgid "You no longer follow this request."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:93
+#: src/Notifications/Subscriptions.php:213
+msgid "Log in to follow this request."
+msgstr ""
+
+#: src/Frontend/RequestNotice.php:94
+msgid "That could not be saved. Try again."
+msgstr ""
+
+#: src/Frontend/RequestView.php:72
+msgid "Single Feature Request"
+msgstr ""
+
+#: src/Frontend/RequestView.php:73
+msgid "Shows one feature request: its vote button, status, description and comments."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:243
+#: src/Rest/RequestsController.php:140
+msgid "Thanks! Your request will appear on the board once it is approved."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:244
+#: src/Rest/RequestsController.php:139
+msgid "Thanks! Your request is on the board."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:245
+#: src/Submission/SubmissionService.php:101
+#: templates/submit-form.php:30
+msgid "Log in to suggest a feature."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:246
+#: src/Submission/SubmissionService.php:98
+#: templates/submit-form.php:28
+msgid "This board is not taking new requests."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:247
+#: src/Submission/SubmissionService.php:130
+msgid "You have sent several requests in a short time. Try again later."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:248
+#: src/Submission/SpamGuard.php:130
+msgid "Your request could not be sent. Reload the page and try again."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:250
+msgid "Your request could not be verified. Reload the page and try again."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:251
+#: src/Submission/SubmissionService.php:93
+msgid "This board does not exist."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:252
+#: src/Submission/SubmissionService.php:162
+msgid "Your request could not be saved. Try again."
+msgstr ""
+
+#: src/Frontend/SubmitForm.php:290
+msgid "Your request could not be sent. Check your connection and try again."
+msgstr ""
+
+#. translators: %d: number of similar requests found.
+#: src/Frontend/SubmitForm.php:292
+#, php-format
+msgid "Similar requests found: %d."
+msgstr ""
+
+#: src/Frontend/VoteStore.php:40
+msgid "Vote added."
+msgstr ""
+
+#: src/Frontend/VoteStore.php:41
+msgid "Vote removed."
+msgstr ""
+
+#: src/Frontend/VoteStore.php:42
+msgid "Your vote could not be saved. Check your connection and try again."
+msgstr ""
+
+#: src/Frontend/VoteStore.php:45
+msgid "That could not be saved. Check your connection and try again."
+msgstr ""
+
+#. translators: 1: site name, 2: request title.
+#: src/Notifications/ApprovalEmail.php:73
+#, php-format
+msgid "[%1$s] Your feature request was approved: %2$s"
+msgstr ""
+
+#: src/Notifications/Mailer.php:118
+msgid "You get this email because you voted for this request."
+msgstr ""
+
+#: src/Notifications/Mailer.php:120
+msgid "You get this email because you suggested this request."
+msgstr ""
+
+#: src/Notifications/Mailer.php:122
+msgid "You get this email because you follow this request."
+msgstr ""
+
+#. translators: 1: site name, 2: request title.
+#: src/Notifications/NewRequestEmail.php:49
+#, php-format
+msgid "[%1$s] New feature request to approve: %2$s"
+msgstr ""
+
+#. translators: 1: site name, 2: request title.
+#: src/Notifications/NewRequestEmail.php:51
+#, php-format
+msgid "[%1$s] New feature request: %2$s"
+msgstr ""
+
+#. translators: %s: request title.
+#: src/Notifications/NewRequestEmail.php:55
+#, php-format
+msgid "Title: %s"
+msgstr ""
+
+#. translators: %s: board name.
+#: src/Notifications/NewRequestEmail.php:57
+#, php-format
+msgid "Board: %s"
+msgstr ""
+
+#. translators: %s: name and email of the person who submitted the request.
+#: src/Notifications/NewRequestEmail.php:59
+#, php-format
+msgid "Submitted by: %s"
+msgstr ""
+
+#: src/Notifications/NewRequestEmail.php:69
+msgid "A spam check flagged this request, so it is waiting for review."
+msgstr ""
+
+#: src/Notifications/NewRequestEmail.php:72
+msgid "It is waiting for your approval. Review it here:"
+msgstr ""
+
+#: src/Notifications/NewRequestEmail.php:73
+msgid "It is already on the board. Edit it here:"
+msgstr ""
+
+#: src/Notifications/NewRequestEmail.php:105
+msgid "a user who has since been deleted"
+msgstr ""
+
+#: src/Notifications/NewRequestEmail.php:111
+msgid "a visitor who left no name"
+msgstr ""
+
+#. translators: 1: site name, 2: status name, such as Planned, 3: request title.
+#: src/Notifications/StatusNotifier.php:168
+#, php-format
+msgid "[%1$s] Status changed to %2$s: %3$s"
+msgstr ""
+
+#: src/Notifications/Subscriptions.php:85
+msgid "This site does not send emails about requests."
+msgstr ""
+
+#: src/Notifications/Subscriptions.php:90
+msgid "This request does not exist or cannot be followed."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:96
+msgid "This link no longer works"
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:98
+msgid "You may have stopped following this request already."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:118
+msgid "You no longer follow any request"
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:120
+msgid "We will not email you about feature requests again. Voting for a request or suggesting one no longer makes you follow it."
+msgstr ""
+
+#. translators: %s: URL of the profile screen.
+#: src/Notifications/Unsubscribe.php:124
+#, php-format
+msgid "You can still follow a request with the button on its page, and change this choice in <a href=\"%s\">your profile</a>."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:138
+msgid "You no longer follow this request"
+msgstr ""
+
+#. translators: %s: request title.
+#: src/Notifications/Unsubscribe.php:144
+#, php-format
+msgid "We will not email you about \"%s\" again."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:145
+msgid "We will not email you about this request again."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:149
+msgid "Go to the request"
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:165
+msgid "Stop following this request?"
+msgstr ""
+
+#. translators: %s: request title.
+#: src/Notifications/Unsubscribe.php:171
+#, php-format
+msgid "You will get no more emails about \"%s\"."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:172
+msgid "You will get no more emails about this request."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:177
+msgid "Keep following and go to the request"
+msgstr ""
+
+#. translators: %s: number of requests.
+#: src/Notifications/Unsubscribe.php:198
+#, php-format
+msgid "You still follow %s other request on this site."
+msgid_plural "You still follow %s other requests on this site."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of requests.
+#: src/Notifications/Unsubscribe.php:200
+#, php-format
+msgid "You follow %s request on this site."
+msgid_plural "You follow %s requests on this site."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Notifications/Unsubscribe.php:203
+msgid "You can also stop all of these emails. Voting for a request will then no longer make you follow it."
+msgstr ""
+
+#: src/Notifications/Unsubscribe.php:205
+msgid "Stop all emails"
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Notifications/Unsubscribe.php:249
+#, php-format
+msgid "Go to %s"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:109
+msgid "The feature requests this person suggested."
+msgstr ""
+
+#: src/Privacy/PersonalData.php:118
+msgid "Feature request votes"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:119
+msgid "The feature requests this user voted for."
+msgstr ""
+
+#: src/Privacy/PersonalData.php:123
+msgid "Voted on"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:131
+msgid "Followed feature requests"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:132
+msgid "The feature requests this user follows, and gets emails about."
+msgstr ""
+
+#: src/Privacy/PersonalData.php:137
+msgid "Following since"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:138
+msgid "Because"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:148
+msgid "Feature request choices"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:151
+msgid "Follows the requests they vote for or suggest"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:151
+msgid "No"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:183
+msgid "Feature requests this person suggested were kept, without the record of who suggested them."
+msgstr ""
+
+#: src/Privacy/PersonalData.php:189
+msgid "Votes for feature requests were kept, so that vote counts stay correct, without the record of whose they are."
+msgstr ""
+
+#: src/Privacy/PersonalData.php:250
+#: templates/submit-form.php:54
+msgid "Title"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:251
+#: templates/submit-form.php:83
+msgid "Details"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:252
+msgid "Suggested on"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:254
+#: src/Privacy/PersonalData.php:276
+msgid "Link"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:255
+msgid "Name given"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:256
+msgid "Email given"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:270
+#: src/Privacy/PersonalData.php:275
+msgid "Request"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:270
+msgid "A request that has since been deleted"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:341
+msgid "They voted for it"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:343
+msgid "They suggested it"
+msgstr ""
+
+#: src/Privacy/PersonalData.php:345
+msgid "They chose to follow it"
+msgstr ""
+
+#: src/Privacy/PolicyText.php:42
+msgid "When you suggest a feature while you are logged in, we store that the request came from your account. When you suggest a feature without an account, you can give your name and email address. We store them with your request. Only our team can see them, and we use them only to contact you about your request. A request is public once we approve it, without your name."
+msgstr ""
+
+#. translators: %s: name of a cookie.
+#: src/Privacy/PolicyText.php:45
+#, php-format
+msgid "When you vote while you are logged in, we store your vote with your account. When you vote without an account, we store a cookie named %s in your browser for one year, so that the site remembers your votes. The cookie holds a random number and nothing else about you."
+msgstr ""
+
+#: src/Privacy/PolicyText.php:48
+msgid "When you are logged in and you vote for a request, suggest one or press its Follow button, we store that you follow that request, and we email you when its status changes. Every email has a link that stops these emails, and you can also stop them in your profile."
+msgstr ""
+
+#: src/Privacy/PolicyText.php:49
+msgid "To limit how often one visitor can vote or send requests, we count attempts per IP address for up to one hour. The count is stored under a scrambled form of the address that cannot be turned back into it. We do not store your IP address."
+msgstr ""
+
+#. translators: %s: URL of Akismet's privacy policy.
+#: src/Privacy/PolicyText.php:55
+#, php-format
+msgid "New feature requests are checked by Akismet, an anti-spam service. It receives the text of the request, the name and email address you gave, your IP address and the name of your browser. Akismet has its own <a href=\"%s\">privacy policy</a>."
+msgstr ""
+
+#: src/Privacy/PolicyText.php:60
+msgid "This plugin stores feature requests, votes, and which requests a user follows, in your site's database. The text below describes that. Leave out what your site does not use, such as the sentence about voting without an account when none of your boards allow it."
+msgstr ""
+
+#: src/Privacy/PolicyText.php:64
+msgid "Suggested text:"
+msgstr ""
+
+#: src/Rest/ManagedTermsController.php:38
+msgid "You are not allowed to add boards or statuses."
+msgstr ""
+
+#: src/Rest/RequestsController.php:32
+msgid "Board ID."
+msgstr ""
+
+#: src/Rest/RequestsController.php:48
+msgid "Request title."
+msgstr ""
+
+#: src/Rest/RequestsController.php:53
+msgid "Details of the request."
+msgstr ""
+
+#: src/Rest/RequestsController.php:57
+msgid "Category ID."
+msgstr ""
+
+#: src/Rest/RequestsController.php:61
+msgid "Name of a visitor who is not logged in."
+msgstr ""
+
+#: src/Rest/RequestsController.php:65
+msgid "Email of a visitor who is not logged in. Never shown publicly."
+msgstr ""
+
+#: src/Rest/RequestsController.php:69
+msgid "Must be left empty."
+msgstr ""
+
+#: src/Rest/RequestsController.php:73
+msgid "Token from the rendered form."
+msgstr ""
+
+#: src/Rest/RequestsController.php:92
+msgid "What the visitor is typing."
+msgstr ""
+
+#: src/Rest/RequestsController.php:118
+msgid "Requests from visitors who are not logged in must be sent from this site."
+msgstr ""
+
+#: src/Rest/StateController.php:45
+msgid "Request IDs shown on the page."
+msgstr ""
+
+#: src/Rest/SubscriptionsController.php:35
+#: src/Rest/VotesController.php:44
+msgid "Request ID."
+msgstr ""
+
+#: src/Rest/VotesController.php:81
+msgid "Votes from visitors who are not logged in must be sent from this site."
+msgstr ""
+
+#: src/Submission/DataUseNote.php:53
+msgid "We keep the name and email you enter with your request. Only our team can see them, and we use them only to contact you about your request."
+msgstr ""
+
+#: src/Submission/DataUseNote.php:54
+msgid "To stop spam, your request is checked by Akismet, which receives its text, your name, email address, IP address and browser details."
+msgstr ""
+
+#: src/Submission/DataUseNote.php:55
+msgid "Ask us at any time to remove your details."
+msgstr ""
+
+#. translators: Comma-separated list of common words to ignore when looking for similar requests. Use common words of your language, in lowercase; they do not need to match the English list.
+#: src/Submission/SimilarRequests.php:185
+msgid "able,about,add,adding,allow,also,and,any,are,but,can,could,feature,for,from,get,has,have,how,into,like,make,more,need,new,not,option,please,should,some,support,that,the,their,them,then,there,this,use,using,want,was,way,what,when,where,which,will,with,would,you,your"
+msgstr ""
+
+#. translators: %d: maximum number of characters.
+#: src/Submission/SubmissionService.php:249
+#, php-format
+msgid "Keep the title under %d characters."
+msgstr ""
+
+#. translators: %s: maximum number of characters.
+#: src/Submission/SubmissionService.php:251
+#, php-format
+msgid "Keep the details under %s characters."
+msgstr ""
+
+#: src/Submission/SubmissionService.php:252
+msgid "Choose a category from the list."
+msgstr ""
+
+#. translators: %d: maximum number of characters.
+#: src/Submission/SubmissionService.php:254
+#, php-format
+msgid "Keep your name under %d characters."
+msgstr ""
+
+#: src/Submission/SubmissionService.php:255
+msgid "Enter a valid email address, or leave it empty."
+msgstr ""
+
+#: src/Submission/SubmissionService.php:258
+msgid "Add a title for your request."
+msgstr ""
+
+#: src/Voting/VoteService.php:78
+msgid "This request does not exist or is not open for voting."
+msgstr ""
+
+#. translators: %s: status name, such as Shipped.
+#: src/Voting/VoteService.php:86
+#, php-format
+msgid "Voting is closed because this request is %s."
+msgstr ""
+
+#. translators: %d: number of minutes.
+#: src/Voting/VoteService.php:199
+#, php-format
+msgid "Too many votes in a short time. Try again in %d minute."
+msgid_plural "Too many votes in a short time. Try again in %d minutes."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/board.php:27
+msgid "Search and filter requests"
+msgstr ""
+
+#: templates/board.php:33
+msgid "Search requests"
+msgstr ""
+
+#: templates/board.php:40
+msgid "Open for voting"
+msgstr ""
+
+#: templates/board.php:61
+msgid "Sort by"
+msgstr ""
+
+#: templates/board.php:70
+msgid "Show requests"
+msgstr ""
+
+#: templates/board.php:107
+#: templates/request.php:78
+#: templates/submit-form.php:32
+#: templates/submit-form.php:155
+msgid "Log in"
+msgstr ""
+
+#: templates/board.php:115
+msgid "More requests"
+msgstr ""
+
+#. translators: %s: name of the person the email goes to.
+#: templates/emails/request-approved.php:20
+#: templates/emails/status-changed.php:20
+#, php-format
+msgid "Hi %s,"
+msgstr ""
+
+#. translators: %s: site name.
+#: templates/emails/request-approved.php:23
+#, php-format
+msgid "Your feature request on %s was approved. Everyone can now see it and vote for it:"
+msgstr ""
+
+#: templates/emails/request-approved.php:28
+msgid "You follow this request, so you will get an email when its status changes."
+msgstr ""
+
+#: templates/emails/request-approved.php:32
+#: templates/emails/status-changed.php:39
+msgid "Stop following it:"
+msgstr ""
+
+#. translators: %s: site name.
+#: templates/emails/status-changed.php:23
+#, php-format
+msgid "A feature request you follow on %s has a new status."
+msgstr ""
+
+#. translators: 1: new status name, such as Planned, 2: previous status name.
+#: templates/emails/status-changed.php:28
+#, php-format
+msgid "Status: %1$s (was %2$s)"
+msgstr ""
+
+#. translators: %s: status name, such as Planned.
+#: templates/emails/status-changed.php:31
+#, php-format
+msgid "Status: %s"
+msgstr ""
+
+#: templates/emails/status-changed.php:34
+msgid "Read more and join the discussion:"
+msgstr ""
+
+#. translators: %s: board name.
+#: templates/request.php:34
+#, php-format
+msgid "Back to %s"
+msgstr ""
+
+#: templates/request.php:67
+msgid "Get an email when the status changes."
+msgstr ""
+
+#: templates/request.php:68
+msgid "You get an email when the status changes."
+msgstr ""
+
+#: templates/request.php:70
+msgid "Follow"
+msgstr ""
+
+#: templates/submit-form.php:25
+msgid "Suggest a feature"
+msgstr ""
+
+#: templates/submit-form.php:34
+msgid "Create an account"
+msgstr ""
+
+#: templates/submit-form.php:65
+msgid "One short sentence, such as \"Export requests as CSV\"."
+msgstr ""
+
+#: templates/submit-form.php:69
+msgid "Already requested? Vote for one of these instead:"
+msgstr ""
+
+#: templates/submit-form.php:84
+#: templates/submit-form.php:98
+#: templates/submit-form.php:113
+msgid "(optional)"
+msgstr ""
+
+#: templates/submit-form.php:101
+msgid "Choose a category"
+msgstr ""
+
+#: templates/submit-form.php:112
+msgid "About you"
+msgstr ""
+
+#: templates/submit-form.php:115
+msgid "Only our team sees this, in case we have a question about your request."
+msgstr ""
+
+#: templates/submit-form.php:118
+msgid "Name"
+msgstr ""
+
+#: templates/submit-form.php:122
+msgid "Email"
+msgstr ""
+
+#: templates/submit-form.php:133
+msgid "Privacy policy"
+msgstr ""
+
+#: templates/submit-form.php:143
+msgid "Leave this field empty"
+msgstr ""
+
+#: templates/submit-form.php:148
+msgid "Send request"
+msgstr ""
+
+#: templates/submit-form.php:154
+msgid "View your request"
+msgstr ""
+
+#. translators: %s: request title.
+#: templates/vote-button.php:36
+#, php-format
+msgid "votes. Vote for %s"
+msgstr ""
+
+#: templates/vote-button.php:44
+msgid "votes. Voting is closed."
+msgstr ""
+
+#: blocks/board/edit.js:21
+#: build/board/index.js:1
+msgid "Board to show"
+msgstr ""
+
+#: blocks/board/edit.js:33
+#: build/board/index.js:1
+msgid "Requests per page"
+msgstr ""
+
+#: blocks/request/edit.js:16
+#: build/request/index.js:1
+msgid "Feature Request Details"
+msgstr ""
+
+#: blocks/request/edit.js:20
+#: build/request/index.js:1
+msgid "Shows the vote button, status and categories of the feature request being viewed."
+msgstr ""
+
+#: blocks/submit/edit.js:19
+#: build/submit/index.js:1
+msgid "Board that receives requests"
+msgstr ""
+
+#: blocks/board/block.json
+#: build/board/block.json
+msgctxt "block title"
+msgid "Feature Request Board"
+msgstr ""
+
+#: blocks/board/block.json
+#: build/board/block.json
+msgctxt "block description"
+msgid "Feature requests that people can search, filter and vote on."
+msgstr ""
+
+#: blocks/board/block.json
+#: blocks/request/block.json
+#: blocks/submit/block.json
+#: build/board/block.json
+#: build/request/block.json
+#: build/submit/block.json
+msgctxt "block keyword"
+msgid "feature request"
+msgstr ""
+
+#: blocks/board/block.json
+#: build/board/block.json
+msgctxt "block keyword"
+msgid "roadmap"
+msgstr ""
+
+#: blocks/board/block.json
+#: blocks/request/block.json
+#: build/board/block.json
+#: build/request/block.json
+msgctxt "block keyword"
+msgid "vote"
+msgstr ""
+
+#: blocks/board/block.json
+#: blocks/submit/block.json
+#: build/board/block.json
+#: build/submit/block.json
+msgctxt "block keyword"
+msgid "feedback"
+msgstr ""
+
+#: blocks/board/block.json
+#: blocks/submit/block.json
+#: build/board/block.json
+#: build/submit/block.json
+msgctxt "block keyword"
+msgid "ideas"
+msgstr ""
+
+#: blocks/request/block.json
+#: build/request/block.json
+msgctxt "block title"
+msgid "Feature Request Details"
+msgstr ""
+
+#: blocks/request/block.json
+#: build/request/block.json
+msgctxt "block description"
+msgid "The vote button, status and categories of the feature request being viewed. For the template of a single feature request."
+msgstr ""
+
+#: blocks/request/block.json
+#: build/request/block.json
+msgctxt "block keyword"
+msgid "status"
+msgstr ""
+
+#: blocks/submit/block.json
+#: build/submit/block.json
+msgctxt "block title"
+msgid "Feature Request Form"
+msgstr ""
+
+#: blocks/submit/block.json
+#: build/submit/block.json
+msgctxt "block description"
+msgid "A form for suggesting features. Shows similar requests while people type, so they can vote instead of posting a duplicate."
+msgstr ""
+
+#: blocks/submit/block.json
+#: build/submit/block.json
+msgctxt "block keyword"
+msgid "suggest"
+msgstr ""
+
+#: blocks/submit/block.json
+#: build/submit/block.json
+msgctxt "block keyword"
+msgid "submit"
+msgstr ""

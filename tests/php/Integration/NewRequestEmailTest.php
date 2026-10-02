@@ -88,6 +88,30 @@ final class NewRequestEmailTest extends TestCase {
 		$this->assertStringContainsString( 'Use [brackets] &', $email->body );
 	}
 
+	/**
+	 * Some mail plugins send plain emails as HTML. A visitor who types a tag as entities
+	 * must not get a working link or image into the moderators' mail that way.
+	 */
+	public function test_a_tag_typed_as_entities_does_not_become_a_tag_in_the_email(): void {
+		BoardSettings::update( $this->default_board(), [ BoardSettings::SUBMITTING => BoardSettings::ANYONE ] );
+
+		$this->submit(
+			[
+				'title'       => 'Urgent &lt;a href="https://evil.example"&gt;log in again&lt;/a&gt;',
+				'description' => "See &lt;img src=https://evil.example/pixel.gif&gt;\nor &lt;a href=https://evil.example",
+			]
+		);
+		$email = $this->mailer()->get_sent();
+
+		$this->assertStringContainsString( 'Urgent < a href="https://evil.example">log in again< /a>', $email->subject );
+		$this->assertStringContainsString( 'Urgent < a href="https://evil.example">log in again< /a>', $email->body );
+		$this->assertStringContainsString( 'See < img src=https://evil.example/pixel.gif>', $email->body );
+		$this->assertStringContainsString( 'or < a href=https://evil.example', $email->body );
+		foreach ( [ '<a', '</a', '<img' ] as $tag ) {
+			$this->assertStringNotContainsString( $tag, $email->subject . $email->body, $tag );
+		}
+	}
+
 	public function test_requests_flagged_as_spam_say_so(): void {
 		add_filter( SpamGuard::FILTER_SPAM, '__return_true' );
 		wp_set_current_user( self::factory()->user->create() );

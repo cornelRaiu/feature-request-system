@@ -36,7 +36,7 @@ final class RequestDetailsBoxTest extends TestCase {
 		$this->vote( $request, 0 );
 		$this->vote( $request, 0 );
 		$this->vote( $request, 0 );
-		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$this->log_in_as_user_manager();
 
 		$html = $this->box( $request );
 

@@ -40,6 +40,12 @@ final class Blocks {
 	public const PATTERN_CATEGORY = 'mwtfrs-feature-requests';
 
 	/**
+	 * Filter to turn off the plugin's stylesheets, for sites that style the blocks
+	 * themselves. Return false. It is read on init, so add it before that.
+	 */
+	public const FILTER_STYLES = 'mwtfrs_load_styles';
+
+	/**
 	 * Block folders inside build/.
 	 */
 	private const BLOCK_FOLDERS = [ 'board', 'submit', 'request' ];
@@ -51,6 +57,8 @@ final class Blocks {
 		add_shortcode( self::SHORTCODE, [ self::class, 'shortcode' ] );
 		add_shortcode( self::FORM_SHORTCODE, [ self::class, 'form_shortcode' ] );
 
+		$styled = (bool) apply_filters( self::FILTER_STYLES, true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+
 		foreach ( self::BLOCK_FOLDERS as $folder ) {
 			$path = Plugin::path( 'build/' . $folder );
 			if ( ! is_readable( $path . '/block.json' ) ) {
@@ -58,7 +66,10 @@ final class Blocks {
 				return;
 			}
 
-			register_block_type( $path );
+			$block = register_block_type( $path );
+			if ( $block && ! $styled ) {
+				$block->style_handles = [];
+			}
 		}
 
 		self::register_pattern();

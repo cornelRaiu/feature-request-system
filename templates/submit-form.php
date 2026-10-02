@@ -120,7 +120,7 @@ $mwtfrs_limits = $args['limits'];
 						</p>
 						<p class="mwtfrs-submit__field">
 							<label for="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>"><?php esc_html_e( 'Email', 'feature-request-system' ); ?></label>
-							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
+							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" maxlength="<?php echo (int) $mwtfrs_limits['email']; ?>" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
 						</p>
 					</div>
 

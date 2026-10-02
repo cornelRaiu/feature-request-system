@@ -95,6 +95,22 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Logs in as a new user who may edit other users: an administrator, who on a network
+	 * of sites must also be a super admin.
+	 *
+	 * @return int The user's ID.
+	 */
+	protected function log_in_as_user_manager(): int {
+		$user = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		if ( is_multisite() ) {
+			grant_super_admin( $user );
+		}
+		wp_set_current_user( $user );
+
+		return $user;
+	}
+
+	/**
 	 * Makes new users follow a request.
 	 *
 	 * @param int    $request_id Request ID.

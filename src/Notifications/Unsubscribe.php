@@ -71,6 +71,12 @@ final class Unsubscribe {
 		$page   = self::process( $token, $posted, $posted && ! empty( $_POST[ self::FIELD_ALL ] ) );
 		// phpcs:enable WordPress.Security.NonceVerification
 
+		// The address of this page holds the secret. Without this, the page the visitor goes
+		// to next would get it as the referrer, and so would every script on that page.
+		if ( ! headers_sent() ) {
+			header( 'Referrer-Policy: no-referrer' );
+		}
+
 		wp_die( $page['html'], esc_html( $page['title'] ), [ 'response' => $page['status'] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- process() escapes every value.
 	}
 
@@ -226,13 +232,13 @@ final class Unsubscribe {
 	}
 
 	/**
-	 * Builds a paragraph with one link.
+	 * Builds a paragraph with one link. The link does not pass on the address of this page, which holds the secret.
 	 *
 	 * @param string $url   Where the link goes.
 	 * @param string $label Link text.
 	 */
 	private static function link( string $url, string $label ): string {
-		return sprintf( '<p><a href="%1$s">%2$s</a></p>', esc_url( $url ), esc_html( $label ) );
+		return sprintf( '<p><a href="%1$s" rel="noreferrer">%2$s</a></p>', esc_url( $url ), esc_html( $label ) );
 	}
 
 	/**

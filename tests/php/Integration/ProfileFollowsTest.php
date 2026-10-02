@@ -142,7 +142,7 @@ final class ProfileFollowsTest extends TestCase {
 	public function test_an_administrator_manages_the_followed_requests_of_another_user(): void {
 		$request = $this->create_request( [ 'post_title' => 'Dark mode' ] );
 		SubscriptionRepository::add( $request, $this->user, SubscriptionRepository::SOURCE_VOTE );
-		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		$this->log_in_as_user_manager();
 
 		$html = $this->section( 'edit_user_profile' );
 		$this->assertStringContainsString( 'Follow the requests this user votes for or suggests', $html );

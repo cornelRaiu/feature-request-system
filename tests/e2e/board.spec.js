@@ -135,6 +135,44 @@ test.describe( 'Feature request board', () => {
 			await expect( button ).toHaveAttribute( 'aria-pressed', 'true' );
 		} );
 
+		test( 'a link on a page of the site cannot make a guest vote', async ( {
+			page,
+		} ) => {
+			const board = setUpBoard( {
+				guests: true,
+				requests: [ { title: 'Offline mode', votes: 0 } ],
+			} );
+			const id = wpEval(
+				`echo get_posts( [ 'post_type' => FeatureRequestSystem\\Content\\RequestPostType::NAME, 'fields' => 'ids', 'numberposts' => 1 ] )[0];`
+			);
+			await page.goto( board.url );
+
+			// WordPress lets a GET act as a POST with _method=POST. A link or an image on a page
+			// of the site sends just that: a GET that names the site as its referrer.
+			const status = await page.evaluate( async ( requestId ) => {
+				const root = document.querySelector(
+					'link[rel="https://api.w.org/"]'
+				).href;
+				const route = `${ root }mwtfrs/v1/requests/${ requestId }/vote`;
+				const answer = await fetch(
+					route +
+						( route.includes( '?' ) ? '&' : '?' ) +
+						'_method=POST',
+					{ credentials: 'same-origin' }
+				);
+
+				return answer.status;
+			}, id );
+			expect( status ).toBe( 403 );
+
+			await page.reload();
+			const button = page.getByRole( 'button', {
+				name: /Vote for Offline mode/,
+			} );
+			await expect( button ).toHaveAttribute( 'aria-pressed', 'false' );
+			await expect( button ).toContainText( '0' );
+		} );
+
 		test( 'a guest is asked to log in on a board for logged-in users', async ( {
 			page,
 		} ) => {

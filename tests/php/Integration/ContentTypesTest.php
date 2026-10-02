@@ -9,8 +9,11 @@ namespace FeatureRequestSystem\Tests\Integration;
 
 use FeatureRequestSystem\Admin\TermSelectBox;
 use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use WP_REST_Request;
 
 /**
  * The request post type, its capabilities and its edit screen.
@@ -44,6 +47,42 @@ final class ContentTypesTest extends TestCase {
 
 		$this->assertTrue( user_can( $editor, 'edit_post', $request ) );
 		$this->assertFalse( user_can( $author, 'edit_post', $request ) );
+	}
+
+	/**
+	 * WordPress lets whoever may assign the terms of a taxonomy without parents also add
+	 * terms to it over the REST API. For boards and statuses that is not enough.
+	 */
+	public function test_adding_a_board_or_a_status_over_the_rest_api_takes_the_capability_to_manage_them(): void {
+		add_role(
+			'request_writer',
+			'Request writer',
+			[
+				'read' => true,
+				'edit_' . RequestPostType::CAPABILITY_TYPE => true,
+			]
+		);
+		$taxonomies = [ BoardTaxonomy::NAME, StatusTaxonomy::NAME, CategoryTaxonomy::NAME ];
+		$add        = static function ( string $taxonomy ): int {
+			$request = new WP_REST_Request( 'POST', '/wp/v2/' . $taxonomy );
+			$request->set_body_params( [ 'name' => 'Made up' ] );
+
+			return rest_do_request( $request )->get_status();
+		};
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'request_writer' ] ) );
+		$this->assertTrue( current_user_can( get_taxonomy( BoardTaxonomy::NAME )->cap->assign_terms ), 'This user may choose a board for their request.' );
+		foreach ( $taxonomies as $taxonomy ) {
+			$this->assertSame( 403, $add( $taxonomy ), $taxonomy );
+			$this->assertNull( term_exists( 'Made up', $taxonomy ), $taxonomy );
+		}
+
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		foreach ( $taxonomies as $taxonomy ) {
+			$this->assertSame( 201, $add( $taxonomy ), $taxonomy );
+		}
+
+		remove_role( 'request_writer' );
 	}
 
 	public function test_only_administrators_manage_settings(): void {

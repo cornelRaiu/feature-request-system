@@ -113,14 +113,8 @@ final class UninstallerTest extends TestCase {
 		$this->assertSame( ActionScheduler_Store::STATUS_PENDING, ActionScheduler::store()->get_status( $theirs ), "Another plugin's background work is untouched." );
 
 		global $wpdb;
-		$counters = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE option_name LIKE %s',
-				$wpdb->options,
-				'%' . $wpdb->esc_like( RateLimiter::TRANSIENT_PREFIX ) . '%'
-			)
-		);
-		$this->assertSame( '0', $counters, 'Rate limit counters are removed.' );
+		$left = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $wpdb->options, '%mwtfrs%' ) );
+		$this->assertSame( [], $left, 'No option is left: not the settings, not a rate limit counter, not the map of categories that WordPress keeps.' );
 	}
 
 	/**

@@ -8,11 +8,18 @@ Stable tag: 0.1.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Collect feature requests, let users vote, share your roadmap, and tell every voter when you ship.
+Collect feature requests, let people vote, and email everyone who follows a request when its status changes.
 
 == Description ==
 
-Feature Request System adds a feature request board to your WordPress site. Users submit ideas and vote for the ones they want. You give each request a status, such as Planned or In Progress, and everyone who voted for a request hears about it when it ships.
+Feature Request System adds a feature request board to your WordPress site. People suggest features and vote for the ones they want. You give each request a status, such as Planned, In Progress or Shipped, and everyone who voted for a request gets an email when its status changes.
+
+* **A board** that visitors can search, filter and sort, with one-click voting.
+* **A form** that shows similar requests while someone types, so they vote instead of posting a duplicate.
+* **A page for every request**, with comments and your team's official response.
+* **Emails that close the loop**: voters follow a request and hear about every status change, in the background and with a link to stop.
+* **Blocks and shortcodes** that take their look from your theme, and work without JavaScript and behind a page cache.
+* **Privacy built in**: no IP addresses stored, export and erasure through WordPress's privacy tools, and no outside service unless you use Akismet.
 
 This plugin is in development. The first public release will be 1.0.0.
 
@@ -48,6 +55,8 @@ Change a request's status from its edit screen, from Quick Edit, or for many req
 
 Under Feature Requests → Boards, each board has its own settings: who can vote, who can suggest features (everyone, logged-in users, or nobody), whether new requests wait for approval, and the page that shows the board. Each request links back to that page. The board fills the page in by itself the first time it is shown on one.
 
+A board can also be limited to some of your categories. Its form then offers only those, and so does its category filter. Categories themselves are under Feature Requests → Categories.
+
 Under Feature Requests → Statuses, add, rename and reorder statuses. Each has a colour and a position, and can be closed for voting: requests in a closed status keep their votes, and nobody can add or remove one.
 
 = Request pages and official responses =
@@ -82,7 +91,7 @@ The form stops most spam without a captcha:
 
 * A hidden field that people never see and bots tend to fill in.
 * Forms sent within 3 seconds of loading the page are refused, as bots send them.
-* Each visitor can send 5 requests an hour, and each IP address 10.
+* Each visitor can send 5 requests an hour, and each IP address 10. Votes are limited too: 30 an hour for each visitor and 60 for each IP address.
 * If the Akismet plugin is active and connected, it checks every new request. Requests it flags wait for your review instead of being deleted.
 
 Developers can add a captcha through the `mwtfrs_verify_captcha` filter, or another spam service through the `mwtfrs_is_spam` filter.
@@ -93,6 +102,14 @@ The board, the form and the request page take their colours and spacing from you
 
 The text of the emails to followers can be changed the same way: copy `emails/status-changed.php` or `emails/request-approved.php` to `feature-request-system/emails` in your theme.
 
+To style the blocks entirely yourself, turn the plugin's stylesheets off from your theme or a small plugin:
+
+`add_filter( 'mwtfrs_load_styles', '__return_false' );`
+
+= Accessibility =
+
+The board, the form and the request page aim for WCAG 2.2 level AA. Everything works with a keyboard and without JavaScript, changes are announced to screen readers, and the automated checks of axe pass in block themes and classic themes. Colours come from your theme, so the contrast of your theme's own text and background still matters.
+
 = Privacy =
 
 Everything is stored in your own WordPress database.
@@ -101,7 +118,15 @@ Under Feature Requests → Settings you can write a "How we use your data" note.
 
 People who suggest a feature are not stored as post authors, so their names never appear in author archives or other public data. The name and email a visitor gives are stored privately with their request and shown only to moderators. The plugin stores no IP addresses; rate limits use short-lived, hashed counters.
 
+The description of a request is shown as plain text. A web address in it stays text, and is not turned into an embedded video or page from another site.
+
 For each logged-in user, the plugin stores which requests they follow, so it can email them. Those emails go to the address of the user's account, through your site's own mail setup. Who follows a request is never shown publicly; moderators see how many users follow it.
+
+The plugin works with WordPress's privacy tools. Tools → Export Personal Data includes the requests a person suggested, their votes and the requests they follow. Tools → Erase Personal Data removes the record of who suggested a request, stops their emails, and cuts the tie between the person and their votes; the votes themselves stay, so counts stay correct. Under Settings → Privacy, the policy guide offers a text about the plugin for your privacy policy.
+
+When a user is deleted, they stop following every request, and their votes stay without the tie to the account, so counts stay correct. WordPress's own export file (Tools → Export) is a copy of your content for moving it to another site: it includes the name and email that visitors gave with their requests.
+
+A visitor who votes without an account gets a cookie named `mwtfrs_vid`, which holds a random number for one year so the site remembers their votes. It is only set on boards where you allow voting without an account, and only when such a visitor votes.
 
 = External services =
 
@@ -131,9 +156,40 @@ It belongs to Action Scheduler, the library this plugin uses to send emails in t
 
 Each email carries the headers that mail programs such as Gmail use for that button, and using it stops the emails about that request. Mail programs rely on those headers only for mail that is sent through SMTP or a mail service and signed by your domain. With PHP's built-in mail function, which WordPress uses unless you set up something else, the button may not appear. The link at the end of the email works in every case.
 
+= Does it work on a multisite network? =
+
+Yes. Each site of the network has its own boards, requests, votes and settings. Deleting the plugin removes the data of every site that has "Delete all requests…" ticked.
+
+On a network, "logged-in users" means the users of the whole network, as it does for comments in WordPress. A user who is removed from a site no longer follows requests there.
+
+= Why does a link to a video stay a link? =
+
+WordPress turns a web address on a line of its own into a video player or a preview. In feature requests the plugin turns that off, because the text comes from your visitors: your server would fetch whatever address they typed, and everyone who opens the request would load content from that site. A moderator who wants a video in a request can wrap its address in WordPress's embed shortcode: `[embed]https://example.com/video[/embed]`. Visitors cannot use shortcodes.
+
+= My site is behind a proxy or a CDN. Do the rate limits still work? =
+
+The limits for each IP address use the address your server sees. Most hosts pass on the visitor's address. If your server sees the address of the proxy instead, all visitors count as one, and a busy board can reach the limit for everyone. In that case, tell the plugin which header holds the visitor's address, from your theme or a small plugin. For Cloudflare:
+
+`add_filter( 'mwtfrs_client_ip', function ( $ip ) { return isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : $ip; } );`
+
+Only do this when every request reaches your server through that proxy, because anyone can send such a header. The limits themselves can be changed with the `mwtfrs_rate_limit` filter.
+
+= Can I try it with sample requests? =
+
+With WP-CLI, `wp mwtfrs seed` creates 30 sample requests with votes, and `wp mwtfrs seed --delete` removes them again. `wp mwtfrs seed --requests=1000 --votes=50000` creates a large board to test with. `wp mwtfrs recount` recounts every request's votes.
+
 = How do I delete the plugin's data? =
 
 Deleting the plugin keeps your requests and votes, in case you install it again. To remove everything, tick "Delete all requests, votes, followers, boards, statuses and settings when the plugin is deleted" under Feature Requests → Settings before you delete it. The tables of Action Scheduler stay, because other plugins may use them.
+
+== Screenshots ==
+
+1. The board: search, filters and one-click voting.
+2. The form lists similar requests while someone types a title.
+3. A request's page: its status, the Follow button, your official response and the comments.
+4. Requests in the admin, sorted by votes, each with its status.
+5. Every board has its own settings: who can vote and suggest, approval, its page and its categories.
+6. The settings page.
 
 == Changelog ==
 

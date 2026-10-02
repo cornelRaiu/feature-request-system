@@ -29,6 +29,7 @@ use FeatureRequestSystem\Content\StatusChange;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\FollowForm;
+use FeatureRequestSystem\Frontend\PlainDescription;
 use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
@@ -38,6 +39,9 @@ use FeatureRequestSystem\Notifications\NewRequestEmail;
 use FeatureRequestSystem\Notifications\StatusNotifier;
 use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Notifications\Unsubscribe;
+use FeatureRequestSystem\Privacy\DepartedUsers;
+use FeatureRequestSystem\Privacy\PersonalData;
+use FeatureRequestSystem\Privacy\PolicyText;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Submission\Akismet;
 use FeatureRequestSystem\Voting\VoteService;
@@ -94,6 +98,7 @@ final class Plugin {
 		Unsubscribe::add_hooks();
 		FollowForm::add_hooks();
 		RequestView::add_hooks();
+		PlainDescription::add_hooks();
 		CommentForm::add_hooks();
 		CommentThread::add_hooks();
 		OfficialResponseLink::add_hooks();
@@ -108,6 +113,9 @@ final class Plugin {
 		SettingsPage::add_hooks();
 		BoardFields::add_hooks();
 		StatusFields::add_hooks();
+		PersonalData::add_hooks();
+		PolicyText::add_hooks();
+		DepartedUsers::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

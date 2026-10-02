@@ -36,6 +36,11 @@ final class RequestOriginTest extends TestCase {
 		];
 	}
 
+	public function test_the_referer_only_counts_where_it_is_passed(): void {
+		$this->assertTrue( RequestOrigin::is_same_site( 'http://example.org' ) );
+		$this->assertFalse( RequestOrigin::is_same_site( '' ) );
+	}
+
 	/**
 	 * @dataProvider origins
 	 *

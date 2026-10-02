@@ -75,6 +75,24 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'not, an, email', get_settings_errors( Settings::OPTION )[0]['message'], 'The user is told which addresses were left out.' );
 	}
 
+	/**
+	 * WordPress prints the notice as HTML, so what was typed must not be markup in it.
+	 */
+	public function test_what_was_typed_as_an_address_is_shown_as_text_in_the_notice(): void {
+		set_current_screen( 'edit-' . RequestPostType::NAME );
+		update_option( Settings::OPTION, [ Settings::NOTIFY_EMAILS => 'team@example.com, <svg/onload=alert(1)>, "><b>bold</b>' ] );
+
+		ob_start();
+		SettingsPage::render();
+		$html = (string) ob_get_clean();
+		set_current_screen( 'front' );
+
+		$this->assertSame( 'team@example.com', Settings::get( Settings::NOTIFY_EMAILS ) );
+		$this->assertStringContainsString( 'were left out: &lt;svg/onload=alert(1)&gt;, &quot;&gt;&lt;b&gt;bold&lt;/b&gt;', $html );
+		$this->assertStringNotContainsString( '<svg', $html );
+		$this->assertStringNotContainsString( '<b>bold', $html );
+	}
+
 	public function test_boards_and_statuses_that_do_not_exist_cannot_become_the_default(): void {
 		$board = $this->default_board();
 

@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Tests\Integration;
 
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestTerms;
 
 /**
@@ -65,6 +66,38 @@ final class BoardSettingsTest extends TestCase {
 		BoardSettings::update( $this->board(), [ BoardSettings::MODERATION => 'no' ] );
 
 		$this->assertTrue( BoardSettings::moderated( $this->board() ) );
+	}
+
+	public function test_a_board_can_be_limited_to_some_categories(): void {
+		$reports = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$billing = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$this->assertSame( [], BoardSettings::categories( $this->board() ), 'Not limited by default.' );
+		$this->assertSame( [], BoardSettings::defaults()[ BoardSettings::CATEGORIES ] );
+
+		BoardSettings::update( $this->board(), [ BoardSettings::CATEGORIES => [ (string) $reports, $reports, 0, 'abc', $billing ] ] );
+		$this->assertSame( [ $reports, $billing ], BoardSettings::get( $this->board() )[ BoardSettings::CATEGORIES ], 'Stored as term IDs, each once.' );
+		$this->assertEqualsCanonicalizing( [ $reports, $billing ], BoardSettings::categories( $this->board() ) );
+
+		BoardSettings::update( $this->board(), [ BoardSettings::CATEGORIES => 'everything' ] );
+		$this->assertEqualsCanonicalizing( [ $reports, $billing ], BoardSettings::categories( $this->board() ), 'An invalid value keeps the current one.' );
+
+		BoardSettings::update( $this->board(), [ BoardSettings::VOTING => BoardSettings::ANYONE ] );
+		$this->assertEqualsCanonicalizing( [ $reports, $billing ], BoardSettings::categories( $this->board() ), 'Other settings leave it alone.' );
+	}
+
+	public function test_deleted_categories_no_longer_limit_a_board(): void {
+		$reports = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		$billing = self::factory()->term->create( [ 'taxonomy' => CategoryTaxonomy::NAME ] );
+		BoardSettings::update( $this->board(), [ BoardSettings::CATEGORIES => [ $reports, $billing ] ] );
+
+		wp_delete_term( $billing, CategoryTaxonomy::NAME );
+		$this->assertSame( [ $reports ], BoardSettings::categories( $this->board() ) );
+
+		wp_delete_term( $reports, CategoryTaxonomy::NAME );
+		$this->assertSame( [], BoardSettings::categories( $this->board() ), 'With all of them gone, the board offers every category again.' );
+
+		BoardSettings::update( $this->board(), [ BoardSettings::CATEGORIES => [] ] );
+		$this->assertSame( [], BoardSettings::get( $this->board() )[ BoardSettings::CATEGORIES ] );
 	}
 
 	public function test_corrupt_stored_settings_fall_back_to_the_defaults(): void {
