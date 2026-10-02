@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Tests\Integration;
 
 use FeatureRequestSystem\Security\RateLimiter;
+use FeatureRequestSystem\Settings;
 
 /**
  * The hourly limits per visitor and per address. How they stop votes and submissions is
@@ -45,6 +46,89 @@ final class RateLimiterTest extends TestCase {
 
 		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'visitor-b' ), 'Another visitor has their own limit.' );
 		$this->assertSame( 0, RateLimiter::attempt( 'submit', 'visitor-a' ), 'Another action has its own limit.' );
+	}
+
+	public function test_one_visitor_gets_30_votes_and_5_requests_an_hour(): void {
+		foreach ( range( 1, 30 ) as $number ) {
+			$this->assertSame( 0, RateLimiter::attempt( 'vote', 'visitor-a' ), 'Vote ' . $number );
+		}
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'visitor-a' ) );
+
+		foreach ( range( 1, 5 ) as $number ) {
+			$this->assertSame( 0, RateLimiter::attempt( 'submit', 'visitor-a' ), 'Request ' . $number );
+		}
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'submit', 'visitor-a' ) );
+	}
+
+	public function test_an_address_gets_60_votes_an_hour_from_guests_and_60_from_logged_in_users(): void {
+		foreach ( range( 1, 60 ) as $number ) {
+			$this->assertSame( 0, RateLimiter::attempt( 'vote', 'guest-' . $number ), 'Guest ' . $number );
+		}
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'guest-61' ) );
+
+		wp_set_current_user( self::factory()->user->create() );
+		foreach ( range( 1, 60 ) as $number ) {
+			$this->assertSame( 0, RateLimiter::attempt( 'vote', 'user-' . $number ), 'User ' . $number );
+		}
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'user-61' ) );
+	}
+
+	public function test_the_settings_say_how_many_votes_an_address_gets_and_each_group_has_its_own_count(): void {
+		Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 2 );
+		Settings::update( Settings::VOTES_PER_ADDRESS_USERS, 3 );
+
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'guest-1' ) );
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'guest-2' ) );
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'guest-3' ), 'The third vote of a guest at this address.' );
+
+		wp_set_current_user( self::factory()->user->create() );
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'user-1' ), 'What guests did is not counted against logged-in users.' );
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'user-2' ) );
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'user-3' ) );
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'user-4' ), 'The fourth vote of a logged-in user at this address.' );
+
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'user-5' ), 'Another address has its own counts.' );
+	}
+
+	public function test_a_stored_limit_below_one_counts_as_the_default(): void {
+		Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 0 );
+		Settings::update( Settings::VOTES_PER_ADDRESS_USERS, 'none' );
+
+		$this->assertSame( 60, Settings::votes_per_address( false ) );
+		$this->assertSame( 60, Settings::votes_per_address( true ) );
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'guest-1' ), 'Voting is not shut off by a number that makes no sense.' );
+	}
+
+	public function test_a_filter_has_the_last_word_on_the_limits_from_the_settings(): void {
+		Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 5 );
+		$seen = [];
+		add_filter(
+			RateLimiter::FILTER_LIMIT,
+			static function ( int $limit, string $action, string $scope ) use ( &$seen ): int {
+				$seen[] = [ $limit, $action, $scope ];
+
+				return 'ip' === $scope ? 1 : $limit;
+			},
+			10,
+			3
+		);
+
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'guest-1' ) );
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'guest-2' ) );
+		$this->assertContains( [ 5, 'vote', 'ip' ], $seen, 'The filter is given the number from the settings.' );
+	}
+
+	public function test_requests_sent_from_one_address_share_one_limit_whoever_sends_them(): void {
+		$user = self::factory()->user->create();
+		foreach ( range( 1, 10 ) as $number ) {
+			wp_set_current_user( $number % 2 ? $user : 0 );
+			$this->assertSame( 0, RateLimiter::attempt( 'submit', 'visitor-' . $number ), 'Request ' . $number );
+		}
+
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'submit', 'visitor-11' ), 'As a guest.' );
+		wp_set_current_user( $user );
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'submit', 'visitor-12' ), 'As a logged-in user.' );
 	}
 
 	/**

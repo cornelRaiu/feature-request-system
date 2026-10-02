@@ -88,6 +88,7 @@ final class SettingsPage {
 			'requests'  => [ __( 'New requests', 'feature-request-system' ), '' ],
 			'followers' => [ __( 'Followers', 'feature-request-system' ), __( 'A follower of a request gets an email when its status changes, and whoever suggested a request gets one when it is approved. Every email has a link to stop following. Only logged-in users can follow.', 'feature-request-system' ) ],
 			'guests'    => [ __( 'Visitors without an account', 'feature-request-system' ), __( 'Each board decides whether visitors without an account can vote or suggest features. Set that on the board, under Feature Requests → Boards.', 'feature-request-system' ) ],
+			'limits'    => [ __( 'Vote limits', 'feature-request-system' ), __( 'Votes from one IP address are limited, so that one person cannot vote many times. Taking a vote back counts as well. People in one office, or behind one proxy, share an address: raise the limit for logged-in users if they run into it.', 'feature-request-system' ) ],
 			'uninstall' => [ __( 'Uninstalling', 'feature-request-system' ), '' ],
 		];
 		foreach ( $sections as $id => list( $title, $intro ) ) {
@@ -111,6 +112,8 @@ final class SettingsPage {
 			Settings::NOTIFY_FOLLOWERS         => [ __( 'Following', 'feature-request-system' ), 'followers', 'render_notify_followers' ],
 			Settings::SUBSCRIBE_VOTERS         => [ __( 'Voters', 'feature-request-system' ), 'followers', 'render_subscribe_voters' ],
 			Settings::DATA_USE_NOTE            => [ __( 'How we use your data', 'feature-request-system' ), 'guests', 'render_data_use_note' ],
+			Settings::VOTES_PER_ADDRESS_USERS  => [ __( 'Logged-in users', 'feature-request-system' ), 'limits', 'render_votes_per_address_users' ],
+			Settings::VOTES_PER_ADDRESS_GUESTS => [ __( 'Visitors without an account', 'feature-request-system' ), 'limits', 'render_votes_per_address_guests' ],
 			Settings::DELETE_DATA_ON_UNINSTALL => [ __( 'Data', 'feature-request-system' ), 'uninstall', 'render_delete_data' ],
 		];
 		foreach ( $fields as $key => list( $title, $section, $callback ) ) {
@@ -222,6 +225,20 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Prints the limit on votes from one IP address for logged-in users.
+	 */
+	public static function render_votes_per_address_users(): void {
+		self::votes_per_address( Settings::VOTES_PER_ADDRESS_USERS, true );
+	}
+
+	/**
+	 * Prints the limit on votes from one IP address for visitors without an account.
+	 */
+	public static function render_votes_per_address_guests(): void {
+		self::votes_per_address( Settings::VOTES_PER_ADDRESS_GUESTS, false );
+	}
+
+	/**
 	 * Prints the switch for deleting data on uninstall.
 	 */
 	public static function render_delete_data(): void {
@@ -245,6 +262,9 @@ final class SettingsPage {
 				return self::emails( is_string( $value ) ? $value : '' );
 			case Settings::DATA_USE_NOTE:
 				return DataUseNote::sanitize( is_string( $value ) ? $value : '' );
+			case Settings::VOTES_PER_ADDRESS_USERS:
+			case Settings::VOTES_PER_ADDRESS_GUESTS:
+				return self::count_or_current( $key, $value );
 			default:
 				return ! empty( $value );
 		}
@@ -262,6 +282,18 @@ final class SettingsPage {
 
 		// 0 is valid: it is what a taxonomy without terms has as its default.
 		return 0 === $term_id || ( $term_id > 0 && term_exists( $term_id, $taxonomy ) ) ? $term_id : (int) Settings::get( $key );
+	}
+
+	/**
+	 * Returns the number when it is 1 or more, otherwise the current setting.
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Number as sent.
+	 */
+	private static function count_or_current( string $key, $value ): int {
+		$count = is_numeric( $value ) ? (int) $value : 0;
+
+		return $count >= 1 ? $count : (int) Settings::get( $key );
 	}
 
 	/**
@@ -315,6 +347,22 @@ final class SettingsPage {
 			);
 		}
 		echo '</select>';
+	}
+
+	/**
+	 * Prints a number field for a limit on votes from one IP address.
+	 *
+	 * @param string $key       Setting key.
+	 * @param bool   $logged_in Whether the limit is the one for logged-in users.
+	 */
+	private static function votes_per_address( string $key, bool $logged_in ): void {
+		printf(
+			'<input type="number" class="small-text" min="1" step="1" id="%1$s" name="%2$s" value="%3$d" aria-describedby="%1$s-unit"> <span id="%1$s-unit">%4$s</span>',
+			esc_attr( self::id( $key ) ),
+			esc_attr( self::name( $key ) ),
+			(int) Settings::votes_per_address( $logged_in ),
+			esc_html__( 'votes an hour from one IP address', 'feature-request-system' )
+		);
 	}
 
 	/**

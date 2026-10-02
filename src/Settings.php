@@ -62,6 +62,16 @@ final class Settings {
 	public const SUBSCRIBE_VOTERS = 'subscribe_voters';
 
 	/**
+	 * How many votes an hour the logged-in users at one IP address can cast or take back, all of them together.
+	 */
+	public const VOTES_PER_ADDRESS_USERS = 'votes_per_address_users';
+
+	/**
+	 * The same for the visitors without an account at one IP address. They are counted apart from the logged-in users.
+	 */
+	public const VOTES_PER_ADDRESS_GUESTS = 'votes_per_address_guests';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -76,6 +86,8 @@ final class Settings {
 			self::DATA_USE_NOTE            => '',
 			self::NOTIFY_FOLLOWERS         => true,
 			self::SUBSCRIBE_VOTERS         => true,
+			self::VOTES_PER_ADDRESS_USERS  => 60,
+			self::VOTES_PER_ADDRESS_GUESTS => 60,
 		];
 	}
 
@@ -89,6 +101,21 @@ final class Settings {
 		$settings = array_merge( self::defaults(), self::stored() );
 
 		return $settings[ $key ] ?? null;
+	}
+
+	/**
+	 * Returns how many votes an hour can come from one IP address: from its logged-in
+	 * users, or from its visitors without an account.
+	 *
+	 * A stored number below 1 would refuse every vote, so the default takes its place.
+	 *
+	 * @param bool $logged_in Whether to return the limit for logged-in users.
+	 */
+	public static function votes_per_address( bool $logged_in ): int {
+		$key   = $logged_in ? self::VOTES_PER_ADDRESS_USERS : self::VOTES_PER_ADDRESS_GUESTS;
+		$limit = (int) self::get( $key );
+
+		return $limit >= 1 ? $limit : (int) self::defaults()[ $key ];
 	}
 
 	/**

@@ -91,7 +91,8 @@ The form stops most spam without a captcha:
 
 * A hidden field that people never see and bots tend to fill in.
 * Forms sent within 3 seconds of loading the page are refused, as bots send them.
-* Each visitor can send 5 requests an hour, and each IP address 10. Votes are limited too: 30 an hour for each visitor and 60 for each IP address.
+* Each visitor can send 5 requests an hour, and each IP address 10.
+* Votes are limited too: 30 an hour for each visitor, and 60 an hour from one IP address. Logged-in users and visitors without an account are counted apart, and you can change both numbers under Feature Requests → Settings.
 * If the Akismet plugin is active and connected, it checks every new request. Requests it flags wait for your review instead of being deleted.
 
 Developers can add a captcha through the `mwtfrs_verify_captcha` filter, or another spam service through the `mwtfrs_is_spam` filter.
@@ -172,7 +173,11 @@ The limits for each IP address use the address your server sees. Most hosts pass
 
 `add_filter( 'mwtfrs_client_ip', function ( $ip ) { return isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : $ip; } );`
 
-Only do this when every request reaches your server through that proxy, because anyone can send such a header. The limits themselves can be changed with the `mwtfrs_rate_limit` filter.
+Only do this when every request reaches your server through that proxy, because anyone can send such a header. The vote limits themselves are under Feature Requests → Settings, and every limit can be changed with the `mwtfrs_rate_limit` filter.
+
+= People in our office get "Too many votes". What can I do? =
+
+They share one IP address, and by default 60 votes an hour can come from the logged-in users at one address. Raise "Logged-in users" under Feature Requests → Settings → Vote limits. Each user can still vote only once for a request, and 30 times an hour.
 
 = Can I try it with sample requests? =
 

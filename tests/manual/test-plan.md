@@ -1,6 +1,6 @@
 # Manual test plan
 
-A list of everything to try by hand before a release: 129 cases in 17 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
+A list of everything to try by hand before a release: 130 cases in 17 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
 
 - **Build to test:** the branch that is checked out in the plugin folder of the test site.
 - **Test site:** https://test-wp-plugins.test (WordPress 7.1, PHP 8.4, Twenty Twenty-Five).
@@ -16,7 +16,7 @@ A list of everything to try by hand before a release: 129 cases in 17 areas. The
 | Priority | Meaning | Cases |
 |---|---|---|
 | P1 | Must pass before the release. | 76 |
-| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 48 |
+| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 49 |
 | P3 | Extended checks that need extra setup. Run them if you have the time. | 5 |
 
 ## Who does the steps
@@ -143,7 +143,7 @@ Expected:
 
 - There is one board, Feature Requests.
 - The statuses are Open, Under Review, Planned, In Progress, Shipped and Declined, in that order, each with a colour. Shipped and Declined say Closed in the Voting column.
-- In Settings: the email about new requests, following, and "A user who votes for a request also follows it" are ticked. "How we use your data" is empty. "Delete all requests…" is not ticked.
+- In Settings: the email about new requests, following, and "A user who votes for a request also follows it" are ticked. "How we use your data" is empty. Both vote limits are 60. "Delete all requests…" is not ticked.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 
@@ -584,6 +584,26 @@ Expected:
 
 - The numbers match.
 - The command says it fixed 0 vote counts.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### VOT-11 · The limits on votes from one address are settings
+
+**Priority:** P2 · **As:** Admin · **Note:** The board lets guests vote, as in VOT-05. Set the limit and the board back afterwards.
+
+Steps:
+
+1. Open Feature Requests → Settings and find "Vote limits".
+2. Set "Visitors without an account" to 2 and save.
+3. Run three times, with the ID of a published request in place of ID: `curl -sk -o /dev/null -w "%{http_code}\n" -X POST -H "Origin: https://test-wp-plugins.test" "https://test-wp-plugins.test/wp-json/mwtfrs/v1/requests/ID/vote"`
+4. As Sam, vote for a request on the board.
+
+Expected:
+
+- The section has two numbers, "Logged-in users" and "Visitors without an account". Both are 60 before you change one.
+- The page says "Settings saved." and the field shows 2.
+- Each run votes as a new guest from your address. The third run prints 429, or an earlier one if guests voted from your address in the last hour. The runs before it print 200.
+- Sam's vote counts: logged-in users at the same address have their own limit.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 

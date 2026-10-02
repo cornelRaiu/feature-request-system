@@ -55,6 +55,7 @@ final class SettingsPageTest extends TestCase {
 				Settings::DATA_USE_NOTE            => 'We <em>only</em> use it to <a href="https://example.org/contact" onclick="steal()">reply</a>.<script>alert(1)</script>',
 				Settings::DELETE_DATA_ON_UNINSTALL => '1',
 				Settings::SUBSCRIBE_VOTERS         => '0',
+				Settings::VOTES_PER_ADDRESS_USERS  => '250',
 				'made_up'                          => 'ignored',
 			]
 		);
@@ -69,6 +70,8 @@ final class SettingsPageTest extends TestCase {
 				Settings::DATA_USE_NOTE            => 'We <em>only</em> use it to <a href="https://example.org/contact">reply</a>.alert(1)',
 				Settings::NOTIFY_FOLLOWERS         => true,
 				Settings::SUBSCRIBE_VOTERS         => false,
+				Settings::VOTES_PER_ADDRESS_USERS  => 250,
+				Settings::VOTES_PER_ADDRESS_GUESTS => 60,
 			],
 			get_option( Settings::OPTION )
 		);
@@ -91,6 +94,31 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( 'were left out: &lt;svg/onload=alert(1)&gt;, &quot;&gt;&lt;b&gt;bold&lt;/b&gt;', $html );
 		$this->assertStringNotContainsString( '<svg', $html );
 		$this->assertStringNotContainsString( '<b>bold', $html );
+	}
+
+	public function test_a_vote_limit_is_a_number_from_1_up_and_anything_else_keeps_the_current_limit(): void {
+		update_option(
+			Settings::OPTION,
+			[
+				Settings::VOTES_PER_ADDRESS_USERS  => '200',
+				Settings::VOTES_PER_ADDRESS_GUESTS => '1',
+			]
+		);
+		$this->assertSame( 200, Settings::get( Settings::VOTES_PER_ADDRESS_USERS ) );
+		$this->assertSame( 1, Settings::get( Settings::VOTES_PER_ADDRESS_GUESTS ), 'One is the lowest limit.' );
+
+		foreach ( [ '0', '-5', '', 'many', [ '9' ] ] as $nonsense ) {
+			update_option(
+				Settings::OPTION,
+				[
+					Settings::VOTES_PER_ADDRESS_USERS  => $nonsense,
+					Settings::VOTES_PER_ADDRESS_GUESTS => $nonsense,
+				]
+			);
+
+			$this->assertSame( 200, Settings::get( Settings::VOTES_PER_ADDRESS_USERS ), wp_json_encode( $nonsense ) );
+			$this->assertSame( 1, Settings::get( Settings::VOTES_PER_ADDRESS_GUESTS ), wp_json_encode( $nonsense ) );
+		}
 	}
 
 	public function test_boards_and_statuses_that_do_not_exist_cannot_become_the_default(): void {
@@ -144,6 +172,27 @@ final class SettingsPageTest extends TestCase {
 			);
 		}
 		$this->assertStringContainsString( 'The emails go out 5 minutes after the last change', $html );
+	}
+
+	public function test_page_has_a_vote_limit_for_logged_in_users_and_one_for_guests(): void {
+		$name = Settings::OPTION . '[%s]';
+		$html = $this->page();
+
+		$this->assertStringContainsString( '>Vote limits</h2>', $html );
+		$this->assertStringContainsString( '<label for="mwtfrs-settings-votes-per-address-users">Logged-in users</label>', $html );
+		$this->assertStringContainsString(
+			'<input type="number" class="small-text" min="1" step="1" id="mwtfrs-settings-votes-per-address-users" name="' . sprintf( $name, Settings::VOTES_PER_ADDRESS_USERS ) . '" value="60" aria-describedby="mwtfrs-settings-votes-per-address-users-unit"> <span id="mwtfrs-settings-votes-per-address-users-unit">votes an hour from one IP address</span>',
+			$html
+		);
+		$this->assertStringContainsString( '<label for="mwtfrs-settings-votes-per-address-guests">Visitors without an account</label>', $html );
+		$this->assertStringContainsString( 'id="mwtfrs-settings-votes-per-address-guests" name="' . sprintf( $name, Settings::VOTES_PER_ADDRESS_GUESTS ) . '" value="60"', $html );
+
+		Settings::update( Settings::VOTES_PER_ADDRESS_USERS, 500 );
+		Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 20 );
+		$html = $this->page();
+
+		$this->assertStringContainsString( 'id="mwtfrs-settings-votes-per-address-users" name="' . sprintf( $name, Settings::VOTES_PER_ADDRESS_USERS ) . '" value="500"', $html );
+		$this->assertStringContainsString( 'id="mwtfrs-settings-votes-per-address-guests" name="' . sprintf( $name, Settings::VOTES_PER_ADDRESS_GUESTS ) . '" value="20"', $html );
 	}
 
 	public function test_suggested_note_mentions_akismet_only_when_it_is_connected(): void {

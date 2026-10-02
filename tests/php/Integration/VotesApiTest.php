@@ -16,6 +16,7 @@ use FeatureRequestSystem\Install\Schema;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Rest\VotesController;
 use FeatureRequestSystem\Security\RateLimiter;
+use FeatureRequestSystem\Settings;
 use FeatureRequestSystem\Voting\VoterIdentity;
 use FeatureRequestSystem\Voting\VoteService;
 use WP_REST_Request;
@@ -256,6 +257,25 @@ final class VotesApiTest extends TestCase {
 		unset( $_COOKIE[ VoterIdentity::COOKIE ] );
 		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
 		$this->assertSame( 200, $this->vote( 'POST', $request, $this->same_site() )->get_status(), 'Another address has its own limit.' );
+	}
+
+	public function test_the_settings_limit_the_votes_from_one_address_apart_for_guests_and_logged_in_users(): void {
+		$this->allow_guests();
+		Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 2 );
+		Settings::update( Settings::VOTES_PER_ADDRESS_USERS, 1 );
+		$request = $this->create_request();
+
+		foreach ( [ 200, 200, 429 ] as $expected ) {
+			unset( $_COOKIE[ VoterIdentity::COOKIE ] );
+			$this->assertSame( $expected, $this->vote( 'POST', $request, $this->same_site() )->get_status() );
+		}
+
+		wp_set_current_user( self::factory()->user->create() );
+		$this->assertSame( 200, $this->vote( 'POST', $request )->get_status(), 'A logged-in user at the same address is counted apart from the guests.' );
+
+		wp_set_current_user( self::factory()->user->create() );
+		$this->assertSame( 429, $this->vote( 'POST', $request )->get_status(), 'The second vote of a logged-in user at this address this hour.' );
+		$this->assertCount( 3, $this->vote_rows( $request ) );
 	}
 
 	public function test_moderators_are_not_rate_limited(): void {

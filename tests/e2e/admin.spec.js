@@ -1,6 +1,7 @@
 /**
  * The admin screens in a real browser.
  */
+const crypto = require( 'node:crypto' );
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { wpEval } = require( './wp-cli' );
 
@@ -33,6 +34,8 @@ function setUp( requests ) {
 			}
 			$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '%' . $wpdb->esc_like( RateLimiter::TRANSIENT_PREFIX ) . '%' ) );
 			Settings::update( Settings::DATA_USE_NOTE, '' );
+			Settings::update( Settings::VOTES_PER_ADDRESS_USERS, 60 );
+			Settings::update( Settings::VOTES_PER_ADDRESS_GUESTS, 60 );
 			BoardSettings::update( RequestTerms::default_term( BoardTaxonomy::NAME ), BoardSettings::defaults() );
 
 			$ids = [];
@@ -181,6 +184,81 @@ test.describe( 'Feature request admin', () => {
 		await visitor.getByText( 'How we use your data' ).click();
 		await expect( note ).toBeVisible();
 		await guest.close();
+	} );
+
+	test( 'the vote limits on the settings page apply, to guests and to logged-in users apart', async ( {
+		page,
+		browser,
+	} ) => {
+		const form = setUp( [ { title: 'Dark mode', votes: 0 } ] );
+		const password = crypto.randomBytes( 16 ).toString( 'hex' );
+		wpEval( `
+			use FeatureRequestSystem\\Content\\BoardSettings;
+			use FeatureRequestSystem\\Content\\BoardTaxonomy;
+			use FeatureRequestSystem\\Content\\RequestTerms;
+			BoardSettings::update( RequestTerms::default_term( BoardTaxonomy::NAME ), [ BoardSettings::VOTING => BoardSettings::ANYONE ] );
+
+			$user = get_user_by( 'login', 'e2e-subscriber' );
+			$id   = $user ? $user->ID : wp_insert_user( [ 'user_login' => 'e2e-subscriber', 'user_email' => 'e2e-subscriber@example.com', 'role' => 'subscriber', 'user_pass' => wp_generate_password() ] );
+			wp_set_password( '${ password }', $id );
+		` );
+
+		await page.goto( `${ LIST }&page=mwtfrs-settings` );
+		const guests = page.getByLabel( 'Visitors without an account', {
+			exact: true,
+		} );
+		await expect( guests ).toHaveValue( '60' );
+		await guests.fill( '2' );
+		await page.getByLabel( 'Logged-in users', { exact: true } ).fill( '1' );
+		await page.getByRole( 'button', { name: 'Save Changes' } ).click();
+		await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect( guests ).toHaveValue( '2' );
+
+		const visit = async () => {
+			const context = await browser.newContext( {
+				storageState: { cookies: [], origins: [] },
+				baseURL: new URL( form.url ).origin,
+			} );
+
+			return context.newPage();
+		};
+		const vote = async ( visitor ) => {
+			await visitor.goto( form.url );
+			const button = visitor.getByRole( 'button', {
+				name: /Vote for Dark mode/,
+			} );
+			await button.click();
+
+			return button;
+		};
+
+		// Three visitors without an account at one address: the third is one too many.
+		for ( const count of [ '1', '2' ] ) {
+			const visitor = await visit();
+			const button = await vote( visitor );
+			await expect( button ).toHaveAttribute( 'aria-pressed', 'true' );
+			await expect( button ).toContainText( count );
+			await visitor.context().close();
+		}
+		const third = await visit();
+		const refused = await vote( third );
+		await expect(
+			third.getByText( /Too many votes in a short time/ )
+		).toBeVisible();
+		await expect( refused ).toHaveAttribute( 'aria-pressed', 'false' );
+		await third.context().close();
+
+		// A logged-in user at that address has the other limit, and the guests used none of it.
+		const user = await visit();
+		await user.goto( '/wp-login.php' );
+		await user.locator( '#user_login' ).fill( 'e2e-subscriber' );
+		await user.locator( '#user_pass' ).fill( password );
+		await user.locator( '#wp-submit' ).click();
+		await user.waitForURL( /wp-admin/ );
+		const own = await vote( user );
+		await expect( own ).toHaveAttribute( 'aria-pressed', 'true' );
+		await expect( own ).toContainText( '3' );
+		await user.context().close();
 	} );
 
 	test( 'a board limited to some categories offers only those on its form', async ( {

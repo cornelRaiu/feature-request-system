@@ -8,11 +8,16 @@
 namespace FeatureRequestSystem\Security;
 
 use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Hourly limits per visitor and per IP address.
+ *
+ * Votes from one IP address have two limits, which the site sets on the settings page:
+ * one for its logged-in users and one for its visitors without an account. The two
+ * groups are counted apart, so a busy office does not use up what guests may do.
  *
  * Counters are fixed one-hour windows. An attempt is counted first, in one step that the
  * database or the cache does not split, and judged after. Requests that arrive at the
@@ -47,12 +52,12 @@ final class RateLimiter {
 	private const CACHE_GROUP = 'feature-request-system-rate-limits';
 
 	/**
-	 * Allowed attempts per hour, by action and scope.
+	 * Allowed attempts per hour, by action and scope. Votes from one IP address are not
+	 * here: their limits are settings.
 	 */
 	private const LIMITS = [
 		'vote'   => [
 			'voter' => 30,
-			'ip'    => 60,
 		],
 		'submit' => [
 			'voter' => 5,
@@ -84,8 +89,10 @@ final class RateLimiter {
 
 		// The visitor's own counter comes first. Once it is over its limit, their further attempts do not use up what others at the same address may still do.
 		foreach ( $subjects as $scope => $subject ) {
-			$limit = (int) apply_filters( self::FILTER_LIMIT, self::LIMITS[ $action ][ $scope ], $action, $scope ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
-			$key   = self::TRANSIENT_PREFIX . $action . '_' . $scope . '_' . substr( hash_hmac( 'sha256', $subject, wp_salt( 'auth' ) ), 0, 32 ) . '_' . $window;
+			list( $counter, $default ) = self::counter( $action, $scope );
+
+			$limit = (int) apply_filters( self::FILTER_LIMIT, $default, $action, $scope ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+			$key   = self::TRANSIENT_PREFIX . $action . '_' . $counter . '_' . substr( hash_hmac( 'sha256', $subject, wp_salt( 'auth' ) ), 0, 32 ) . '_' . $window;
 
 			if ( self::count( $key ) > $limit ) {
 				return HOUR_IN_SECONDS - ( time() % HOUR_IN_SECONDS );
@@ -93,6 +100,26 @@ final class RateLimiter {
 		}
 
 		return 0;
+	}
+
+	/**
+	 * Returns which counter an attempt is counted on, and its limit before the filter.
+	 *
+	 * Votes from one IP address go to one of two counters: the logged-in users' or the
+	 * guests', each with the limit from the settings page.
+	 *
+	 * @param string $action Action name: "vote" or "submit".
+	 * @param string $scope  What is counted: "voter" or "ip".
+	 * @return array{0: string, 1: int} The counter's name and the limit.
+	 */
+	private static function counter( string $action, string $scope ): array {
+		if ( 'vote' === $action && 'ip' === $scope ) {
+			$logged_in = is_user_logged_in();
+
+			return [ $logged_in ? 'ip_user' : 'ip_guest', Settings::votes_per_address( $logged_in ) ];
+		}
+
+		return [ $scope, self::LIMITS[ $action ][ $scope ] ];
 	}
 
 	/**

@@ -43,6 +43,7 @@ function setUp() {
 			use FeatureRequestSystem\\Frontend\\Blocks;
 			use FeatureRequestSystem\\Notifications\\Queue;
 			use FeatureRequestSystem\\Notifications\\SubscriptionRepository;
+			use FeatureRequestSystem\\Settings;
 			use FeatureRequestSystem\\Voting\\VoteCount;
 			use FeatureRequestSystem\\Voting\\VoteRepository;
 
@@ -52,6 +53,10 @@ function setUp() {
 			Queue::cancel_all();
 			$board = RequestTerms::default_term( BoardTaxonomy::NAME );
 			BoardSettings::update( $board, BoardSettings::defaults() );
+			// The settings page is shown as a new site has it. The default board and status stay the site's own.
+			foreach ( array_diff_key( Settings::defaults(), [ Settings::DEFAULT_BOARD => 0, Settings::DEFAULT_STATUS => 0 ] ) as $key => $value ) {
+				Settings::update( $key, $value );
+			}
 			SampleData::create( 24, 900 );
 
 			$requests = get_posts( [ 'post_type' => RequestPostType::NAME, 'numberposts' => 3, 'meta_key' => RequestPostType::META_VOTES, 'orderby' => 'meta_value_num', 'order' => 'DESC' ] );

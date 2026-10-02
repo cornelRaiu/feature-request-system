@@ -103,7 +103,7 @@ CI runs the lint and static checks, the PHP tests on PHP 7.4 to 8.4 against Word
 | `mwtfrs_follower_email` | filter | Changes an email to a follower, or stops it when it returns `false`. Receives the email (`to`, `subject`, `message`, `headers`), the template name (`status-changed` or `request-approved`), the request and the user. |
 | `mwtfrs_verify_captcha` | filter | Return `true` to accept a submission, or a `WP_Error` to refuse it with that message. Receives `true` and the submitted fields. |
 | `mwtfrs_is_spam` | filter | Return `true` to hold a submission for review as spam. Receives the verdict so far and the title, description, name and email. |
-| `mwtfrs_rate_limit` | filter | Changes a rate limit. Receives the limit per hour, the action (`vote` or `submit`) and the scope (`voter` or `ip`). |
+| `mwtfrs_rate_limit` | filter | Changes a rate limit. Receives the limit per hour, the action (`vote` or `submit`) and the scope (`voter` or `ip`). For votes from one IP address it receives the number from the settings page: the one for logged-in users or the one for guests, whichever the visitor is. |
 | `mwtfrs_client_ip` | filter | Returns the visitor's IP address, for sites behind a trusted proxy. Defaults to `REMOTE_ADDR`. An IPv6 address is counted as its /64 network. |
 | `mwtfrs_load_styles` | filter | Return `false` to load none of the plugin's stylesheets, for sites that style the blocks themselves. Read on `init`. |
 
