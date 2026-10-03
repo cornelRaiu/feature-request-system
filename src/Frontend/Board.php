@@ -76,9 +76,11 @@ final class Board {
 			[
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
-				'context'            => [ 'ids' => wp_list_pluck( $items, 'id' ) ],
+				'context'            => VoteStore::context( $items ),
 				'id_prefix'          => wp_unique_id( 'mwtfrs-board-' ),
 				'items'              => $items,
+				'title_tag'          => 'h3',
+				'compact'            => false,
 				'filters'            => $filters,
 				'params'             => [
 					'search'   => BoardQuery::PARAM_SEARCH,

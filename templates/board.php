@@ -4,8 +4,8 @@
  *
  * To change the markup, copy this file to yourtheme/feature-request-system/board.php.
  * Keep the data-wp-* attributes and the form fields: they make voting work, with and
- * without JavaScript. Every value is escaped here, at output. The vote button has its
- * own template, vote-button.php.
+ * without JavaScript. Every value is escaped here, at output. Each request is drawn by
+ * request-item.php, and its vote button by vote-button.php.
  *
  * @package FeatureRequestSystem
  *
@@ -71,7 +71,7 @@ $mwtfrs_params  = $args['params'];
 		</p>
 	</form>
 
-	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="state.announcement"></p>
+	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>
 
 	<?php if ( $args['items'] ) : ?>
 		<ul class="mwtfrs-board__list">
@@ -80,33 +80,9 @@ $mwtfrs_params  = $args['params'];
 					class="mwtfrs-request"
 					id="<?php echo esc_attr( $mwtfrs_item['dom_id'] ); ?>"
 					<?php echo wp_interactivity_data_wp_context( $mwtfrs_item['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
-					data-wp-watch="callbacks.syncVoted"
+					data-wp-watch="callbacks.sync"
 				>
-					<?php echo FeatureRequestSystem\Frontend\Template::render( 'vote-button', [ 'item' => $mwtfrs_item ] + $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The vote button template escapes every value. ?>
-
-					<div class="mwtfrs-request__body">
-						<h3 class="mwtfrs-request__title"><a href="<?php echo esc_url( $mwtfrs_item['url'] ); ?>"><?php echo esc_html( $mwtfrs_item['title'] ); ?></a></h3>
-
-						<?php if ( '' !== $mwtfrs_item['excerpt'] ) : ?>
-							<p class="mwtfrs-request__excerpt"><?php echo esc_html( $mwtfrs_item['excerpt'] ); ?></p>
-						<?php endif; ?>
-
-						<?php if ( $mwtfrs_item['status'] || $mwtfrs_item['categories'] ) : ?>
-							<p class="mwtfrs-request__meta">
-								<?php if ( $mwtfrs_item['status'] ) : ?>
-									<span class="mwtfrs-status" style="--mwtfrs-status-color: <?php echo esc_attr( $mwtfrs_item['status']['color'] ); ?>"><?php echo esc_html( $mwtfrs_item['status']['name'] ); ?></span>
-								<?php endif; ?>
-								<?php foreach ( $mwtfrs_item['categories'] as $mwtfrs_category ) : ?>
-									<span class="mwtfrs-category"><?php echo esc_html( $mwtfrs_category ); ?></span>
-								<?php endforeach; ?>
-							</p>
-						<?php endif; ?>
-
-						<p class="mwtfrs-request__message" role="status" data-wp-bind--hidden="!context.message">
-							<span data-wp-text="context.message"><?php echo esc_html( $mwtfrs_item['context']['message'] ); ?></span>
-							<a href="<?php echo esc_url( $args['login_url'] ); ?>" data-wp-bind--hidden="!context.needsLogin"><?php esc_html_e( 'Log in', 'feature-request-system' ); ?></a>
-						</p>
-					</div>
+					<?php echo FeatureRequestSystem\Frontend\Template::render( 'request-item', [ 'item' => $mwtfrs_item ] + $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The request template escapes every value. ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>

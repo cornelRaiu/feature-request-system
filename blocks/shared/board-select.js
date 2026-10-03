@@ -1,7 +1,6 @@
 /**
  * Board picker for the blocks' sidebar settings.
  */
-import { __ } from '@wordpress/i18n';
 import { SelectControl } from '@wordpress/components';
 import { store as coreStore } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
@@ -9,14 +8,15 @@ import { useSelect } from '@wordpress/data';
 const BOARD_TAXONOMY = 'mwtfrs_board';
 
 /**
- * Lists the site's boards, with the default board first.
+ * Lists the site's boards, below the choice that names none of them.
  *
- * @param {Object}                  props          Component props.
- * @param {string}                  props.label    Field label.
- * @param {number}                  props.value    Selected board term ID, 0 for the default board.
- * @param {(board: number) => void} props.onChange Called with the new board term ID.
+ * @param {Object}                  props           Component props.
+ * @param {string}                  props.label     Field label.
+ * @param {string}                  props.noneLabel Label of the choice with the value 0: the default board, or every board.
+ * @param {number}                  props.value     Selected board term ID, or 0.
+ * @param {(board: number) => void} props.onChange  Called with the new board term ID.
  */
-export default function BoardSelect( { label, value, onChange } ) {
+export default function BoardSelect( { label, noneLabel, value, onChange } ) {
 	const boards = useSelect(
 		( select ) =>
 			select( coreStore ).getEntityRecords( 'taxonomy', BOARD_TAXONOMY, {
@@ -27,7 +27,7 @@ export default function BoardSelect( { label, value, onChange } ) {
 	);
 
 	const options = [
-		{ label: __( 'Default board', 'feature-request-system' ), value: 0 },
+		{ label: noneLabel, value: 0 },
 		...( boards ?? [] ).map( ( term ) => ( {
 			label: term.name,
 			value: term.id,

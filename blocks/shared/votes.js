@@ -1,9 +1,14 @@
 /**
- * Voting with the Interactivity API, on the board and on a single request's page.
+ * Voting with the Interactivity API, wherever requests are shown: on the board, on a
+ * list, on a card and on a single request's page.
  *
  * The HTML is the same for every visitor, so it can be cached. After the page loads,
  * callbacks.hydrate asks the REST API which requests this visitor voted for. Each vote
  * button is a real form, so voting still works if this script never runs.
+ *
+ * A page can show a request more than once, such as on a list and on a card. What the
+ * visitor voted for and the counts that changed are kept in the store, and callbacks.sync
+ * copies them to every place a request is shown.
  *
  * Actions that wait for the network are generators (the * before the name) instead of
  * async functions. They yield promises rather than awaiting them, so the Interactivity
@@ -44,11 +49,14 @@ const { state } = store( 'mwtfrs/votes', {
 					context.votes = data.votes;
 					context.voted = data.voted;
 					state.voted[ context.id ] = data.voted;
+					state.votes[ context.id ] = data.votes;
 					// A vote can make a logged-in user follow the request, and taking it back can end that.
 					if ( typeof data.following === 'boolean' ) {
 						context.following = data.following;
 					}
-					state.announcement = data.voted
+					// The announcement belongs to the block around the request, so a page
+					// with several blocks says it once.
+					context.announcement = data.voted
 						? state.strings.added
 						: state.strings.removed;
 				} else {
@@ -64,11 +72,13 @@ const { state } = store( 'mwtfrs/votes', {
 	},
 	callbacks: {
 		/**
-		 * Marks the requests on this board that the visitor already voted for.
+		 * Marks the requests in this block that the visitor already voted for.
 		 */
 		*hydrate() {
-			const { ids } = getContext();
-			if ( ! ids.length ) {
+			const { ids, guestVotes } = getContext();
+			// A visitor who is not logged in has votes only where a board lets guests
+			// vote. Anywhere else there is nothing to ask the server.
+			if ( ! ids.length || ( ! state.nonce && ! guestVotes ) ) {
 				return;
 			}
 
@@ -89,11 +99,17 @@ const { state } = store( 'mwtfrs/votes', {
 		},
 
 		/**
-		 * Keeps a request's pressed state in line with the visitor's votes.
+		 * Keeps a request's pressed state and count in line with the visitor's votes,
+		 * also when the vote was cast on the same request elsewhere on the page.
 		 */
-		syncVoted() {
+		sync() {
 			const context = getContext();
+			const votes = state.votes[ context.id ];
+
 			context.voted = Boolean( state.voted[ context.id ] );
+			if ( votes !== undefined ) {
+				context.votes = votes;
+			}
 		},
 	},
 } );

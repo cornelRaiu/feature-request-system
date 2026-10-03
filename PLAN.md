@@ -96,6 +96,8 @@ Differentiators, in delivery order:
 
 **Front end**
 - ✅ **Board block** and `[feature_requests board="…"]` shortcode: list, search, filter by status and category, sort (Top, New), pagination.
+- ✅ **Feature Request List**, the board block in a compact form, and the `[feature_request_list]` shortcode: the most-voted or the newest requests, of one board or of every board, with their vote buttons and a link to the board. For a home page, a sidebar or the end of a post. (Added after M8, at the owner's request.)
+- ✅ **Feature Request Card** block and `[feature_request id="…"]` shortcode: one request with its vote button, in a post or a page that talks about it. (Added after M8, at the owner's request.)
 - ✅ **Submit form**, inline on the board or as its own block, with a **"similar requests" list shown as you type** to cut duplicates.
 - ✅ **Single request page**: description, status badge, vote button, voter count, comments, and a highlighted "Official response".
 - ✅ Works without JavaScript: voting and submitting fall back to plain form posts.
@@ -207,8 +209,8 @@ Differentiators, in delivery order:
 | Post type | `mwtfrs_request` |
 | Taxonomies | `mwtfrs_board`, `mwtfrs_status`, `mwtfrs_category` |
 | REST namespace | `mwtfrs/v1` |
-| Blocks | `mwtfrs/board`, `mwtfrs/submit`, `mwtfrs/request` (1.0); `mwtfrs/roadmap` (1.1); `mwtfrs/changelog` (1.2) |
-| Shortcodes | `[feature_requests]`, `[feature_request_form]`, `[feature_roadmap]` |
+| Blocks | `mwtfrs/board`, `mwtfrs/submit`, `mwtfrs/request`, `mwtfrs/request-card` (1.0); `mwtfrs/roadmap` (1.1); `mwtfrs/changelog` (1.2) |
+| Shortcodes | `[feature_requests]`, `[feature_request_list]`, `[feature_request]`, `[feature_request_form]`, `[feature_roadmap]` |
 
 ### 5.3 Data model
 
@@ -345,8 +347,16 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - The submit form works the same way: without JavaScript it posts to `admin-post.php` and returns to the form with an `fr-form` notice. Its `required` and `maxlength` attributes catch most mistakes before a post.
   - Search and filters are GET query arguments (`fr-search`, `fr-status`, `fr-category`, `fr-sort`, `fr-page`).
 - **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
-- **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, a single `POST /me/state` call marks the buttons the visitor has already voted on. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
-- **One vote script.** The board and the request page share the Interactivity API store `mwtfrs/votes`, one vote button template and the stylesheet partials for it.
+- **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, each block that shows requests makes one `POST /me/state` call, which marks the buttons the visitor has already voted on. A visitor who is not logged in has votes only where a board lets guests vote, so everywhere else the script makes no call, and a list on a busy home page costs the server nothing more. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
+- **One vote script.** The board, the list, the card and the request page share the Interactivity API store `mwtfrs/votes`, one vote button template and the stylesheet partials for it.
+- **The list and the card (after M8).** They bring requests, and votes, to pages other than the board's.
+  - The **Feature Request List** is the board block with `compact` on, offered in the inserter as a variation with its own name and icon. It shows up to 20 requests, the most-voted or the newest (`sort`), open for voting or in one status (`status`), of one board or of every board (`board`, where 0 means every board). It has no search, filters or pages, ignores the board's filters in the URL, and never becomes the board's page. Each request follows the voting rule of its own board. "See all requests" leads to the board's page, or on a site with one board to that board's page, and is left out where there is no one page to lead to.
+  - The **Feature Request Card** (`mwtfrs/request-card`) shows one request, chosen in the editor by its title. It prints nothing for a request that visitors cannot see: one that is not published, or that is behind a password.
+  - Both draw a request with `request-item.php`, which the board uses too. On the board the titles are headings. On a list and a card they are not, because those can sit under a heading of any level.
+- **Several blocks on one page (after M8).** A page can now show a request more than once, for example on a list and on a card.
+  - Each list and card puts its own prefix in the element id of a request, so no two elements share an id. A vote form names its own element, and a vote without JavaScript comes back to it.
+  - What the visitor voted for and the counts that changed are kept in the store. A vote on one copy of a request updates the others.
+  - What a vote says to screen readers belongs to the block it was cast in, so it is said once.
 - **Follow button (M7).** Logged-in users get it on a request's page, under the status: a line that says whether they get emails, and a button that says what it does ("Follow" or "Stop following"). The request block adds its action to the vote store, so a vote that makes the user follow flips the button at once. It is a form like the vote button, so it works without JavaScript and returns with a notice. Guests don't get it, and their HTML stays the same for everyone.
 - **Styling:** CSS custom properties that fall back to `theme.json` presets and then to fixed colours. About 4 KB per block. Headings and wrappers use selectors that hold up against block themes' global styles, which load after block styles. The vote button's rules outrank theme `button` styles so pressed and unpressed always look different. A container query tightens the layout when the board is narrow. No icon fonts; inline SVG only.
 - **Single request page (M5).** The theme shows the title, the description and the comments. The plugin adds the vote button, status and categories above the description, and the official response below it.
@@ -369,8 +379,9 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - The edges of text fields and of the Follow button are the text colour at 60%, for the 3:1 that WCAG asks of a control's boundary. Decorative lines stay at 20%.
   - Fields keep to the width of the form in themes that give fields a margin.
   - The board's search form has a name for screen readers.
-- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), `vote-button.php`, `request.php` and `official-response.php` (since M5), and the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7).
-- **Pattern:** "Feature request page" puts the form, a heading and the board on one page (M4).
+- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), `vote-button.php`, `request.php` and `official-response.php` (since M5), the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7), and `request-list.php`, `request-card.php` and `request-item.php` (after M8).
+- **Patterns:** "Feature request page" puts the form, a heading and the board on one page (M4). Three more came after M8: "Feature request form beside the board", in two columns; "Most wanted feature requests", a heading above the list; and "Suggest a feature", a few words with a button that leads to the page of the default board. Finding that page takes the database, so this last pattern is registered only in the admin and for the REST API, where patterns are listed, and not for a visitor's page view.
+- **Icons (after M8).** The admin menu and the blocks carry the plugin's logo instead of dashicons. The menu icon is an SVG that WordPress paints in the colours of the user's admin colour scheme. In the inserter, the board has the logo, and the list, the card, the form and the details each have the part of it they show.
 
 ### 5.7 Admin
 
@@ -457,11 +468,11 @@ feature-request-system/
 │   ├── Notifications/              # NewRequestEmail, SubscriptionRepository, Subscriptions, StatusNotifier, ApprovalEmail, Mailer, Unsubscribe, Queue
 │   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, ManagedTermsController, Response
 │   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
-│   ├── Frontend/                   # Blocks, Board, SubmitForm, RequestView, PlainDescription, VoteForm, FollowForm, RequestNotice, VoteStore, Template
+│   ├── Frontend/                   # Blocks, Board, CompactBoard, RequestCard, SubmitForm, RequestView, PlainDescription, VoteForm, FollowForm, RequestNotice, VoteStore, Template
 │   ├── Admin/                      # RequestList, StatusQuickEdit, NotifySwitch, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions, ProfileFollows
 │   ├── Privacy/                    # PersonalData (exporter and eraser), PolicyText, DepartedUsers
 │   └── Cli/                        # Commands (`wp mwtfrs recount|seed`), SampleData
-├── blocks/                         # board/, submit/, request/ (block.json, render.php, view.js, style.scss), shared/
+├── blocks/                         # board/, submit/, request/, request-card/ (block.json, render.php, view.js, style.scss), shared/
 ├── templates/                      # overridable PHP partials, emails/ (plain text), and the block template single-request.html
 ├── languages/                      # feature-request-system.pot
 ├── .wordpress-org/                 # icon, banner and screenshots for the listing, with their sources
@@ -514,6 +525,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M6** ✅ | Admin UX (2–3 days) | List columns, filters, sort by votes, Quick and Bulk Edit status, pending bubble, meta box with voters, settings page (including the "How we use your data" note for guests), board and status term screens (including each board's page, for the link back from a request) | Tests: status changes from every screen fire `mwtfrs_status_changed` exactly once; the guest note shows on the form only when it is set, keeps links and emphasis, and drops any other HTML; a request's page links to its board's page, and showing the board on a published page sets that page |
 | **M7** ✅ | Close the loop (2–3 days) | Subscriptions table, following by voting, by suggesting and with the Follow button, status emails in batches through Action Scheduler with a five-minute wait, the approval email, plain text email templates, the unsubscribe link, the notify switch, followed requests on the profile | Tests: a status change on a request with 120 followers schedules 3 batches; the unsubscribe link works without logging in, and opening it alone unsubscribes nobody; no mail goes to someone who stopped following; a change corrected in time is never announced. E2E: follow and stop, a vote follows, a status change emails the follower and the link in the email stops the emails |
 | **M8** ✅ | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes). Also: categories per board, the filter that turns the stylesheets off, `wp mwtfrs seed`, an independent security review with its fixes, and a manual test plan (`tests/manual/test-plan.md`, 129 cases) | Plugin Check 2.1.0 finds no errors and no warnings. axe finds no violation of WCAG 2.2 AA in Twenty Twenty-Five and Twenty Twenty-One. With 1,000 requests and 50,000 votes the board block renders in about 16 ms with 14 to 21 queries, and its page answers in 56 ms, against 41 ms for a page without it. 418 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network; 43 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6. 175 rules were broken on purpose: 27 had no test and got one, and two new tests that could not fail were corrected. The security review found nothing critical or high; its two medium and six low findings are fixed (section 5.4 and 5.10) |
+| **After M8** ✅ | More blocks and patterns (1–2 days), at the owner's request | The Feature Request List (the board block in a compact form) and the Feature Request Card, with their shortcodes. Three patterns: the form beside the board, the most wanted requests, and an invitation with a button to the board. The blocks' icons, drawn from the logo, and previews in the inserter. For pages with several of the blocks: an element id of its own for each copy of a request, counts and pressed states that stay in step, and announcements said once. No call for a guest's votes where guests cannot vote. 12 more cases in the manual test plan, which now has 142 | 462 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network. 52 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6; ten of them are accessibility checks with axe. 89 rules were broken on purpose, 73 in PHP and 16 in the browser: one had no test and got one, with two more like it; one browser test could not fail and was corrected; one new check that could not fail was removed. Plugin Check finds no errors and no warnings |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
 | M9 | 1.1 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests | Per-feature slices with tests |
 | M10 | 1.2 | Changelog / releases with shipped notifications, IdeaPush and SFR importers, webhooks | Importers tested against fixture dumps of each plugin |

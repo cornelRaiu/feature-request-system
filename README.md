@@ -115,7 +115,7 @@ On a site, Tools → Scheduled Actions lists the plugin's work under the group `
 
 ## Releasing
 
-1. Set the new version in the header of `feature-request-system.php`, in `Plugin::VERSION`, in the three `blocks/*/block.json` files and in `package.json`. In `readme.txt`, set `Stable tag` and add the changelog entry.
+1. Set the new version in the header of `feature-request-system.php`, in `Plugin::VERSION`, in the four `blocks/*/block.json` files and in `package.json`. In `readme.txt`, set `Stable tag` and add the changelog entry.
 2. Regenerate the translation template:
 
    ```bash

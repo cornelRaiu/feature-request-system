@@ -34,18 +34,21 @@ final class RequestNotice {
 	/**
 	 * Returns the URL that shows a notice next to a request.
 	 *
-	 * @param string $page_url   Page that shows the request.
+	 * @param string $page_url   Page that shows the request. A fragment in it names the element to come back to,
+	 *                           for pages that show the request more than once.
 	 * @param string $code       Notice code.
 	 * @param int    $request_id Request ID.
 	 */
 	public static function url( string $page_url, string $code, int $request_id ): string {
-		return add_query_arg(
+		$url = add_query_arg(
 			[
 				self::PARAM         => $code,
 				self::PARAM_REQUEST => $request_id,
 			],
 			$page_url
-		) . '#' . RequestItem::dom_id( $request_id );
+		);
+
+		return false === strpos( $url, '#' ) ? $url . '#' . RequestItem::dom_id( $request_id ) : $url;
 	}
 
 	/**

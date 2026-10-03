@@ -43,7 +43,7 @@ const { state } = store( 'mwtfrs/votes', {
 
 				if ( response.ok ) {
 					context.following = data.following;
-					state.announcement = data.following
+					context.announcement = data.following
 						? state.strings.following
 						: state.strings.unfollowed;
 				} else {

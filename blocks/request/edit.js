@@ -8,11 +8,13 @@ import { __ } from '@wordpress/i18n';
 import { useBlockProps } from '@wordpress/block-editor';
 import { Placeholder } from '@wordpress/components';
 
+import { detailsIcon } from '../shared/icons';
+
 export default function Edit() {
 	return (
 		<div { ...useBlockProps() }>
 			<Placeholder
-				icon="thumbs-up"
+				icon={ detailsIcon }
 				label={ __(
 					'Feature Request Details',
 					'feature-request-system'

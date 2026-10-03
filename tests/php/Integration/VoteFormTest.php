@@ -49,6 +49,20 @@ final class VoteFormTest extends TestCase {
 		$this->assertSame( '0', get_post_meta( $request, RequestPostType::META_VOTES, true ) );
 	}
 
+	/**
+	 * A page can show a request more than once, such as on a list and on a card. The form
+	 * of each names its own element.
+	 */
+	public function test_the_vote_comes_back_to_the_element_that_the_form_named(): void {
+		wp_set_current_user( self::factory()->user->create() );
+		$request              = $this->create_request();
+		$element              = '#mwtfrs-list-2-request-' . $request;
+		$input                = $this->input( $request, wp_create_nonce( VoteForm::ACTION ) );
+		$input['redirect_to'] = self::BOARD_URL . '?fr-status=planned' . $element;
+
+		$this->assertSame( self::BOARD_URL . '?fr-status=planned&fr-notice=added&fr-request=' . $request . $element, VoteForm::process( $input, '', '' ) );
+	}
+
 	public function test_logged_in_vote_with_a_bad_nonce_is_refused(): void {
 		wp_set_current_user( self::factory()->user->create() );
 		$request = $this->create_request();

@@ -17,6 +17,7 @@ Feature Request System adds a feature request board to your WordPress site. Peop
 * **A board** that visitors can search, filter and sort, with one-click voting.
 * **A form** that shows similar requests while someone types, so they vote instead of posting a duplicate.
 * **A page for every request**, with comments and your team's official response.
+* **A short list and a card**, to show the most wanted requests on your home page and one request in a post, each with a working vote button.
 * **Emails that close the loop**: voters follow a request and hear about every status change, in the background and with a link to stop.
 * **Blocks and shortcodes** that take their look from your theme, and work without JavaScript and behind a page cache.
 * **Privacy built in**: no IP addresses stored, export and erasure through WordPress's privacy tools, and no outside service unless you use Akismet.
@@ -44,6 +45,22 @@ For a complete page, insert the Feature request page pattern. It has the form, t
 By default, only logged-in users can suggest features, and new requests wait for your approval under Feature Requests, marked Pending. Requests from editors and administrators are published straight away. Each board can change who may suggest features and whether requests wait for approval.
 
 Each new request is emailed to the site's administration email address, with a link to review it. You can change the addresses, or turn the email off, under Feature Requests → Settings.
+
+= Showing requests on other pages =
+
+The board is on one page. Two more blocks bring requests, and votes, to the rest of your site.
+
+The Feature Request List block is a short list of the requests with the most votes, or of the newest ones, with their vote buttons and a link to the board. It suits a home page, a sidebar or the end of a post. In the block, choose how many requests it shows, their order, one status and one board. It has no search and no filters. As a shortcode:
+
+`[feature_request_list count="5" sort="new" status="planned" board="board-slug"]`
+
+Leave them all out for the five requests with the most votes among those still open for voting, from every board.
+
+The Feature Request Card block shows one request with its vote button, in a post or a page that talks about it, such as an announcement or a help article. In the block, find the request by typing a few letters of its title. The shortcode takes the request's ID, which is the number in the address of its edit screen:
+
+`[feature_request id="123"]`
+
+Three patterns put the blocks on a page for you: Feature request form beside the board, in two columns; Most wanted feature requests, a heading above the list; and Suggest a feature, a few words with a button that leads to the board.
 
 = Managing requests =
 
@@ -99,7 +116,7 @@ Developers can add a captcha through the `mwtfrs_verify_captcha` filter, or anot
 
 = Themes =
 
-The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `submit-form.php`, `vote-button.php`, `request.php` or `official-response.php`.
+The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `request-list.php`, `request-card.php`, `request-item.php`, `vote-button.php`, `submit-form.php`, `request.php` or `official-response.php`.
 
 The text of the emails to followers can be changed the same way: copy `emails/status-changed.php` or `emails/request-approved.php` to `feature-request-system/emails` in your theme.
 
@@ -109,7 +126,7 @@ To style the blocks entirely yourself, turn the plugin's stylesheets off from yo
 
 = Accessibility =
 
-The board, the form and the request page aim for WCAG 2.2 level AA. Everything works with a keyboard and without JavaScript, changes are announced to screen readers, and the automated checks of axe pass in block themes and classic themes. Colours come from your theme, so the contrast of your theme's own text and background still matters.
+The board, the list, the card, the form and the request page aim for WCAG 2.2 level AA. Everything works with a keyboard and without JavaScript, changes are announced to screen readers, and the automated checks of axe pass in block themes and classic themes. Colours come from your theme, so the contrast of your theme's own text and background still matters.
 
 = Privacy =
 

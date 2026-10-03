@@ -5,7 +5,6 @@
 	"version": "0.1.0",
 	"title": "Feature Request Form",
 	"category": "widgets",
-	"icon": "feedback",
 	"description": "A form for suggesting features. Shows similar requests while people type, so they can vote instead of posting a duplicate.",
 	"keywords": [ "feature request", "suggest", "submit", "feedback", "ideas" ],
 	"textdomain": "feature-request-system",
@@ -15,6 +14,7 @@
 			"default": 0
 		}
 	},
+	"example": {},
 	"supports": {
 		"html": false,
 		"interactivity": true,

@@ -20,6 +20,10 @@ export default function Edit( { attributes, setAttributes } ) {
 							'Board that receives requests',
 							'feature-request-system'
 						) }
+						noneLabel={ __(
+							'Default board',
+							'feature-request-system'
+						) }
 						value={ attributes.board }
 						onChange={ ( board ) => setAttributes( { board } ) }
 					/>

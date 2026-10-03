@@ -5,7 +5,6 @@
 	"version": "0.1.0",
 	"title": "Feature Request Details",
 	"category": "theme",
-	"icon": "thumbs-up",
 	"description": "The vote button, status and categories of the feature request being viewed. For the template of a single feature request.",
 	"keywords": [ "feature request", "vote", "status" ],
 	"textdomain": "feature-request-system",

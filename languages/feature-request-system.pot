@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Feature Request System 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/feature-request-system\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wt-assets\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-02T17:54:08+00:00\n"
+"POT-Creation-Date: 2026-10-03T18:51:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: feature-request-system\n"
@@ -143,7 +143,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/Admin/ProfileFollows.php:62
-#: src/Frontend/Blocks.php:137
+#: src/Frontend/Blocks.php:216
 #: src/Privacy/PersonalData.php:108
 msgid "Feature requests"
 msgstr ""
@@ -247,13 +247,15 @@ msgstr ""
 #: src/Content/StatusTaxonomy.php:235
 #: src/Privacy/PersonalData.php:253
 #: templates/board.php:38
+#: blocks/board/edit.js:82
+#: build/board/index.js:1
 msgid "Status"
 msgstr ""
 
 #: src/Admin/RequestList.php:62
 #: src/Admin/TermSelectBox.php:38
 #: src/Content/BoardTaxonomy.php:92
-#: blocks/board/edit.js:19
+#: blocks/board/edit.js:91
 #: blocks/submit/edit.js:17
 #: build/board/index.js:1
 #: build/submit/index.js:1
@@ -262,6 +264,8 @@ msgstr ""
 
 #: src/Admin/RequestList.php:134
 #: templates/board.php:41
+#: blocks/shared/status-select.js:35
+#: build/board/index.js:1
 msgid "All statuses"
 msgstr ""
 
@@ -270,6 +274,8 @@ msgid "Filter by status"
 msgstr ""
 
 #: src/Admin/RequestList.php:135
+#: blocks/board/edit.js:33
+#: build/board/index.js:1
 msgid "All boards"
 msgstr ""
 
@@ -324,7 +330,8 @@ msgid "Uninstalling"
 msgstr ""
 
 #: src/Admin/SettingsPage.php:108
-#: blocks/shared/board-select.js:30
+#: blocks/board/edit.js:98
+#: blocks/submit/edit.js:23
 #: build/board/index.js:1
 #: build/submit/index.js:1
 msgid "Default board"
@@ -484,8 +491,8 @@ msgid "You are not allowed to change this comment."
 msgstr ""
 
 #: src/Content/BoardTaxonomy.php:77
-#: src/Content/RequestPostType.php:120
-#: src/Content/RequestPostType.php:122
+#: src/Content/RequestPostType.php:133
+#: src/Content/RequestPostType.php:135
 msgid "Feature Requests"
 msgstr ""
 
@@ -572,67 +579,67 @@ msgstr ""
 msgid "&larr; Go to Categories"
 msgstr ""
 
-#: src/Content/RequestPostType.php:121
+#: src/Content/RequestPostType.php:134
 msgid "Feature Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:123
+#: src/Content/RequestPostType.php:136
 msgid "All Requests"
 msgstr ""
 
-#: src/Content/RequestPostType.php:124
+#: src/Content/RequestPostType.php:137
 msgid "Add Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:125
+#: src/Content/RequestPostType.php:138
 msgid "Add Feature Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:126
+#: src/Content/RequestPostType.php:139
 msgid "Edit Feature Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:127
+#: src/Content/RequestPostType.php:140
 msgid "New Feature Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:128
+#: src/Content/RequestPostType.php:141
 msgid "View Feature Request"
 msgstr ""
 
-#: src/Content/RequestPostType.php:129
+#: src/Content/RequestPostType.php:142
 msgid "View Feature Requests"
 msgstr ""
 
-#: src/Content/RequestPostType.php:130
+#: src/Content/RequestPostType.php:143
 msgid "Search Feature Requests"
 msgstr ""
 
-#: src/Content/RequestPostType.php:131
+#: src/Content/RequestPostType.php:144
 msgid "No feature requests found."
 msgstr ""
 
-#: src/Content/RequestPostType.php:132
+#: src/Content/RequestPostType.php:145
 msgid "No feature requests found in Trash."
 msgstr ""
 
-#: src/Content/RequestPostType.php:133
+#: src/Content/RequestPostType.php:146
 msgid "Feature request published."
 msgstr ""
 
-#: src/Content/RequestPostType.php:134
+#: src/Content/RequestPostType.php:147
 msgid "Feature request updated."
 msgstr ""
 
-#: src/Content/RequestPostType.php:135
+#: src/Content/RequestPostType.php:148
 msgid "Filter feature requests list"
 msgstr ""
 
-#: src/Content/RequestPostType.php:136
+#: src/Content/RequestPostType.php:149
 msgid "Feature requests list navigation"
 msgstr ""
 
-#: src/Content/RequestPostType.php:137
+#: src/Content/RequestPostType.php:150
 msgid "Feature requests list"
 msgstr ""
 
@@ -693,109 +700,151 @@ msgstr ""
 msgid "&larr; Go to Statuses"
 msgstr ""
 
-#: src/Frontend/Blocks.php:127
+#: src/Frontend/Blocks.php:206
 msgid "Feature Request System cannot show its blocks because the block files are missing. Run npm install and npm run build, or reinstall the plugin from WordPress.org."
 msgstr ""
 
-#: src/Frontend/Blocks.php:141
+#: src/Frontend/Blocks.php:221
 msgid "Browse requests"
 msgstr ""
 
-#: src/Frontend/Blocks.php:147
+#: src/Frontend/Blocks.php:226
 msgid "Feature request page"
 msgstr ""
 
-#: src/Frontend/Blocks.php:148
+#: src/Frontend/Blocks.php:227
 msgid "A form for suggesting features, above the board where people vote."
 msgstr ""
 
-#: src/Frontend/Board.php:93
+#: src/Frontend/Blocks.php:233
+msgid "Feature request form beside the board"
+msgstr ""
+
+#: src/Frontend/Blocks.php:234
+msgid "A form for suggesting features in a narrow column, beside the board where people vote."
+msgstr ""
+
+#: src/Frontend/Blocks.php:247
+msgid "Most wanted feature requests"
+msgstr ""
+
+#: src/Frontend/Blocks.php:248
+msgid "The five feature requests with the most votes, with their vote buttons and a link to the board."
+msgstr ""
+
+#: src/Frontend/Blocks.php:249
+msgid "Most wanted"
+msgstr ""
+
+#: src/Frontend/Blocks.php:270
+msgid "Tell us what you are missing. See what others have asked for, and vote for what matters to you."
+msgstr ""
+
+#: src/Frontend/Blocks.php:275
+#: src/Frontend/Blocks.php:281
+#: templates/submit-form.php:25
+msgid "Suggest a feature"
+msgstr ""
+
+#: src/Frontend/Blocks.php:282
+msgid "A few words that invite people to suggest features and vote, with a button that leads to the board."
+msgstr ""
+
+#: src/Frontend/Blocks.php:283
+msgid "Have an idea?"
+msgstr ""
+
+#: src/Frontend/Board.php:95
+#: blocks/board/edit.js:63
+#: build/board/index.js:1
 msgid "Most votes"
 msgstr ""
 
-#: src/Frontend/Board.php:94
+#: src/Frontend/Board.php:96
+#: blocks/board/edit.js:70
+#: build/board/index.js:1
 msgid "Newest"
 msgstr ""
 
-#: src/Frontend/Board.php:131
+#: src/Frontend/Board.php:133
 msgid "No requests match these filters."
 msgstr ""
 
-#: src/Frontend/Board.php:151
+#: src/Frontend/Board.php:153
 msgid "No requests are open for voting right now."
 msgstr ""
 
-#: src/Frontend/Board.php:152
+#: src/Frontend/Board.php:154
 msgid "No requests yet."
 msgstr ""
 
-#: src/Frontend/Board.php:241
+#: src/Frontend/Board.php:243
 msgid "Previous"
 msgstr ""
 
-#: src/Frontend/Board.php:242
+#: src/Frontend/Board.php:244
 msgid "Next"
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:81
+#: src/Frontend/RequestNotice.php:84
 msgid "Your vote was added."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:82
+#: src/Frontend/RequestNotice.php:85
 msgid "Your vote was removed."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:83
+#: src/Frontend/RequestNotice.php:86
 #: src/Voting/VoteService.php:98
 msgid "Log in to vote on this request."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:84
+#: src/Frontend/RequestNotice.php:87
 msgid "Voting is closed for this request."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:85
+#: src/Frontend/RequestNotice.php:88
 #: src/Voting/VoteService.php:95
 msgid "Voting is turned off for this board."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:86
+#: src/Frontend/RequestNotice.php:89
 msgid "Too many votes in a short time. Try again later."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:87
+#: src/Frontend/RequestNotice.php:90
 msgid "This request is not open for voting."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:88
+#: src/Frontend/RequestNotice.php:91
 #: src/Frontend/SubmitForm.php:249
 msgid "This page has expired. Reload it and try again."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:89
+#: src/Frontend/RequestNotice.php:92
 msgid "Your vote could not be verified. Reload the page and try again."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:90
+#: src/Frontend/RequestNotice.php:93
 msgid "Your vote could not be saved. Try again."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:91
-#: src/Frontend/VoteStore.php:43
+#: src/Frontend/RequestNotice.php:94
+#: src/Frontend/VoteStore.php:44
 msgid "You now follow this request."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:92
-#: src/Frontend/VoteStore.php:44
+#: src/Frontend/RequestNotice.php:95
+#: src/Frontend/VoteStore.php:45
 msgid "You no longer follow this request."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:93
+#: src/Frontend/RequestNotice.php:96
 #: src/Notifications/Subscriptions.php:213
 msgid "Log in to follow this request."
 msgstr ""
 
-#: src/Frontend/RequestNotice.php:94
+#: src/Frontend/RequestNotice.php:97
 msgid "That could not be saved. Try again."
 msgstr ""
 
@@ -863,19 +912,19 @@ msgstr ""
 msgid "Similar requests found: %d."
 msgstr ""
 
-#: src/Frontend/VoteStore.php:40
+#: src/Frontend/VoteStore.php:41
 msgid "Vote added."
 msgstr ""
 
-#: src/Frontend/VoteStore.php:41
+#: src/Frontend/VoteStore.php:42
 msgid "Vote removed."
 msgstr ""
 
-#: src/Frontend/VoteStore.php:42
+#: src/Frontend/VoteStore.php:43
 msgid "Your vote could not be saved. Check your connection and try again."
 msgstr ""
 
-#: src/Frontend/VoteStore.php:45
+#: src/Frontend/VoteStore.php:46
 msgid "That could not be saved. Check your connection and try again."
 msgstr ""
 
@@ -1130,6 +1179,8 @@ msgstr ""
 
 #: src/Privacy/PersonalData.php:270
 #: src/Privacy/PersonalData.php:275
+#: blocks/request-card/edit.js:94
+#: build/request-card/index.js:1
 msgid "Request"
 msgstr ""
 
@@ -1312,6 +1363,8 @@ msgid "Search requests"
 msgstr ""
 
 #: templates/board.php:40
+#: blocks/shared/status-select.js:32
+#: build/board/index.js:1
 msgid "Open for voting"
 msgstr ""
 
@@ -1323,14 +1376,7 @@ msgstr ""
 msgid "Show requests"
 msgstr ""
 
-#: templates/board.php:107
-#: templates/request.php:78
-#: templates/submit-form.php:32
-#: templates/submit-form.php:155
-msgid "Log in"
-msgstr ""
-
-#: templates/board.php:115
+#: templates/board.php:91
 msgid "More requests"
 msgstr ""
 
@@ -1378,6 +1424,21 @@ msgstr ""
 msgid "Read more and join the discussion:"
 msgstr ""
 
+#: templates/request-item.php:47
+#: templates/request.php:78
+#: templates/submit-form.php:32
+#: templates/submit-form.php:155
+msgid "Log in"
+msgstr ""
+
+#: templates/request-list.php:38
+msgid "Nothing to show here yet."
+msgstr ""
+
+#: templates/request-list.php:42
+msgid "See all requests"
+msgstr ""
+
 #. translators: %s: board name.
 #: templates/request.php:34
 #, php-format
@@ -1394,10 +1455,6 @@ msgstr ""
 
 #: templates/request.php:70
 msgid "Follow"
-msgstr ""
-
-#: templates/submit-form.php:25
-msgid "Suggest a feature"
 msgstr ""
 
 #: templates/submit-form.php:34
@@ -1464,22 +1521,93 @@ msgstr ""
 msgid "votes. Voting is closed."
 msgstr ""
 
-#: blocks/board/edit.js:21
+#: blocks/board/edit.js:27
+#: build/board/index.js:1
+msgid "List"
+msgstr ""
+
+#: blocks/board/edit.js:29
+#: build/board/index.js:1
+msgid "Requests of"
+msgstr ""
+
+#: blocks/board/edit.js:45
+#: build/board/index.js:1
+msgid "Number of requests"
+msgstr ""
+
+#: blocks/board/edit.js:59
+#: build/board/index.js:1
+msgid "Order"
+msgstr ""
+
+#: blocks/board/edit.js:94
 #: build/board/index.js:1
 msgid "Board to show"
 msgstr ""
 
-#: blocks/board/edit.js:33
+#: blocks/board/edit.js:110
 #: build/board/index.js:1
 msgid "Requests per page"
 msgstr ""
 
-#: blocks/request/edit.js:16
+#: blocks/board/index.js:21
+#: build/board/index.js:1
+msgid "Feature Request List"
+msgstr ""
+
+#: blocks/board/index.js:22
+#: build/board/index.js:1
+msgid "A short list of the most-voted or the newest feature requests, with their vote buttons and a link to the board."
+msgstr ""
+
+#: blocks/board/index.js:27
+#: build/board/index.js:1
+msgid "top"
+msgstr ""
+
+#: blocks/board/index.js:28
+#: build/board/index.js:1
+msgid "popular"
+msgstr ""
+
+#: blocks/board/index.js:29
+#: build/board/index.js:1
+msgid "most wanted"
+msgstr ""
+
+#: blocks/request-card/edit.js:66
+#: build/request-card/index.js:1
+msgid "Feature request"
+msgstr ""
+
+#: blocks/request-card/edit.js:67
+#: build/request-card/index.js:1
+msgid "Type a few letters of its title."
+msgstr ""
+
+#: blocks/request-card/edit.js:107
+#: blocks/request-card/edit.js:122
+#: build/request-card/index.js:1
+msgid "Feature Request Card"
+msgstr ""
+
+#: blocks/request-card/edit.js:111
+#: build/request-card/index.js:1
+msgid "This request is not published, so visitors see nothing here. Choose another one in the block settings."
+msgstr ""
+
+#: blocks/request-card/edit.js:126
+#: build/request-card/index.js:1
+msgid "Choose the feature request to show, with its vote button."
+msgstr ""
+
+#: blocks/request/edit.js:18
 #: build/request/index.js:1
 msgid "Feature Request Details"
 msgstr ""
 
-#: blocks/request/edit.js:20
+#: blocks/request/edit.js:22
 #: build/request/index.js:1
 msgid "Shows the vote button, status and categories of the feature request being viewed."
 msgstr ""
@@ -1502,9 +1630,11 @@ msgid "Feature requests that people can search, filter and vote on."
 msgstr ""
 
 #: blocks/board/block.json
+#: blocks/request-card/block.json
 #: blocks/request/block.json
 #: blocks/submit/block.json
 #: build/board/block.json
+#: build/request-card/block.json
 #: build/request/block.json
 #: build/submit/block.json
 msgctxt "block keyword"
@@ -1518,27 +1648,51 @@ msgid "roadmap"
 msgstr ""
 
 #: blocks/board/block.json
+#: blocks/request-card/block.json
 #: blocks/request/block.json
 #: build/board/block.json
+#: build/request-card/block.json
 #: build/request/block.json
 msgctxt "block keyword"
 msgid "vote"
 msgstr ""
 
 #: blocks/board/block.json
+#: blocks/request-card/block.json
 #: blocks/submit/block.json
 #: build/board/block.json
+#: build/request-card/block.json
 #: build/submit/block.json
 msgctxt "block keyword"
 msgid "feedback"
 msgstr ""
 
 #: blocks/board/block.json
+#: blocks/request-card/block.json
 #: blocks/submit/block.json
 #: build/board/block.json
+#: build/request-card/block.json
 #: build/submit/block.json
 msgctxt "block keyword"
 msgid "ideas"
+msgstr ""
+
+#: blocks/request-card/block.json
+#: build/request-card/block.json
+msgctxt "block title"
+msgid "Feature Request Card"
+msgstr ""
+
+#: blocks/request-card/block.json
+#: build/request-card/block.json
+msgctxt "block description"
+msgid "One feature request with its vote button, for a post or a page that talks about it."
+msgstr ""
+
+#: blocks/request-card/block.json
+#: build/request-card/block.json
+msgctxt "block keyword"
+msgid "embed"
 msgstr ""
 
 #: blocks/request/block.json

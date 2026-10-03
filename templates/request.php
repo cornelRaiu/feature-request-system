@@ -37,12 +37,12 @@ $mwtfrs_item = $args['item'];
 		</p>
 	<?php endif; ?>
 
-	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="state.announcement"></p>
+	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>
 
 	<div
 		class="mwtfrs-single__row"
 		<?php echo wp_interactivity_data_wp_context( $mwtfrs_item['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
-		data-wp-watch="callbacks.syncVoted"
+		data-wp-watch="callbacks.sync"
 	>
 		<?php echo FeatureRequestSystem\Frontend\Template::render( 'vote-button', $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The vote button template escapes every value. ?>
 

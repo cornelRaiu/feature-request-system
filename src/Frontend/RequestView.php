@@ -134,7 +134,7 @@ final class RequestView {
 			[
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
-				'context'            => [ 'ids' => [ $post->ID ] ],
+				'context'            => VoteStore::context( [ $item ] ),
 				'item'               => $item,
 				'board_name'         => $board ? $board->name : '',
 				'board_url'          => $board ? BoardSettings::page_url( $board->term_id ) : '',

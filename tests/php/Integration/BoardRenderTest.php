@@ -16,6 +16,7 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\Board;
 use FeatureRequestSystem\Frontend\BoardQuery;
+use FeatureRequestSystem\Frontend\RequestCard;
 use FeatureRequestSystem\Frontend\RequestItem;
 use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\RequestView;
@@ -129,7 +130,7 @@ final class BoardRenderTest extends TestCase {
 
 	public function test_the_stylesheets_load_with_the_blocks_unless_a_site_turns_them_off(): void {
 		$registry = WP_Block_Type_Registry::get_instance();
-		$names    = [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK ];
+		$names    = [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK, RequestCard::BLOCK ];
 		foreach ( $names as $name ) {
 			$this->assertCount( 1, $registry->get_registered( $name )->style_handles, $name );
 			$registry->unregister( $name );
@@ -268,6 +269,36 @@ final class BoardRenderTest extends TestCase {
 
 		$this->assertSame( $this->normalize( $other_html ), $this->normalize( $voter_html ) );
 		$this->assertStringContainsString( 'name="_wpnonce"', $voter_html );
+	}
+
+	/**
+	 * A guest has votes only where guests may vote. Elsewhere the script has nothing to
+	 * ask, and a visitor's page view costs the server no second request.
+	 */
+	public function test_the_script_asks_for_a_guests_votes_only_on_a_board_where_guests_vote(): void {
+		$this->request_with_votes( 'Dark mode', 0 );
+		$context = "/^<div[^>]*data-wp-context='(\{[^']*\})'/s";
+
+		preg_match( $context, $this->render(), $logged_in_only );
+		$this->assertFalse( json_decode( $logged_in_only[1], true )['guestVotes'] );
+
+		BoardSettings::update( RequestTerms::default_term( BoardTaxonomy::NAME ), [ BoardSettings::VOTING => BoardSettings::ANYONE ] );
+		preg_match( $context, $this->render(), $anyone );
+		$this->assertTrue( json_decode( $anyone[1], true )['guestVotes'] );
+	}
+
+	/**
+	 * With the announcement in the store, every block on the page would say it.
+	 */
+	public function test_each_block_has_its_own_announcement_for_screen_readers(): void {
+		$this->request_with_votes( 'Dark mode', 0 );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>', $html );
+		$this->assertMatchesRegularExpression( "/^<div[^>]*data-wp-context='\{[^']*\"announcement\":\"\"\}'/s", $html );
+		$this->assertArrayNotHasKey( 'announcement', wp_interactivity_state( VoteStore::NAME ) );
+		$this->assertArrayHasKey( 'votes', wp_interactivity_state( VoteStore::NAME ), 'Counts that changed are shared, so a request shown twice shows one number.' );
 	}
 
 	public function test_guests_get_no_nonce_in_the_html(): void {

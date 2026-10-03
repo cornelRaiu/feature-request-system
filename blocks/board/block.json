@@ -5,7 +5,6 @@
 	"version": "0.1.0",
 	"title": "Feature Request Board",
 	"category": "widgets",
-	"icon": "lightbulb",
 	"description": "Feature requests that people can search, filter and vote on.",
 	"keywords": [ "feature request", "roadmap", "vote", "feedback", "ideas" ],
 	"textdomain": "feature-request-system",
@@ -17,8 +16,22 @@
 		"perPage": {
 			"type": "integer",
 			"default": 20
+		},
+		"compact": {
+			"type": "boolean",
+			"default": false
+		},
+		"sort": {
+			"type": "string",
+			"enum": [ "top", "new" ],
+			"default": "top"
+		},
+		"status": {
+			"type": "string",
+			"default": ""
 		}
 	},
+	"example": {},
 	"supports": {
 		"html": false,
 		"interactivity": true,

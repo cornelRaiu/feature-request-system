@@ -1,6 +1,6 @@
 # Manual test plan
 
-A list of everything to try by hand before a release: 130 cases in 17 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
+A list of everything to try by hand before a release: 142 cases in 18 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
 
 - **Build to test:** the branch that is checked out in the plugin folder of the test site.
 - **Test site:** https://test-wp-plugins.test (WordPress 7.1, PHP 8.4, Twenty Twenty-Five).
@@ -15,9 +15,9 @@ A list of everything to try by hand before a release: 130 cases in 17 areas. The
 
 | Priority | Meaning | Cases |
 |---|---|---|
-| P1 | Must pass before the release. | 76 |
-| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 49 |
-| P3 | Extended checks that need extra setup. Run them if you have the time. | 5 |
+| P1 | Must pass before the release. | 80 |
+| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 54 |
+| P3 | Extended checks that need extra setup. Run them if you have the time. | 8 |
 
 ## Who does the steps
 
@@ -604,6 +604,197 @@ Expected:
 - The page says "Settings saved." and the field shows 2.
 - Each run votes as a new guest from your address. The third run prints 429, or an earlier one if guests voted from your address in the last hour. The runs before it print 200.
 - Sam's vote counts: logged-in users at the same address have their own limit.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### LST · The list, the card and more patterns
+
+These blocks show requests on pages other than the board's. Use the sample requests (S4) and the page from BLK-01, which is the board's page.
+
+#### LST-01 · A list shows the most wanted requests
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Add a new page called Home.
+2. In the inserter, search for "Feature Request List" and insert it.
+3. Look at the block's settings in the sidebar.
+4. Publish the page and view it.
+
+Expected:
+
+- The inserter offers Feature Request List next to Feature Request Board, each with its own icon.
+- The settings are "Requests of" (All boards), "Number of requests" (5), "Order" (Most votes) and "Status" (Open for voting).
+- The page shows the five requests with the most votes, each with its vote button, its title and its status.
+- The list has no search, no filters and no page links.
+- "See all requests" leads to the Feature requests page.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-02 · The settings of the list
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Edit Home. Set "Number of requests" to 3 and "Order" to Newest. Update and view the page.
+2. Set "Status" to Planned. Update and view the page.
+3. Set "Status" back to "Open for voting" and "Order" back to "Most votes". Update.
+
+Expected:
+
+- The page shows the three newest requests.
+- With Planned, it shows only requests that are Planned.
+- The editor shows the same requests as the page each time.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-03 · Voting on the list
+
+**Priority:** P1 · **As:** Sam
+
+Steps:
+
+1. Open Home.
+2. Press the vote button of a request.
+3. Reload the page.
+4. Press the button again.
+
+Expected:
+
+- The button looks pressed and the count goes up by one, without the page reloading.
+- After the reload the button is still pressed.
+- The second press takes the vote back.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-04 · A card shows one request in a post
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Add a new post called "What we are working on" with a line of text.
+2. Insert the Feature Request Card block.
+3. In its field, type a few letters of a request's title, such as "dark", and choose the request.
+4. Publish the post and view it.
+
+Expected:
+
+- The field lists the requests whose titles match as you type.
+- The editor then shows the card of that request.
+- The post shows the card between the text: the vote button with its count, the title, the first words of the description, the status and the categories.
+- The title leads to the request's page.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-05 · A request shown twice stays in step
+
+**Priority:** P1 · **As:** Admin, then Sam
+
+Steps:
+
+1. As Admin: edit Home and add a Feature Request Card below the list, for the first request of the list. Update.
+2. As Sam: open Home and press the vote button on the card.
+3. Press the vote button of the same request in the list.
+
+Expected:
+
+- The card's button is pressed and its count goes up.
+- The same request in the list changes with it, at once: pressed, and the same count.
+- Taking the vote back in the list changes the card too.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-06 · A card of a request that visitors cannot see
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Under Feature Requests, use Quick Edit to set the request from LST-04 to "Pending Review".
+2. View the post from LST-04.
+3. Open the post in the editor.
+4. Publish the request again and view the post.
+
+Expected:
+
+- The post shows nothing where the card was, and no error.
+- The editor says that the request is not published, and that visitors see nothing there.
+- After publishing the request, the card is back.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-07 · The pattern with the form beside the board
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Add a new page called Feedback.
+2. In the inserter, open Patterns, choose the Feature requests category and insert "Feature request form beside the board".
+3. Publish the page and view it in a wide window.
+4. Make the window as narrow as a phone.
+
+Expected:
+
+- In a wide window, the form is in a narrow column on the left, and the heading "Browse requests" and the board are on the right.
+- In a narrow window, the form comes first and the board below it.
+- Nothing is cut off, and nothing scrolls sideways.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-08 · The patterns "Most wanted" and "Suggest a feature"
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Add a new page. From the Feature requests patterns, insert "Most wanted feature requests" and then "Suggest a feature".
+2. Publish the page and view it.
+3. Press the button "Suggest a feature".
+4. In the editor, open the pattern category "Call to action".
+
+Expected:
+
+- The page shows the heading "Most wanted" above five requests with their vote buttons.
+- Below it: the heading "Have an idea?", a line of text and the button.
+- The button leads to the Feature requests page.
+- "Suggest a feature" is also among the calls to action.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-09 · The shortcodes of the list and the card
+
+**Priority:** P3 · **As:** Admin
+
+Steps:
+
+1. Add a new page. Add a Shortcode block with `[feature_request_list count="3" sort="new"]`.
+2. Add a second Shortcode block with `[feature_request id="123"]`, where 123 is the number in the address of a request's edit screen.
+3. Publish the page and view it.
+
+Expected:
+
+- The page shows the three newest requests as a list, and the card of that request.
+- Their vote buttons work.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### LST-10 · Icons and previews of the blocks
+
+**Priority:** P3 · **As:** Admin
+
+Steps:
+
+1. In the editor, open the inserter and search for "feature request".
+2. Move the pointer over Feature Request Board, then over Feature Request List and Feature Request Form.
+
+Expected:
+
+- Five blocks are listed, each with its own icon: Board (the plugin's logo), List, Form, Details and Card.
+- Each of the three shows a preview with the site's own requests.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 
@@ -1674,6 +1865,24 @@ Expected:
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 
+#### ADM-16 · The menu icon takes the admin colours
+
+**Priority:** P3 · **As:** Admin
+
+Steps:
+
+1. Look at Feature Requests in the admin menu, then move the pointer over it.
+2. Open Feature Requests.
+3. Under Users → Profile, choose another Admin Color Scheme and save.
+
+Expected:
+
+- The menu shows the plugin's logo, a stack of request cards, in the colour of the other menu icons.
+- Under the pointer, and on the plugin's own screens, it changes colour as the other icons do.
+- In the other colour scheme, the icon has that scheme's colours.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
 ### PRV · Privacy
 
 #### PRV-01 · Submitters stay private
@@ -1939,6 +2148,23 @@ Steps:
 Expected:
 
 - All of them work as with JavaScript.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### NJS-05 · Voting on a list and on a card
+
+**Priority:** P2 · **As:** Sam
+
+Steps:
+
+1. Open Home, the page with the list and the card from LST-05.
+2. Press the vote button on the card.
+3. Press the vote button of another request in the list.
+
+Expected:
+
+- The page reloads at the card, with "Your vote was added." in it and the count one higher.
+- After the second press, the page reloads at that request in the list, with the message.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 

@@ -82,20 +82,21 @@ final class BoardQuery {
 	/**
 	 * Builds the query for one page of a board.
 	 *
-	 * @param int                                                                              $board_id Board term ID.
-	 * @param array{search: string, status: string, category: string, sort: string, page: int} $filters  Filters from filters_from_request().
+	 * @param int                                                                              $board_id Board term ID, or 0 for the requests of every board.
+	 * @param array{search: string, status: string, category: string, sort: string, page: int} $filters  Filters, as from filters_from_request().
 	 * @param int                                                                              $per_page Requests per page.
 	 * @return array<string, mixed> WP_Query arguments.
 	 */
 	public static function args( int $board_id, array $filters, int $per_page ): array {
-		$tax_query = [
-			[
+		$tax_query = [];
+		if ( $board_id ) {
+			$tax_query[] = [
 				'taxonomy' => BoardTaxonomy::NAME,
 				'field'    => 'term_id',
 				'terms'    => $board_id,
-			],
-		];
-		$closed    = StatusTaxonomy::closed_ids();
+			];
+		}
+		$closed = StatusTaxonomy::closed_ids();
 		if ( '' === $filters['status'] && $closed ) {
 			// By default the board shows what people can still vote on.
 			$tax_query[] = [

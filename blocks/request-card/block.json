@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "mwtfrs/request-card",
+	"version": "0.1.0",
+	"title": "Feature Request Card",
+	"category": "widgets",
+	"description": "One feature request with its vote button, for a post or a page that talks about it.",
+	"keywords": [ "feature request", "vote", "embed", "feedback", "ideas" ],
+	"textdomain": "feature-request-system",
+	"attributes": {
+		"requestId": {
+			"type": "integer",
+			"default": 0
+		}
+	},
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style-index.css",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}

@@ -1,11 +1,11 @@
 <?php
 /**
- * Vote button of one request, on the board and on the request's own page.
+ * Vote button of one request, wherever the request is shown.
  *
  * To change the markup, copy this file to yourtheme/feature-request-system/vote-button.php.
  * Keep the data-wp-* attributes and the form fields: they make voting work, with and
  * without JavaScript. The button reads the request's data-wp-context from an element
- * around it, which board.php and request.php provide.
+ * around it, which board.php, request-list.php, request-card.php and request.php provide.
  *
  * @package FeatureRequestSystem
  *
@@ -23,7 +23,7 @@ $mwtfrs_vote = $args['vote'];
 	<form class="mwtfrs-request__vote" method="post" action="<?php echo esc_url( $mwtfrs_vote['url'] ); ?>" data-wp-on--submit="actions.toggle">
 		<input type="hidden" name="action" value="<?php echo esc_attr( $mwtfrs_vote['action'] ); ?>">
 		<input type="hidden" name="request_id" value="<?php echo (int) $mwtfrs_item['id']; ?>">
-		<input type="hidden" name="redirect_to" value="<?php echo esc_url( $mwtfrs_vote['redirect_to'] ); ?>">
+		<input type="hidden" name="redirect_to" value="<?php echo esc_url( $mwtfrs_vote['redirect_to'] . '#' . $mwtfrs_item['dom_id'] ); ?>">
 		<?php if ( $mwtfrs_vote['nonce'] ) : ?>
 			<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( $mwtfrs_vote['nonce'] ); ?>">
 		<?php endif; ?>

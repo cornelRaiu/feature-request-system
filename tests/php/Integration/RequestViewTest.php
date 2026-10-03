@@ -61,6 +61,7 @@ final class RequestViewTest extends TestCase {
 
 		$this->assertStringContainsString( 'id="' . RequestItem::dom_id( $request ) . '"', $html );
 		$this->assertStringContainsString( 'data-wp-interactive="' . VoteStore::NAME . '"', $html );
+		$this->assertStringContainsString( '<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>', $html );
 		$this->assertMatchesRegularExpression( '/<span class="mwtfrs-vote__count"[^>]*>7<\/span>/', $html );
 		$this->assertStringContainsString( '>Planned</span>', $html );
 		$this->assertStringContainsString( '>Appearance</span>', $html );
@@ -76,7 +77,7 @@ final class RequestViewTest extends TestCase {
 		$this->assertStringContainsString( 'action="' . admin_url( 'admin-post.php' ) . '"', $html );
 		$this->assertStringContainsString( 'name="action" value="' . VoteForm::ACTION . '"', $html );
 		$this->assertStringContainsString( 'name="request_id" value="' . $request . '"', $html );
-		$this->assertStringContainsString( 'name="redirect_to" value="' . esc_url( get_permalink( $request ) ) . '"', $html );
+		$this->assertStringContainsString( 'name="redirect_to" value="' . esc_url( get_permalink( $request ) . '#' . RequestItem::dom_id( $request ) ) . '"', $html, 'The vote comes back to the request.' );
 		$this->assertStringContainsString( 'name="_wpnonce" value="' . wp_create_nonce( VoteForm::ACTION ) . '"', $html );
 	}
 

@@ -1,0 +1,15 @@
+/**
+ * Feature Request Card: one request, as on the board.
+ */
+
+@use "../shared/base";
+@use "../shared/request";
+@use "../shared/item";
+
+.mwtfrs-card {
+
+	@include base.tokens;
+
+	// Lets the request tighten its spacing where the card is narrow.
+	container-type: inline-size;
+}
