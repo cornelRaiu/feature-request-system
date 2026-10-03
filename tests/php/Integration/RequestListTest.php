@@ -195,7 +195,7 @@ final class RequestListTest extends TestCase {
 
 	public function test_menu_shows_moderators_how_many_requests_wait_for_approval(): void {
 		$menu = [
-			26 => [ 'Feature Requests', 'edit_posts', 'edit.php?post_type=' . RequestPostType::NAME, '', 'menu-top', 'menu-posts', 'dashicons-lightbulb' ],
+			26 => [ 'Feature Requests', 'edit_posts', 'edit.php?post_type=' . RequestPostType::NAME, '', 'menu-top', 'menu-posts', get_post_type_object( RequestPostType::NAME )->menu_icon ],
 			20 => [ 'Pages', 'edit_pages', 'edit.php?post_type=page', '', 'menu-top', 'menu-pages', 'dashicons-admin-page' ],
 		];
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );

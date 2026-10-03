@@ -56,6 +56,19 @@ final class RequestPostType {
 	public const META_FLAGGED_AS_SPAM = '_mwtfrs_flagged_as_spam';
 
 	/**
+	 * The menu's icon: the plugin's logo in one colour. The cards behind are lighter, and the
+	 * vote arrow and the title are cut out of the card in front.
+	 *
+	 * WordPress paints an SVG menu icon in the colours of the admin colour scheme by rewriting
+	 * every fill in it. So each shape has a fill, and nothing is drawn with a stroke.
+	 */
+	private const MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+		. '<path fill="#a7aaad" fill-opacity=".45" d="M4 4V2.5A1.5 1.5 0 0 1 5.5 1h9A1.5 1.5 0 0 1 16 2.5V4z"/>'
+		. '<path fill="#a7aaad" fill-opacity=".7" d="M2 8V5.5A1.5 1.5 0 0 1 3.5 4h13A1.5 1.5 0 0 1 18 5.5V8z"/>'
+		. '<path fill="#a7aaad" fill-rule="evenodd" d="M3 8h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2zm2.5 3.2L8 13.7l-1.131 1.131L5.5 13.463l-1.369 1.368L3 13.7zM11 12h5a1 1 0 0 1 0 2h-5a1 1 0 0 1 0-2z"/>'
+		. '</svg>';
+
+	/**
 	 * Registers the post type and its meta.
 	 */
 	public static function register(): void {
@@ -69,7 +82,7 @@ final class RequestPostType {
 					'slug'       => self::REWRITE_SLUG,
 					'with_front' => false,
 				],
-				'menu_icon'        => 'dashicons-lightbulb',
+				'menu_icon'        => 'data:image/svg+xml;base64,' . base64_encode( self::MENU_ICON ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- WordPress paints an SVG menu icon only when it comes base64-encoded.
 				'menu_position'    => 26,
 				// No author support: front-end submitters are not WordPress authors, so their names
 				// stay out of author archives, oEmbed data and the public users endpoint.

@@ -151,6 +151,45 @@ test.describe( 'Feature request admin', () => {
 		).toHaveText( '2' );
 	} );
 
+	test( 'the menu icon takes the colours of the admin colour scheme', async ( {
+		page,
+	} ) => {
+		const menu = page.locator( '#menu-posts-mwtfrs_request' );
+		// WordPress paints the icon by rewriting the fills of the SVG it shows.
+		const fills = async () => {
+			const style = await menu
+				.locator( '.wp-menu-image' )
+				.getAttribute( 'style' );
+			const svg = Buffer.from(
+				style.match( /base64,([A-Za-z0-9+/=]+)/ )[ 1 ],
+				'base64'
+			).toString();
+
+			return [
+				...new Set(
+					[ ...svg.matchAll( /fill="([^"]+)"/g ) ].map(
+						( match ) => match[ 1 ]
+					)
+				),
+			];
+		};
+
+		await page.goto( '/wp-admin/index.php' );
+		await expect( menu.locator( '.wp-menu-image' ) ).toHaveClass(
+			/\bsvg\b/
+		);
+		// The icon colours of the user's scheme, which WordPress gives its painter.
+		const colours = await page.evaluate(
+			() => window._wpColorScheme.icons
+		);
+		await expect.poll( fills ).toEqual( [ colours.base ] );
+		await menu.hover();
+		await expect.poll( fills ).toEqual( [ colours.focus ] );
+
+		await page.goto( LIST );
+		await expect.poll( fills ).toEqual( [ colours.current ] );
+	} );
+
 	test( 'a note written in settings shows on the form for guests', async ( {
 		page,
 		browser,

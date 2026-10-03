@@ -110,6 +110,29 @@ final class ContentTypesTest extends TestCase {
 		$this->assertTrue( use_block_editor_for_post_type( 'post' ) );
 	}
 
+	/**
+	 * WordPress paints an SVG menu icon in the colours of the admin colour scheme by rewriting
+	 * the fill attributes in it. A shape without one would stay black, a stroke would keep its
+	 * colour, and a style attribute would be replaced.
+	 */
+	public function test_menu_icon_is_an_svg_that_wordpress_can_paint_in_the_admin_colours(): void {
+		$prefix = 'data:image/svg+xml;base64,';
+		$icon   = get_post_type_object( RequestPostType::NAME )->menu_icon;
+		$this->assertStringStartsWith( $prefix, $icon );
+
+		$svg = simplexml_load_string( (string) base64_decode( substr( $icon, strlen( $prefix ) ), true ) );
+		$this->assertNotFalse( $svg, 'The icon is well-formed XML.' );
+		$this->assertSame( 'svg', $svg->getName() );
+		$this->assertSame( '0 0 20 20', (string) $svg['viewBox'], 'Drawn for the 20 pixels of a menu icon.' );
+
+		$shapes = $svg->xpath( '//*[local-name() = "path" or local-name() = "rect" or local-name() = "circle" or local-name() = "ellipse" or local-name() = "polygon"]' );
+		$this->assertNotEmpty( $shapes );
+		foreach ( $shapes as $shape ) {
+			$this->assertNotSame( '', (string) $shape['fill'], 'Every shape has a fill.' );
+		}
+		$this->assertSame( [], $svg->xpath( '//*[@stroke or @style or local-name() = "style"]' ), 'Nothing is drawn with a stroke or styled with CSS.' );
+	}
+
 	public function test_status_box_is_a_single_choice_with_the_current_status_selected(): void {
 		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
 		$request = self::factory()->post->create( [ 'post_type' => RequestPostType::NAME ] );
