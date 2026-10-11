@@ -57,7 +57,7 @@ final class Plugin {
 	/**
 	 * Plugin version. Must match the plugin header and the readme stable tag.
 	 */
-	public const VERSION = '0.1.0';
+	public const VERSION = '1.0.0';
 
 	/**
 	 * Absolute path to the main plugin file.

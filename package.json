@@ -1,6 +1,6 @@
 {
     "name": "feature-request-system",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "private": true,
     "description": "Blocks and front-end scripts for the Feature Request System WordPress plugin.",
     "license": "GPL-3.0-or-later",

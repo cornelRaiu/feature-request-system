@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv3 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Feature Request System 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wt-assets\n"
+"Project-Id-Version: Feature Request System 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/git\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-03T18:51:30+00:00\n"
+"POT-Creation-Date: 2026-10-11T12:49:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: feature-request-system\n"
@@ -143,7 +143,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/Admin/ProfileFollows.php:62
-#: src/Frontend/Blocks.php:216
+#: src/Frontend/Blocks.php:215
 #: src/Privacy/PersonalData.php:108
 msgid "Feature requests"
 msgstr ""
@@ -700,57 +700,57 @@ msgstr ""
 msgid "&larr; Go to Statuses"
 msgstr ""
 
-#: src/Frontend/Blocks.php:206
+#: src/Frontend/Blocks.php:205
 msgid "Feature Request System cannot show its blocks because the block files are missing. Run npm install and npm run build, or reinstall the plugin from WordPress.org."
 msgstr ""
 
-#: src/Frontend/Blocks.php:221
+#: src/Frontend/Blocks.php:220
 msgid "Browse requests"
 msgstr ""
 
-#: src/Frontend/Blocks.php:226
+#: src/Frontend/Blocks.php:225
 msgid "Feature request page"
 msgstr ""
 
-#: src/Frontend/Blocks.php:227
+#: src/Frontend/Blocks.php:226
 msgid "A form for suggesting features, above the board where people vote."
 msgstr ""
 
-#: src/Frontend/Blocks.php:233
+#: src/Frontend/Blocks.php:232
 msgid "Feature request form beside the board"
 msgstr ""
 
-#: src/Frontend/Blocks.php:234
+#: src/Frontend/Blocks.php:233
 msgid "A form for suggesting features in a narrow column, beside the board where people vote."
 msgstr ""
 
-#: src/Frontend/Blocks.php:247
+#: src/Frontend/Blocks.php:246
 msgid "Most wanted feature requests"
 msgstr ""
 
-#: src/Frontend/Blocks.php:248
+#: src/Frontend/Blocks.php:247
 msgid "The five feature requests with the most votes, with their vote buttons and a link to the board."
 msgstr ""
 
-#: src/Frontend/Blocks.php:249
+#: src/Frontend/Blocks.php:248
 msgid "Most wanted"
 msgstr ""
 
-#: src/Frontend/Blocks.php:270
+#: src/Frontend/Blocks.php:265
 msgid "Tell us what you are missing. See what others have asked for, and vote for what matters to you."
 msgstr ""
 
-#: src/Frontend/Blocks.php:275
-#: src/Frontend/Blocks.php:281
+#: src/Frontend/Blocks.php:270
+#: src/Frontend/Blocks.php:276
 #: templates/submit-form.php:25
 msgid "Suggest a feature"
 msgstr ""
 
-#: src/Frontend/Blocks.php:282
+#: src/Frontend/Blocks.php:277
 msgid "A few words that invite people to suggest features and vote, with a button that leads to the board."
 msgstr ""
 
-#: src/Frontend/Blocks.php:283
+#: src/Frontend/Blocks.php:278
 msgid "Have an idea?"
 msgstr ""
 

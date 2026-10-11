@@ -3,7 +3,7 @@
  * Plugin Name:       Feature Request System
  * Plugin URI:        https://www.cornelraiu.com/feature-request-system
  * Description:       Collect feature requests, let people vote, and email everyone who follows a request when its status changes.
- * Version:           0.1.0
+ * Version:           1.0.0
  * Requires at least: 6.6
  * Requires PHP:      7.4
  * Author:            Cornel Raiu

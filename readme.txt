@@ -4,7 +4,7 @@ Tags: feature requests, feedback, roadmap, voting, ideas
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 1.0.0
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -21,8 +21,6 @@ Feature Request System adds a feature request board to your WordPress site. Peop
 * **Emails that close the loop**: voters follow a request and hear about every status change, in the background and with a link to stop.
 * **Blocks and shortcodes** that take their look from your theme, and work without JavaScript and behind a page cache.
 * **Privacy built in**: no IP addresses stored, export and erasure through WordPress's privacy tools, and no outside service unless you use Akismet.
-
-This plugin is in development. The first public release will be 1.0.0.
 
 = Adding the board =
 
@@ -215,5 +213,5 @@ Deleting the plugin keeps your requests and votes, in case you install it again.
 
 == Changelog ==
 
-= 0.1.0 =
-* Development version. Not yet released.
+= 1.0.0 =
+* First release.
