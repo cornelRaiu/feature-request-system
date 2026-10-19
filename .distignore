@@ -23,6 +23,7 @@
 /composer.lock
 /package.json
 /package-lock.json
+/patches
 /phpcs.xml.dist
 /phpstan.neon.dist
 /phpunit.xml.dist
