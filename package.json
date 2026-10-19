@@ -14,7 +14,8 @@
         "lint:css": "wp-scripts lint-style \"blocks/**/*.scss\"",
         "format": "wp-scripts format blocks assets tests/e2e",
         "env": "wp-env",
-        "test:e2e": "playwright test --config tests/e2e/playwright.config.js"
+        "test:e2e": "playwright test --config tests/e2e/playwright.config.js",
+        "postinstall": "patch-package"
     },
     "devDependencies": {
         "@axe-core/playwright": "^4.13.0",
@@ -31,6 +32,26 @@
         "@wordpress/i18n": "^6.29.0",
         "@wordpress/interactivity": "^6.56.0",
         "@wordpress/scripts": "^36.0.0",
-        "@wordpress/server-side-render": "^6.32.0"
+        "@wordpress/server-side-render": "^6.32.0",
+        "patch-package": "^8.0.1"
+    },
+    "overrides": {
+        "@wordpress/env": {
+            "js-yaml": {
+                "argparse": "^2.0.1"
+            }
+        },
+        "katex": "^0.18.2",
+        "markdownlint-cli": {
+            "js-yaml": "^5.4.1"
+        },
+        "postcss-selector-parser": "^7.1.6",
+        "qs": "^6.16.1",
+        "serialize-javascript": "^7.0.5",
+        "simple-git": "^4.0.2",
+        "smol-toml": "^1.9.1",
+        "sockjs": {
+            "uuid": "^11.1.1"
+        }
     }
 }

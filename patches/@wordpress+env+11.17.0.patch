@@ -1,0 +1,26 @@
+diff --git a/node_modules/@wordpress/env/lib/download-sources.js b/node_modules/@wordpress/env/lib/download-sources.js
+index 79f7b3c..17b0200 100644
+--- a/node_modules/@wordpress/env/lib/download-sources.js
++++ b/node_modules/@wordpress/env/lib/download-sources.js
+@@ -5,7 +5,7 @@ const util = require( 'util' );
+ const pipeline = util.promisify( require( 'stream' ).pipeline );
+ const got = require( 'got' );
+ const AdmZip = require( 'adm-zip' );
+-const SimpleGit = require( 'simple-git' );
++const { simpleGit: SimpleGit } = require( 'simple-git' );
+ const { rimraf } = require( 'rimraf' );
+ 
+ /**
+diff --git a/node_modules/@wordpress/env/lib/runtime/docker/download-wp-phpunit.js b/node_modules/@wordpress/env/lib/runtime/docker/download-wp-phpunit.js
+index 5f60f0d..42a910c 100644
+--- a/node_modules/@wordpress/env/lib/runtime/docker/download-wp-phpunit.js
++++ b/node_modules/@wordpress/env/lib/runtime/docker/download-wp-phpunit.js
+@@ -1,7 +1,7 @@
+ 'use strict';
+ const fs = require( 'fs' );
+ const path = require( 'path' );
+-const SimpleGit = require( 'simple-git' );
++const { simpleGit: SimpleGit } = require( 'simple-git' );
+ 
+ /**
+  * @typedef {import('./config').WPConfig} WPConfig
