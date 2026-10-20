@@ -1,0 +1,40 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Feature Request System",
+		"description": "A board of sample feature requests that you can search, filter and vote on, with the form to suggest a new one.",
+		"author": "cornel.raiu",
+		"categories": [
+			"Feedback"
+		]
+	},
+	"landingPage": "/feature-requests/",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "installPlugin",
+			"pluginData": {
+				"resource": "wordpress.org/plugins",
+				"slug": "feature-request-system"
+			},
+			"options": {
+				"activate": true
+			}
+		},
+		{
+			"step": "setSiteOptions",
+			"options": {
+				"blogname": "Feature Request System demo",
+				"permalink_structure": "/%postname%/"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire_once '/wordpress/wp-load.php';\n\n$board_id = \\FeatureRequestSystem\\Content\\RequestTerms::default_term( \\FeatureRequestSystem\\Content\\BoardTaxonomy::NAME );\n\n$page_id = wp_insert_post( [\n\t'post_type'    => 'page',\n\t'post_status'  => 'publish',\n\t'post_title'   => 'Feature requests',\n\t'post_name'    => 'feature-requests',\n\t'post_content' => WP_Block_Patterns_Registry::get_instance()->get_registered( \\FeatureRequestSystem\\Frontend\\Blocks::PATTERN )['content'],\n] );\n\n\\FeatureRequestSystem\\Content\\BoardSettings::update( $board_id, [ \\FeatureRequestSystem\\Content\\BoardSettings::PAGE => $page_id ] );\n\n$requests = [\n\t[ 'Dark mode', 'A dark theme for the dashboard and the editor that follows the system setting.', 'open', 42, 30 ],\n\t[ 'Export requests as CSV', 'Download every request with its votes and status, to share with the team or open in a spreadsheet.', 'planned', 31, 26 ],\n\t[ 'Slack notifications', 'Post a message in a Slack channel when someone suggests a feature or a status changes.', 'in-progress', 27, 21 ],\n\t[ 'Two-factor login', 'Ask for a code from an authenticator app when signing in.', 'shipped', 24, 45 ],\n\t[ 'Keyboard shortcuts', 'Shortcuts for the actions used most, such as search and new request.', 'under-review', 18, 12 ],\n\t[ 'Custom fields on requests', 'Let people fill in extra fields, such as their plan or company size, when they suggest a feature.', 'open', 12, 9 ],\n\t[ 'Mobile app', 'An app to vote and follow requests from a phone.', 'open', 6, 4 ],\n\t[ 'Import from Trello', 'Bring the cards of a Trello board in as requests.', 'declined', 3, 60 ],\n];\n\nforeach ( $requests as list( $title, $details, $status, $votes, $days_ago ) ) {\n\t$date = gmdate( 'Y-m-d H:i:s', time() - $days_ago * DAY_IN_SECONDS );\n\t$id   = wp_insert_post( [\n\t\t'post_type'     => \\FeatureRequestSystem\\Content\\RequestPostType::NAME,\n\t\t'post_status'   => 'publish',\n\t\t'post_title'    => $title,\n\t\t'post_content'  => $details,\n\t\t'post_date'     => get_date_from_gmt( $date ),\n\t\t'post_date_gmt' => $date,\n\t] );\n\twp_set_object_terms( $id, $status, \\FeatureRequestSystem\\Content\\StatusTaxonomy::NAME );\n\tfor ( $i = 0; $i < $votes; $i++ ) {\n\t\t\\FeatureRequestSystem\\Voting\\VoteRepository::add( $id, hash( 'sha256', 'demo:' . $id . ':' . $i ), 0 );\n\t}\n\t\\FeatureRequestSystem\\Voting\\VoteCount::sync( $id );\n}\n\nflush_rewrite_rules();\n"
+		}
+	]
+}
