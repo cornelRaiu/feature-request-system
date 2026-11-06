@@ -124,7 +124,7 @@ test.describe( 'Merging a duplicate', () => {
 
 		// Merging cannot be undone, so nothing happens until the box is ticked.
 		await choose( box, 'Dark mode' );
-		await box.getByRole( 'button', { name: 'Merge' } ).click();
+		await box.getByRole( 'button', { name: 'Merge', exact: true } ).click();
 		await expect(
 			page.getByText( 'Nothing was merged. Tick the box to confirm' )
 		).toBeVisible();
@@ -151,7 +151,7 @@ test.describe( 'Merging a duplicate', () => {
 				'Merging cannot be undone. I want to merge this request.'
 			)
 			.check();
-		await box.getByRole( 'button', { name: 'Merge' } ).click();
+		await box.getByRole( 'button', { name: 'Merge', exact: true } ).click();
 
 		await expect( page ).toHaveURL( new RegExp( `post=${ target.id }` ) );
 		await expect(
@@ -220,7 +220,7 @@ test.describe( 'Merging a duplicate', () => {
 			box.getByRole( 'link', { name: 'Dark mode' } )
 		).toHaveAttribute( 'href', new RegExp( `post=${ target.id }` ) );
 		await expect(
-			box.getByRole( 'button', { name: 'Merge' } )
+			box.getByRole( 'button', { name: 'Merge', exact: true } )
 		).toHaveCount( 0 );
 
 		// Publishing or saving it would change nothing, so the Publish box gives way to this one.

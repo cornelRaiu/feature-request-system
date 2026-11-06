@@ -159,8 +159,12 @@ final class Roadmap {
 			'items'      => $items,
 			'more_url'   => $next ? add_query_arg( self::page_args( [ $status->slug => $shown + 1 ] + $pages ), $page_url ) . '#' . RequestItem::dom_id( $next->ID, $instance ) : '',
 			'context'    => [
-				'ids'   => array_values( wp_list_pluck( $items, 'id' ) ),
-				'focus' => $first,
+				'ids'          => array_values( wp_list_pluck( $items, 'id' ) ),
+				'focus'        => $first,
+				// What a vote on one of the column's cards says to screen readers. It belongs to
+				// the column, the context right above the cards: WordPress 6.6 passes a change
+				// up one context only.
+				'announcement' => '',
 			],
 		];
 	}

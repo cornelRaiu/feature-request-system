@@ -21,8 +21,6 @@ defined( 'ABSPATH' ) || exit;
 	<?php echo wp_interactivity_data_wp_context( $args['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
 	data-wp-init="callbacks.hydrate"
 >
-	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>
-
 	<?php if ( $args['columns'] ) : ?>
 		<div class="mwtfrs-roadmap__columns">
 			<?php foreach ( $args['columns'] as $mwtfrs_column ) : ?>
@@ -43,6 +41,8 @@ defined( 'ABSPATH' ) || exit;
 							?>
 						</span>
 					</h3>
+
+					<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>
 
 					<?php if ( $mwtfrs_column['items'] ) : ?>
 						<ul class="mwtfrs-roadmap__list">

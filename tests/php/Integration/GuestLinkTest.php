@@ -44,6 +44,19 @@ final class GuestLinkTest extends TestCase {
 		parent::tear_down();
 	}
 
+	public function test_the_confirmation_page_is_never_stored_by_a_cache_on_any_wordpress_version(): void {
+		$this->assertSame(
+			[ 'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store' ],
+			ConfirmationLink::no_store( [ 'Cache-Control' => 'no-cache, must-revalidate, max-age=0' ] ),
+			'WordPress 6.6 sends no no-store.'
+		);
+		$this->assertSame(
+			[ 'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private' ],
+			ConfirmationLink::no_store( [ 'Cache-Control' => 'no-cache, must-revalidate, max-age=0, no-store, private' ] ),
+			'Newer versions send it already.'
+		);
+	}
+
 	public function test_a_visitor_who_has_not_confirmed_an_email_is_asked_for_one_and_nothing_is_stored(): void {
 		$response = $this->rest_vote( 'POST', $this->request );
 

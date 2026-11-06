@@ -114,6 +114,8 @@ final class ConfirmationLink {
 		// the page the visitor goes to next, and the scripts on it, must not get as the referrer:
 		// they get the site's address only. Not no referrer at all, because a browser then sends
 		// the button's post with an Origin of "null", and the post must show it comes from here.
+		// WordPress sends no-store only since 6.8, so it is added here for older versions.
+		add_filter( 'nocache_headers', [ self::class, 'no_store' ] );
 		nocache_headers();
 		if ( ! headers_sent() ) {
 			header( 'Referrer-Policy: strict-origin' );
@@ -124,6 +126,22 @@ final class ConfirmationLink {
 		$page = self::process( $token, $posted && RequestOrigin::is_same_site( $origin, $referer ) );
 
 		wp_die( $page['html'], esc_html( $page['title'] ), [ 'response' => $page['status'] ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- process() escapes every value.
+	}
+
+	/**
+	 * Adds no-store to the headers that keep the page out of caches. WordPress adds it
+	 * itself since 6.8.
+	 *
+	 * @param array<string, string> $headers Headers from nocache_headers().
+	 * @return array<string, string>
+	 */
+	public static function no_store( array $headers ): array {
+		$control = $headers['Cache-Control'] ?? 'no-cache, must-revalidate, max-age=0';
+		if ( false === strpos( $control, 'no-store' ) ) {
+			$headers['Cache-Control'] = $control . ', no-store';
+		}
+
+		return $headers;
 	}
 
 	/**

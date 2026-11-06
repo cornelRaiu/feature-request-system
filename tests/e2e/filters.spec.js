@@ -337,7 +337,10 @@ test.describe( 'Board filters', () => {
 		await expect( page.locator( '.mwtfrs-board__filters' ) ).toHaveCount(
 			0
 		);
-		await expect( page.getByRole( 'search' ) ).toHaveCount( 0 );
+		// Only the board's own: a classic theme can have a search form of its own.
+		await expect(
+			page.locator( '.wp-block-mwtfrs-board' ).getByRole( 'search' )
+		).toHaveCount( 0 );
 		// A link with a filter still filters.
 		await expect( page.locator( '.mwtfrs-request__title' ) ).toHaveText( [
 			'Dark mode',

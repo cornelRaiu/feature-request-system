@@ -145,7 +145,7 @@ test.describe( 'Feature request roadmap', () => {
 		await expect( onRoadmap ).toContainText( '31' );
 		await expect( onList ).toHaveAttribute( 'aria-pressed', 'true' );
 		await expect( onList ).toContainText( '31' );
-		await expect( roadmap.locator( '[aria-live]' ) ).toHaveText(
+		await expect( planned.locator( '[aria-live]' ) ).toHaveText(
 			'Vote added.'
 		);
 
@@ -264,7 +264,10 @@ test.describe( 'Feature request roadmap', () => {
 			.getByRole( 'searchbox', { name: /Search/ } )
 			.fill( 'Feature Request Roadmap' );
 		await page
-			.getByRole( 'option', { name: 'Feature Request Roadmap' } )
+			.getByRole( 'option', {
+				name: 'Feature Request Roadmap',
+				exact: true,
+			} )
 			.click();
 
 		const block = editor.canvas.locator( '[data-type="mwtfrs/roadmap"]' );
