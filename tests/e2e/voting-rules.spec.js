@@ -64,6 +64,7 @@ function setUp( {
 			BoardSettings::update( $board, [
 				BoardSettings::VOTING     => BoardSettings::${ voting },
 				BoardSettings::SUBMITTING => BoardSettings::LOGGED_IN,
+				BoardSettings::MODERATION => true,
 				BoardSettings::VOTE_LIMIT => ${ Number( limit ) },
 				BoardSettings::THRESHOLD  => $threshold,
 			] );
