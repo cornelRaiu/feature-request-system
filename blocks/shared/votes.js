@@ -29,6 +29,10 @@ const RENDER_TO_SEND = 3500;
 // The vote's refusal that asks a visitor to confirm their email first.
 const EMAIL_REQUIRED = 'mwtfrs_email_required';
 
+// Fields of the email form that the plain form post needs but the REST API does not.
+// Every other field goes along, such as one a captcha adds to the form.
+const LINK_FORM_ONLY_FIELDS = [ 'action', 'request_id', 'redirect_to' ];
+
 const { state } = store( 'mwtfrs/votes', {
 	actions: {
 		/**
@@ -99,6 +103,7 @@ const { state } = store( 'mwtfrs/votes', {
 			}
 
 			const fields = Object.fromEntries( new FormData( event.target ) );
+			LINK_FORM_ONLY_FIELDS.forEach( ( name ) => delete fields[ name ] );
 
 			context.busy = true;
 			context.message = '';
@@ -107,14 +112,7 @@ const { state } = store( 'mwtfrs/votes', {
 				yield* waitUntilSendable();
 				const response = yield* send( state, 'guests/link', {
 					method: 'POST',
-					body: {
-						email: fields.email,
-						request: context.id,
-						[ state.email.tokenField ]:
-							fields[ state.email.tokenField ],
-						[ state.email.trapField ]:
-							fields[ state.email.trapField ],
-					},
+					body: { ...fields, request: context.id },
 				} );
 				const data = yield response.json();
 
