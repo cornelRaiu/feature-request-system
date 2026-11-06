@@ -166,7 +166,7 @@ final class Roadmap {
 		foreach ( $statuses as $status ) {
 			$name = self::PARAM_PREFIX . $status->slug;
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only paging from a link.
-			$value = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] ) ? absint( $_GET[ $name ] ) : 1;
+			$value = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] ) ? (int) $_GET[ $name ] : 1;
 
 			$pages[ $status->slug ] = min( self::MAX_PAGES, max( 1, $value ) );
 		}
