@@ -61,6 +61,29 @@
 	@include base.button;
 }
 
+/* Results, which live filtering replaces */
+
+.mwtfrs-board__page {
+	display: grid;
+	gap: var(--mwtfrs-gap);
+}
+
+// While new results load, the old ones fade, so a change shows it was seen.
+.mwtfrs-board__results[aria-busy="true"] {
+	opacity: 0.6;
+	transition: opacity 0.2s;
+
+	@media (prefers-reduced-motion: reduce) {
+		transition: none;
+	}
+}
+
+// The results take the focus after a page link, which is gone once they are in.
+.mwtfrs-board__results:focus-visible {
+	outline: 2px solid currentcolor;
+	outline-offset: 4px;
+}
+
 /* Requests */
 
 .mwtfrs-board__list {
