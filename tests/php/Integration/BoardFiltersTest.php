@@ -190,7 +190,7 @@ final class BoardFiltersTest extends TestCase {
 		$html = $this->render( [ 'perPage' => 2 ], [ BoardQuery::PARAM_STATUS => BoardQuery::STATUS_ALL ] );
 
 		$this->assertMatchesRegularExpression( '#<nav class="mwtfrs-board__pagination"[^>]*data-wp-on--click="actions.turnPage"#', $html );
-		$this->assertMatchesRegularExpression( '#<a class="page-numbers" href="[^"]*' . BoardQuery::PARAM_STATUS . '=' . BoardQuery::STATUS_ALL . '[^"]*' . BoardQuery::PARAM_PAGE . '=2"#', $html );
+		$this->assertMatchesRegularExpression( '#<a class="page-numbers" href="[^"]*' . BoardQuery::PARAM_STATUS . '=' . BoardQuery::STATUS_ALL . '[^"]*' . BoardQuery::PARAM_PAGE . '=2[^"]*"#', $html );
 	}
 
 	public function test_filtered_results_are_the_same_for_every_guest(): void {
