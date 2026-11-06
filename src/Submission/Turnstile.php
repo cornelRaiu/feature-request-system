@@ -55,6 +55,11 @@ final class Turnstile {
 	private const MAX_TOKEN = 2048;
 
 	/**
+	 * Narrowest width, in pixels, of the widget at its flexible size. Cloudflare's compact size is 150.
+	 */
+	private const MIN_WIDTH = 300;
+
+	/**
 	 * Hooks into the captcha check.
 	 */
 	public static function add_hooks(): void {
@@ -87,6 +92,10 @@ final class Turnstile {
 	 * Loads Cloudflare's script on the page.
 	 */
 	public static function enqueue(): void {
+		if ( wp_script_is( self::SCRIPT, 'enqueued' ) ) {
+			return;
+		}
+
 		wp_enqueue_script(
 			self::SCRIPT,
 			self::SCRIPT_URL,
@@ -96,6 +105,18 @@ final class Turnstile {
 				'in_footer' => true,
 				'strategy'  => 'defer',
 			]
+		);
+
+		// The widget is at least 300 pixels wide. Where a form is narrower, as on a phone, it
+		// takes its compact size, so nothing sticks out of the page. This runs in the footer,
+		// after the forms and before Cloudflare's script draws the widgets.
+		wp_add_inline_script(
+			self::SCRIPT,
+			sprintf(
+				'document.querySelectorAll(".mwtfrs-submit .cf-turnstile").forEach(function(w){if(w.clientWidth<%d){w.setAttribute("data-size","compact");}});',
+				self::MIN_WIDTH
+			),
+			'before'
 		);
 	}
 

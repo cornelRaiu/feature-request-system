@@ -110,10 +110,16 @@ async function fakeCloudflare( page, token ) {
 				const fill = ( widget ) => {
 					let input = widget.querySelector( 'input' );
 					if ( ! input ) {
+						// As wide as Cloudflare's widget at the size the form asks for.
+						const box = document.createElement( 'div' );
+						box.style.cssText =
+							widget.dataset.size === 'compact'
+								? 'width: 150px; height: 140px'
+								: 'min-width: 300px; height: 65px';
 						input = document.createElement( 'input' );
 						input.type = 'hidden';
 						input.name = widget.dataset.responseFieldName;
-						widget.append( input );
+						widget.append( box, input );
 					}
 					input.value = ${ JSON.stringify( token ) };
 				};
@@ -202,6 +208,10 @@ test.describe( 'Cloudflare Turnstile', () => {
 				SITE_KEY
 			);
 			await expect.poll( () => asked ).toEqual( [ SCRIPT ] );
+			await expect( page.locator( '.cf-turnstile' ) ).toHaveAttribute(
+				'data-size',
+				'flexible'
+			);
 			expect( await page.content() ).not.toContain( SECRET );
 
 			await page.getByLabel( 'Title' ).fill( 'Calendar view' );
@@ -233,6 +243,33 @@ test.describe( 'Cloudflare Turnstile', () => {
 				)
 			).toBeVisible();
 			expect( savedTitles() ).toEqual( [] );
+		} );
+
+		test( 'on a narrow screen the widget takes its compact size, so nothing sticks out', async ( {
+			page,
+		} ) => {
+			const form = setUp();
+			await fakeCloudflare( page, GOOD_TOKEN );
+			// WCAG 1.4.10: content fits a width of 320 CSS pixels.
+			await page.setViewportSize( { width: 320, height: 640 } );
+			await page.goto( form.url );
+
+			const widget = page.locator( '.cf-turnstile' );
+			await expect( widget ).toHaveAttribute( 'data-size', 'compact' );
+			await expect( widget.locator( 'input' ) ).toHaveCount( 1 );
+			const overflow = await page.evaluate( () => {
+				const element = document.querySelector(
+					'.wp-block-mwtfrs-submit'
+				);
+				return (
+					element.scrollWidth > element.clientWidth + 1 ||
+					element.getBoundingClientRect().right >
+						window.innerWidth + 1 ||
+					document.documentElement.scrollWidth >
+						window.innerWidth + 1
+				);
+			} );
+			expect( overflow ).toBe( false );
 		} );
 
 		test( 'without both keys nothing is loaded from Cloudflare', async ( {

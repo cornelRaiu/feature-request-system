@@ -242,6 +242,11 @@ final class TurnstileTest extends TestCase {
 		$this->assertNull( $script->ver, 'Cloudflare\'s script is loaded as it is, without a version.' );
 
 		$this->assertSame( $this->normalize( $html ), $this->normalize( $this->form() ), 'Every guest gets the same HTML, so pages can be cached.' );
+
+		// WordPress starts the list of inline scripts with a false.
+		$before = array_values( array_filter( (array) wp_scripts()->get_data( Turnstile::SCRIPT, 'before' ) ) );
+		$this->assertCount( 1, $before, 'Two forms on a page add the script once.' );
+		$this->assertStringContainsString( 'if(w.clientWidth<300){w.setAttribute("data-size","compact");}', $before[0], 'A form narrower than the widget gets the compact one.' );
 	}
 
 	public function test_a_board_that_takes_no_requests_loads_nothing_from_cloudflare(): void {
