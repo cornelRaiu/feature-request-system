@@ -210,7 +210,7 @@ final class GuestVotesTest extends TestCase {
 		wp_parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $_GET );
 		$html = $this->render_board();
 		$this->assertStringContainsString( 'Confirm your email address to vote. We will email you a link.', $html );
-		$this->assertMatchesRegularExpression( '/<form\s+class="mwtfrs-guest"[^>]*\s+data-wp-bind--hidden/', $html, 'The form is shown, not hidden.' );
+		$this->assertDoesNotMatchRegularExpression( '/\shidden[\s>]/', $this->email_form_tag( $html ), 'The form is shown.' );
 	}
 
 	public function test_without_javascript_the_email_form_sends_the_link_and_says_so(): void {
@@ -243,7 +243,7 @@ final class GuestVotesTest extends TestCase {
 		$html = $this->render_board();
 
 		$this->assertStringContainsString( 'class="mwtfrs-guest"', $html );
-		$this->assertMatchesRegularExpression( '/<form\s+class="mwtfrs-guest"[^>]*\shidden\s/', $html );
+		$this->assertMatchesRegularExpression( '/\shidden[\s>]/', $this->email_form_tag( $html ) );
 		$this->assertStringContainsString( 'name="action" value="' . GuestLinkForm::ACTION . '"', $html );
 		$this->assertStringContainsString( 'type="email"', $html );
 		$this->assertStringContainsString( '"guestVotes":true', $html );
@@ -272,6 +272,18 @@ final class GuestVotesTest extends TestCase {
 		$this->assertStringNotContainsString( 'jane@example.com', $guest );
 		$this->assertStringNotContainsString( 'aria-pressed="true"', $guest );
 		$this->assertStringNotContainsString( 'name="_wpnonce"', $guest );
+	}
+
+	/**
+	 * Returns the opening tag of the first form for an email address in some HTML.
+	 *
+	 * @param string $html HTML.
+	 */
+	private function email_form_tag( string $html ): string {
+		$this->assertMatchesRegularExpression( '/<form\b[^>]*class="mwtfrs-guest"[^>]*>/', $html );
+		preg_match( '/<form\b[^>]*class="mwtfrs-guest"[^>]*>/', $html, $tag );
+
+		return ' ' . substr( $tag[0], 5 );
 	}
 
 	/**

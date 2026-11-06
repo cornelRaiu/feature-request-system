@@ -27,7 +27,6 @@ $mwtfrs_id    = $mwtfrs_item['dom_id'] . '-email';
 	class="mwtfrs-guest"
 	method="post"
 	action="<?php echo esc_url( $mwtfrs_vote['url'] ); ?>"
-	<?php echo $mwtfrs_item['context']['needsEmail'] ? '' : 'hidden'; ?>
 	data-wp-bind--hidden="!context.needsEmail"
 	data-wp-on--submit="actions.requestLink"
 >

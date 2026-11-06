@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Guests\GuestRepository;
 use FeatureRequestSystem\Guests\Guests;
+use FeatureRequestSystem\Install\Schema;
 use FeatureRequestSystem\Notifications\ApprovalEmail;
 use FeatureRequestSystem\Notifications\Mailer;
 use FeatureRequestSystem\Notifications\StatusNotifier;
@@ -160,6 +161,16 @@ final class GuestEmailsTest extends TestCase {
 
 		$this->assertSame( [], $this->emailed() );
 		$this->assertSame( 0, SubscriptionRepository::count( $this->request ) );
+	}
+
+	public function test_a_guest_whose_address_is_not_confirmed_is_not_emailed(): void {
+		global $wpdb;
+
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET confirmed_at = NULL WHERE id = %d', Schema::table( Schema::GUESTS ), $this->guest ) );
+
+		$this->change_status( 'planned' );
+
+		$this->assertSame( [], $this->emailed() );
 	}
 
 	public function test_the_guest_who_suggested_a_request_is_told_when_it_is_approved(): void {

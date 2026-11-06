@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Tests\Integration;
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Frontend\SubmitForm;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Settings;
@@ -107,6 +108,20 @@ final class GuestSubmissionTest extends TestCase {
 		$this->assertSame( 202, $response->get_status() );
 		$this->assertSame( 0, $this->count_requests() );
 		$this->assertSame( [ 'jane.work@example.com' ], $this->emailed() );
+	}
+
+	public function test_two_presses_of_the_button_at_the_same_moment_send_the_request_once(): void {
+		$this->submit_as_visitor();
+		$token = $this->emailed_token();
+
+		// Both requests read the guest before either confirmed it.
+		$guest = Guests::by_token( $token );
+		$first = Guests::confirm( $guest, $token );
+		$again = Guests::confirm( $guest, $token );
+
+		$this->assertCount( 1, $first );
+		$this->assertNull( $again );
+		$this->assertSame( 1, $this->count_requests() );
 	}
 
 	public function test_the_name_and_the_address_are_needed(): void {
