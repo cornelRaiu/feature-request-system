@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Frontend;
 
 use FeatureRequestSystem\Rest\RestApi;
+use FeatureRequestSystem\Submission\SpamGuard;
 use stdClass;
 
 defined( 'ABSPATH' ) || exit;
@@ -44,6 +45,12 @@ final class VoteStore {
 					'following'   => __( 'You now follow this request.', 'feature-request-system' ),
 					'unfollowed'  => __( 'You no longer follow this request.', 'feature-request-system' ),
 					'followError' => __( 'That could not be saved. Check your connection and try again.', 'feature-request-system' ),
+					'linkError'   => __( 'Your email address could not be sent. Check your connection and try again.', 'feature-request-system' ),
+				],
+				// Names of the spam check fields in the form for an email address.
+				'email'   => [
+					'tokenField' => SpamGuard::FIELD_TOKEN,
+					'trapField'  => SpamGuard::FIELD_TRAP,
 				],
 			]
 		);

@@ -107,6 +107,7 @@ final class VoteFormTest extends TestCase {
 				'request' => 12,
 				'message' => 'Your vote was added.',
 				'login'   => false,
+				'email'   => false,
 			],
 			RequestNotice::from_request()
 		);

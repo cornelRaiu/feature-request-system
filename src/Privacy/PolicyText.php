@@ -7,6 +7,7 @@
 
 namespace FeatureRequestSystem\Privacy;
 
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Submission\Akismet;
 use FeatureRequestSystem\Voting\VoterIdentity;
 
@@ -44,6 +45,11 @@ final class PolicyText {
 				/* translators: %s: name of a cookie. */
 				__( 'When you vote while you are logged in, we store your vote with your account. When you vote without an account, we store a cookie named %s in your browser for one year, so that the site remembers your votes. The cookie holds a random number and nothing else about you.', 'feature-request-system' ),
 				VoterIdentity::COOKIE
+			),
+			sprintf(
+				/* translators: %s: name of a cookie. */
+				__( 'Where a board asks you to confirm your email address to vote or suggest a feature without an account, we store that address, and the name you give when you suggest one. We email you a link to confirm it. Once you do, we store a cookie named %s in your browser for one year, so that the site knows it is you. The cookie holds a number and a signature, nothing else about you. We then email you when the status of a request you voted for or suggested changes. Every email has a link that stops these emails.', 'feature-request-system' ),
+				Guests::COOKIE
 			),
 			__( 'When you are logged in and you vote for a request, suggest one or press its Follow button, we store that you follow that request, and we email you when its status changes. Every email has a link that stops these emails, and you can also stop them in your profile.', 'feature-request-system' ),
 			__( 'To limit how often one visitor can vote or send requests, we count attempts per IP address for up to one hour. The count is stored under a scrambled form of the address that cannot be turned back into it. We do not store your IP address.', 'feature-request-system' ),

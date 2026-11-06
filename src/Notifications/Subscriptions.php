@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Notifications;
 
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Settings;
 use FeatureRequestSystem\Submission\SubmissionService;
 use FeatureRequestSystem\Voting\VoteService;
@@ -23,6 +24,10 @@ defined( 'ABSPATH' ) || exit;
  * Only logged-in users can follow, because their email address is known to be theirs.
  * A user follows a request by choosing to, by voting for it or by suggesting it. The
  * last two happen by themselves, unless the site or the user turned that off.
+ *
+ * Visitors who confirmed their email follow the requests they vote for or suggest in the
+ * same way, unless they stopped every email. They have no Follow button: the pages they
+ * see are the same for every visitor, so a page cannot say whether they follow.
  */
 final class Subscriptions {
 
@@ -47,8 +52,8 @@ final class Subscriptions {
 	 * consistent with requests and users.
 	 */
 	public static function add_hooks(): void {
-		add_action( VoteService::ACTION_CAST, [ self::class, 'follow_voted' ], 10, 2 );
-		add_action( VoteService::ACTION_RETRACTED, [ self::class, 'unfollow_unvoted' ], 10, 2 );
+		add_action( VoteService::ACTION_CAST, [ self::class, 'follow_voted' ], 10, 3 );
+		add_action( VoteService::ACTION_RETRACTED, [ self::class, 'unfollow_unvoted' ], 10, 3 );
 		add_action( SubmissionService::ACTION_SUBMITTED, [ self::class, 'follow_submitted' ] );
 		add_action( 'deleted_post', [ self::class, 'delete_request_subscriptions' ], 10, 2 );
 		add_action( 'deleted_user', [ self::class, 'delete_user_subscriptions' ] );
@@ -142,10 +147,17 @@ final class Subscriptions {
 	 *
 	 * @param int $request_id Request ID.
 	 * @param int $user_id    Voter's user ID, or 0 for a guest.
+	 * @param int $guest_id   Voter's guest ID, when they confirmed their email, or 0.
 	 */
-	public static function follow_voted( int $request_id, int $user_id ): void {
-		if ( $user_id && Settings::get( Settings::SUBSCRIBE_VOTERS ) && self::is_automatic_for( $user_id ) ) {
+	public static function follow_voted( int $request_id, int $user_id, int $guest_id = 0 ): void {
+		if ( ! Settings::get( Settings::SUBSCRIBE_VOTERS ) ) {
+			return;
+		}
+
+		if ( $user_id && self::is_automatic_for( $user_id ) ) {
 			SubscriptionRepository::add( $request_id, $user_id, SubscriptionRepository::SOURCE_VOTE );
+		} elseif ( ! $user_id && $guest_id && self::enabled() && Guests::wants_automatic( $guest_id ) ) {
+			SubscriptionRepository::add_guest( $request_id, $guest_id, SubscriptionRepository::SOURCE_VOTE );
 		}
 	}
 
@@ -155,23 +167,29 @@ final class Subscriptions {
 	 *
 	 * @param int $request_id Request ID.
 	 * @param int $user_id    Voter's user ID, or 0 for a guest.
+	 * @param int $guest_id   Voter's guest ID, when they confirmed their email, or 0.
 	 */
-	public static function unfollow_unvoted( int $request_id, int $user_id ): void {
+	public static function unfollow_unvoted( int $request_id, int $user_id, int $guest_id = 0 ): void {
 		if ( $user_id ) {
 			SubscriptionRepository::remove( $request_id, $user_id, SubscriptionRepository::SOURCE_VOTE );
+		} elseif ( $guest_id ) {
+			SubscriptionRepository::remove_guest( $request_id, $guest_id, SubscriptionRepository::SOURCE_VOTE );
 		}
 	}
 
 	/**
-	 * Makes a logged-in user follow the request they just suggested.
+	 * Makes a logged-in user, or a guest who confirmed their email, follow the request they just suggested.
 	 *
 	 * @param int $request_id Request ID.
 	 */
 	public static function follow_submitted( int $request_id ): void {
-		$user_id = (int) get_post_meta( $request_id, RequestPostType::META_SUBMITTER_ID, true );
+		$user_id  = (int) get_post_meta( $request_id, RequestPostType::META_SUBMITTER_ID, true );
+		$guest_id = (int) get_post_meta( $request_id, RequestPostType::META_SUBMITTER_GUEST, true );
 
 		if ( $user_id && self::is_automatic_for( $user_id ) ) {
 			SubscriptionRepository::add( $request_id, $user_id, SubscriptionRepository::SOURCE_AUTHOR );
+		} elseif ( $guest_id && self::enabled() && Guests::wants_automatic( $guest_id ) ) {
+			SubscriptionRepository::add_guest( $request_id, $guest_id, SubscriptionRepository::SOURCE_AUTHOR );
 		}
 	}
 

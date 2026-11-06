@@ -11,6 +11,7 @@ use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Voting\VoterIdentity;
 use WP_Error;
@@ -24,6 +25,10 @@ defined( 'ABSPATH' ) || exit;
  * New requests are held for approval unless the board turns moderation off or the
  * submitter can publish requests themselves. Submitters are not stored as post authors:
  * a logged-in submitter's ID, and a visitor's name and email, go into private post meta.
+ *
+ * On a board that asks visitors to confirm their email, a visitor's request waits until
+ * they press the button behind the link the plugin emails them. A visitor who confirmed
+ * that address already, in this browser, sends it straight away.
  */
 final class SubmissionService {
 
@@ -56,6 +61,11 @@ final class SubmissionService {
 	 * The request could not be saved.
 	 */
 	public const ERROR_FAILED = 'mwtfrs_submission_failed';
+
+	/**
+	 * Status of a submission that waits for the visitor to confirm their email.
+	 */
+	public const STATUS_UNCONFIRMED = 'unconfirmed';
 
 	/**
 	 * Action fired after a request is submitted. Receives the request ID.
@@ -110,7 +120,9 @@ final class SubmissionService {
 	 * @param int                  $board_id Board term ID.
 	 * @param array<string, mixed> $fields   Submitted fields: title, description, category, name and email,
 	 *                                       plus the SpamGuard fields.
-	 * @return array{id: int, status: string, url: string}|WP_Error The new request, or why it was refused.
+	 * @return array{id: int, status: string, url: string}|WP_Error The new request, or why it was refused. A request that
+	 *                                                            waits for the visitor's email to be confirmed has ID 0 and
+	 *                                                            the status STATUS_UNCONFIRMED.
 	 */
 	public static function submit( int $board_id, array $fields ) {
 		$allowed = self::check( $board_id );
@@ -141,7 +153,71 @@ final class SubmissionService {
 		}
 
 		$flagged = SpamGuard::is_spam( $submission );
-		$status  = ! $flagged && ( ! BoardSettings::moderated( $board_id ) || current_user_can( 'publish_' . RequestPostType::CAPABILITY_TYPE ) )
+
+		if ( self::needs_confirmation( $board_id, $submission['email'] ) ) {
+			$sent = Guests::request_link(
+				$submission['email'],
+				[
+					'type'       => Guests::PENDING_SUBMIT,
+					'board'      => $board_id,
+					'submission' => $submission,
+					'flagged'    => $flagged,
+				]
+			);
+
+			return is_wp_error( $sent ) ? $sent : [
+				'id'     => 0,
+				'status' => self::STATUS_UNCONFIRMED,
+				'url'    => '',
+			];
+		}
+
+		return self::create( $board_id, $submission, $flagged, self::confirmed_guest( $submission['email'] ) );
+	}
+
+	/**
+	 * Sends a request that waited for a visitor to confirm their email, once they did.
+	 *
+	 * The submission passed every check when the visitor sent it. Only the board is
+	 * checked again: it may have stopped taking requests from visitors meanwhile.
+	 *
+	 * @param int                  $board_id   Board term ID.
+	 * @param array<string, mixed> $submission Submission as submit() checked it.
+	 * @param bool                 $flagged    Whether a spam check flagged it.
+	 * @param int                  $guest_id   Guest who confirmed their email.
+	 * @return array{id: int, status: string, url: string}|WP_Error
+	 */
+	public static function complete( int $board_id, array $submission, bool $flagged, int $guest_id ) {
+		$exists = get_term( $board_id, BoardTaxonomy::NAME ) instanceof WP_Term;
+		if ( ! $exists || ! in_array( BoardSettings::submitting( $board_id ), [ BoardSettings::ANYONE, BoardSettings::VERIFIED ], true ) ) {
+			return new WP_Error( self::ERROR_CLOSED, __( 'This board is not taking new requests.', 'feature-request-system' ), [ 'status' => 403 ] );
+		}
+
+		return self::create(
+			$board_id,
+			[
+				'title'       => (string) ( $submission['title'] ?? '' ),
+				'description' => (string) ( $submission['description'] ?? '' ),
+				'category'    => (int) ( $submission['category'] ?? 0 ),
+				'name'        => (string) ( $submission['name'] ?? '' ),
+				'email'       => (string) ( $submission['email'] ?? '' ),
+			],
+			$flagged,
+			$guest_id
+		);
+	}
+
+	/**
+	 * Saves a checked request.
+	 *
+	 * @param int                                                                                   $board_id   Board term ID.
+	 * @param array{title: string, description: string, category: int, name: string, email: string} $submission Cleaned submission.
+	 * @param bool                                                                                  $flagged    Whether a spam check flagged it.
+	 * @param int                                                                                   $guest_id   Guest who suggested it with a confirmed email, or 0.
+	 * @return array{id: int, status: string, url: string}|WP_Error
+	 */
+	private static function create( int $board_id, array $submission, bool $flagged, int $guest_id ) {
+		$status = ! $flagged && ( ! BoardSettings::moderated( $board_id ) || current_user_can( 'publish_' . RequestPostType::CAPABILITY_TYPE ) )
 			? 'publish'
 			: 'pending';
 
@@ -166,7 +242,7 @@ final class SubmissionService {
 		if ( $submission['category'] ) {
 			wp_set_object_terms( $request_id, $submission['category'], CategoryTaxonomy::NAME );
 		}
-		self::record_submitter( $request_id, $submission );
+		self::record_submitter( $request_id, $submission, $guest_id );
 		if ( $flagged ) {
 			update_post_meta( $request_id, RequestPostType::META_FLAGGED_AS_SPAM, 1 );
 		}
@@ -178,6 +254,28 @@ final class SubmissionService {
 			'status' => $status,
 			'url'    => 'publish' === $status ? (string) get_permalink( $request_id ) : '',
 		];
+	}
+
+	/**
+	 * Whether a visitor's request must wait until they confirm their email: the board asks
+	 * for that, and this browser is not the guest with that address.
+	 *
+	 * @param int    $board_id Board term ID.
+	 * @param string $email    Email address the visitor gave.
+	 */
+	private static function needs_confirmation( int $board_id, string $email ): bool {
+		return ! is_user_logged_in() && BoardSettings::VERIFIED === BoardSettings::submitting( $board_id ) && ! self::confirmed_guest( $email );
+	}
+
+	/**
+	 * Returns the ID of the confirmed guest the visitor is, when they gave that guest's address, or 0.
+	 *
+	 * @param string $email Email address the visitor gave.
+	 */
+	private static function confirmed_guest( string $email ): int {
+		$guest = Guests::current();
+
+		return $guest && '' !== $email && Guests::normalise_email( $email ) === $guest['email'] ? $guest['id'] : 0;
 	}
 
 	/**
@@ -194,13 +292,17 @@ final class SubmissionService {
 		$name        = is_user_logged_in() ? '' : sanitize_text_field( self::text( $fields, 'name' ) );
 		$raw_email   = is_user_logged_in() ? '' : trim( self::text( $fields, 'email' ) );
 		$email       = sanitize_email( $raw_email );
+		// A board that asks visitors to confirm their email needs the address, and a name to go with the request.
+		$verified = ! is_user_logged_in() && BoardSettings::VERIFIED === BoardSettings::submitting( $board_id );
 
 		$problems = [
 			'title'        => '' === $title,
 			'title-long'   => mb_strlen( $title ) > self::MAX_TITLE,
 			'details-long' => mb_strlen( $description ) > self::MAX_DESCRIPTION,
 			'category'     => $category && ! self::is_category_of( $category, $board_id ),
+			'name'         => $verified && '' === $name,
 			'name-long'    => mb_strlen( $name ) > self::MAX_NAME,
+			'no-email'     => $verified && ( '' === $raw_email || '' === Guests::normalise_email( $raw_email ) ),
 			'email'        => '' !== $raw_email && ( strlen( $raw_email ) > self::MAX_EMAIL || ! is_email( $email ) ),
 		];
 
@@ -253,6 +355,8 @@ final class SubmissionService {
 			/* translators: %d: maximum number of characters. */
 			'name-long'    => sprintf( __( 'Keep your name under %d characters.', 'feature-request-system' ), self::MAX_NAME ),
 			'email'        => __( 'Enter a valid email address, or leave it empty.', 'feature-request-system' ),
+			'name'         => __( 'Enter your name.', 'feature-request-system' ),
+			'no-email'     => __( 'Enter your email address. We will email you a link to confirm it.', 'feature-request-system' ),
 		];
 
 		return $messages[ $reason ] ?? __( 'Add a title for your request.', 'feature-request-system' );
@@ -263,8 +367,9 @@ final class SubmissionService {
 	 *
 	 * @param int                                                                                   $request_id Request ID.
 	 * @param array{title: string, description: string, category: int, name: string, email: string} $submission Cleaned submission.
+	 * @param int                                                                                   $guest_id   Guest who confirmed the email, or 0.
 	 */
-	private static function record_submitter( int $request_id, array $submission ): void {
+	private static function record_submitter( int $request_id, array $submission, int $guest_id ): void {
 		$user_id = get_current_user_id();
 		if ( $user_id ) {
 			update_post_meta( $request_id, RequestPostType::META_SUBMITTER_ID, $user_id );
@@ -276,6 +381,9 @@ final class SubmissionService {
 		}
 		if ( '' !== $submission['email'] ) {
 			update_post_meta( $request_id, RequestPostType::META_SUBMITTER_EMAIL, wp_slash( $submission['email'] ) );
+		}
+		if ( $guest_id ) {
+			update_post_meta( $request_id, RequestPostType::META_SUBMITTER_GUEST, $guest_id );
 		}
 	}
 

@@ -7,7 +7,8 @@
  * Keep the data-wp-* attributes and the form fields: they make voting and following work,
  * with and without JavaScript.
  * Every value is escaped here, at output. The vote button has its own template,
- * vote-button.php.
+ * vote-button.php, and so has the form for an email address that comes with it on
+ * boards where visitors vote once they confirm their email, guest-email-form.php.
  *
  * @package FeatureRequestSystem
  *
@@ -77,6 +78,10 @@ $mwtfrs_item = $args['item'];
 				<span data-wp-text="context.message"><?php echo esc_html( $mwtfrs_item['context']['message'] ); ?></span>
 				<a href="<?php echo esc_url( $args['login_url'] ); ?>" data-wp-bind--hidden="!context.needsLogin"><?php esc_html_e( 'Log in', 'feature-request-system' ); ?></a>
 			</p>
+
+			<?php if ( $mwtfrs_item['email_vote'] ) : ?>
+				<?php echo FeatureRequestSystem\Frontend\Template::render( 'guest-email-form', $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The form template escapes every value. ?>
+			<?php endif; ?>
 		</div>
 	</div>
 </div>

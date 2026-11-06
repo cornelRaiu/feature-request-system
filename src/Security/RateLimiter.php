@@ -63,6 +63,11 @@ final class RateLimiter {
 			'voter' => 5,
 			'ip'    => 10,
 		],
+		// Emails with the link that confirms a visitor's address.
+		'link'   => [
+			'voter' => 5,
+			'ip'    => 10,
+		],
 	];
 
 	/**
@@ -70,7 +75,7 @@ final class RateLimiter {
 	 *
 	 * Moderators are never limited. The IP address is only used as a hashed counter key.
 	 *
-	 * @param string $action    Action name: "vote" or "submit".
+	 * @param string $action    Action name: "vote", "submit" or "link".
 	 * @param string $voter_key Voter key of the visitor, or '' when there is none.
 	 * @return int 0 when the attempt is allowed, otherwise the seconds until the limit resets.
 	 */

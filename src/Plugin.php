@@ -29,10 +29,12 @@ use FeatureRequestSystem\Content\StatusChange;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\FollowForm;
+use FeatureRequestSystem\Frontend\GuestLinkForm;
 use FeatureRequestSystem\Frontend\PlainDescription;
 use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
+use FeatureRequestSystem\Guests\ConfirmationLink;
 use FeatureRequestSystem\Install\Installer;
 use FeatureRequestSystem\Notifications\ApprovalEmail;
 use FeatureRequestSystem\Notifications\NewRequestEmail;
@@ -116,6 +118,8 @@ final class Plugin {
 		PersonalData::add_hooks();
 		PolicyText::add_hooks();
 		DepartedUsers::add_hooks();
+		GuestLinkForm::add_hooks();
+		ConfirmationLink::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

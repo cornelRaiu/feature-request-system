@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Security\RateLimiter;
 use WP_Error;
 use WP_Post;
@@ -45,17 +46,23 @@ final class VoteService {
 	public const ERROR_LOGIN_REQUIRED = 'mwtfrs_login_required';
 
 	/**
+	 * The board only accepts votes from logged-in users and from visitors who confirmed their email.
+	 */
+	public const ERROR_EMAIL_REQUIRED = 'mwtfrs_email_required';
+
+	/**
 	 * The visitor voted too often. The error data holds retry_after in seconds.
 	 */
 	public const ERROR_RATE_LIMITED = 'mwtfrs_rate_limited';
 
 	/**
-	 * Action fired after a vote is added. Receives the request ID and the voter's user ID, 0 for a guest.
+	 * Action fired after a vote is added. Receives the request ID, the voter's user ID (0 for
+	 * a guest) and the ID of the guest who confirmed their email (0 for anyone else).
 	 */
 	public const ACTION_CAST = 'mwtfrs_vote_cast';
 
 	/**
-	 * Action fired after a vote is taken back. Receives the request ID and the voter's user ID, 0 for a guest.
+	 * Action fired after a vote is taken back. Receives the same as ACTION_CAST.
 	 */
 	public const ACTION_RETRACTED = 'mwtfrs_vote_retracted';
 
@@ -97,6 +104,9 @@ final class VoteService {
 		if ( BoardSettings::LOGGED_IN === $rule && ! is_user_logged_in() ) {
 			return new WP_Error( self::ERROR_LOGIN_REQUIRED, __( 'Log in to vote on this request.', 'feature-request-system' ), [ 'status' => 401 ] );
 		}
+		if ( BoardSettings::VERIFIED === $rule && ! is_user_logged_in() && ! Guests::current_id() ) {
+			return new WP_Error( self::ERROR_EMAIL_REQUIRED, __( 'Confirm your email address to vote. We will email you a link.', 'feature-request-system' ), [ 'status' => 401 ] );
+		}
 
 		return true;
 	}
@@ -124,7 +134,7 @@ final class VoteService {
 
 		// Voting again is not a new vote, so it is not announced again.
 		if ( $added ) {
-			do_action( self::ACTION_CAST, $request_id, get_current_user_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+			do_action( self::ACTION_CAST, $request_id, get_current_user_id(), Guests::current_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
 		}
 
 		return [
@@ -163,7 +173,7 @@ final class VoteService {
 		$votes   = VoteCount::sync( $request_id );
 
 		if ( $removed ) {
-			do_action( self::ACTION_RETRACTED, $request_id, get_current_user_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+			do_action( self::ACTION_RETRACTED, $request_id, get_current_user_id(), Guests::current_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
 		}
 
 		return [

@@ -8,13 +8,16 @@
 namespace FeatureRequestSystem\Notifications;
 
 use FeatureRequestSystem\Frontend\Template;
+use FeatureRequestSystem\Guests\GuestRepository;
 use WP_Post;
+use WP_User;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Sends one plain text email to one follower of a request, in that user's language,
- * with a link that stops the emails.
+ * with a link that stops the emails. A follower who is a guest with a confirmed email
+ * gets it in the site's language.
  *
  * The text comes from a template in templates/emails/, which a theme can override.
  *
@@ -24,8 +27,8 @@ final class Mailer {
 
 	/**
 	 * Filter to change an email to a follower, or to stop it by returning false. Receives
-	 * the email (to, subject, message and headers), the template name, the request and
-	 * the user the email goes to.
+	 * the email (to, subject, message and headers), the template name, the request, the
+	 * user the email goes to (null for a guest) and the subscription.
 	 */
 	public const FILTER = 'mwtfrs_follower_email';
 
@@ -41,26 +44,21 @@ final class Mailer {
 	 * @return bool Whether the email was handed over for sending.
 	 */
 	public static function send( array $subscription, string $template, callable $compose ): bool {
-		$user    = get_userdata( $subscription['user_id'] );
-		$request = get_post( $subscription['request_id'] );
-		if ( ! $user ) {
-			// On a network of sites, deleting a user does not reach the tables of every site. What is left is tidied here.
-			SubscriptionRepository::remove( $subscription['request_id'], $subscription['user_id'] );
-
-			return false;
-		}
-		if ( ! $request || ! is_email( $user->user_email ) ) {
+		$recipient = self::recipient( $subscription );
+		$request   = get_post( $subscription['request_id'] );
+		if ( ! $recipient || ! $request || ! is_email( $recipient['email'] ) ) {
 			return false;
 		}
 
-		$switched = switch_to_user_locale( $user->ID );
+		$user     = $recipient['user'];
+		$switched = $user && switch_to_user_locale( $user->ID );
 		$parts    = $compose( $request );
 		$stop_url = Unsubscribe::url( $subscription['token'] );
 		// What a template gets is plain text. WordPress stores names and titles with some characters as entities.
 		$args = array_merge(
 			$parts['args'],
 			[
-				'name'            => self::plain( $user->display_name ),
+				'name'            => self::plain( $recipient['name'] ),
 				'site'            => self::plain( (string) get_bloginfo( 'name' ) ),
 				'title'           => self::plain( $request->post_title ),
 				'url'             => (string) get_permalink( $request ),
@@ -70,7 +68,7 @@ final class Mailer {
 		);
 
 		$email = [
-			'to'      => $user->user_email,
+			'to'      => $recipient['email'],
 			'subject' => $parts['subject'],
 			// The template escapes its values as any template does. An email is not HTML, so that is undone here.
 			'message' => self::plain( Template::render( 'emails/' . $template, $args ) ),
@@ -82,13 +80,53 @@ final class Mailer {
 				'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
 			],
 		];
-		$email = apply_filters( self::FILTER, $email, $template, $request, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+		$email = apply_filters( self::FILTER, $email, $template, $request, $user, $subscription ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
 
 		if ( $switched ) {
 			restore_previous_locale();
 		}
 
 		return is_array( $email ) && wp_mail( $email['to'], $email['subject'], $email['message'], $email['headers'] );
+	}
+
+	/**
+	 * Returns who a subscription's emails go to: a user, or a guest who confirmed their
+	 * email. Null when there is nobody to email.
+	 *
+	 * @param array<string, int|string> $subscription The follower's subscription.
+	 * @phpstan-param Subscription $subscription
+	 * @return array{email: string, name: string, user: WP_User|null}|null
+	 */
+	private static function recipient( array $subscription ): ?array {
+		if ( $subscription['guest_id'] ) {
+			$guest = GuestRepository::find( $subscription['guest_id'] );
+			if ( ! $guest ) {
+				SubscriptionRepository::remove_by_id( $subscription['id'] );
+
+				return null;
+			}
+
+			return '' !== $guest['confirmed_at'] ? [
+				'email' => $guest['email'],
+				// A guest who gave no name is greeted by the address the email goes to.
+				'name'  => '' !== $guest['name'] ? $guest['name'] : $guest['email'],
+				'user'  => null,
+			] : null;
+		}
+
+		$user = get_userdata( $subscription['user_id'] );
+		if ( ! $user ) {
+			// On a network of sites, deleting a user does not reach the tables of every site. What is left is tidied here.
+			SubscriptionRepository::remove_by_id( $subscription['id'] );
+
+			return null;
+		}
+
+		return [
+			'email' => $user->user_email,
+			'name'  => $user->display_name,
+			'user'  => $user,
+		];
 	}
 
 	/**

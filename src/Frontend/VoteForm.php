@@ -37,6 +37,7 @@ final class VoteForm {
 		VoteService::ERROR_DISABLED       => 'disabled',
 		VoteService::ERROR_LOGIN_REQUIRED => 'login',
 		VoteService::ERROR_RATE_LIMITED   => 'limit',
+		VoteService::ERROR_EMAIL_REQUIRED => 'email',
 	];
 
 	/**
@@ -51,7 +52,7 @@ final class VoteForm {
 	 * What a template needs to render vote forms.
 	 *
 	 * @param string $return_url Page to come back to after a vote without JavaScript.
-	 * @return array{url: string, action: string, nonce: string, redirect_to: string}
+	 * @return array{url: string, action: string, nonce: string, redirect_to: string, email: array{action: string, trap_field: string, token_field: string, token: string, max_length: int}}
 	 */
 	public static function template_args( string $return_url ): array {
 		return [
@@ -60,6 +61,8 @@ final class VoteForm {
 			// Guests get no nonce, so their pages can be cached. Their posts are checked by origin.
 			'nonce'       => is_user_logged_in() ? wp_create_nonce( self::ACTION ) : '',
 			'redirect_to' => $return_url,
+			// The form for an email address, on boards where visitors vote once they confirm it.
+			'email'       => GuestLinkForm::template_args(),
 		];
 	}
 

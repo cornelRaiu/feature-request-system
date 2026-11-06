@@ -17,7 +17,10 @@ defined( 'ABSPATH' ) || exit;
  *
  * The email goes to the submitter as a follower of their own request, so it carries the
  * link that stops the emails, and a submitter who does not follow the request gets none.
- * Visitors who suggested a request without an account are not emailed.
+ * Visitors who suggested a request without an account are not emailed, unless they
+ * confirmed their email address.
+ *
+ * @phpstan-import-type Subscription from SubscriptionRepository
  */
 final class ApprovalEmail {
 
@@ -40,11 +43,12 @@ final class ApprovalEmail {
 	 * @param WP_Post $post Post of any type that waited for approval and was published.
 	 */
 	public static function schedule( WP_Post $post ): void {
-		// Only a request that a logged-in user suggested has a submitter.
+		// Only a request that a logged-in user, or a guest with a confirmed email, suggested has a submitter.
 		$submitter = self::submitter( $post->ID );
+		$follows   = self::subscription( $post->ID );
 
 		// A moderator who approves their own request knows about it.
-		if ( $submitter && get_current_user_id() !== $submitter && Subscriptions::enabled() && Subscriptions::is_following( $post->ID, $submitter ) ) {
+		if ( $follows && ( ! $submitter || get_current_user_id() !== $submitter ) && Subscriptions::enabled() ) {
 			Queue::schedule( time(), self::HOOK, [ $post->ID ] );
 		}
 	}
@@ -56,8 +60,7 @@ final class ApprovalEmail {
 	 */
 	public static function send( int $request_id ): void {
 		$request      = get_post( $request_id );
-		$submitter    = self::submitter( $request_id );
-		$subscription = $submitter ? SubscriptionRepository::find( $request_id, $submitter ) : null;
+		$subscription = self::subscription( $request_id );
 
 		if ( ! $request || 'publish' !== $request->post_status || ! $subscription || ! Subscriptions::enabled() ) {
 			return;
@@ -78,6 +81,22 @@ final class ApprovalEmail {
 				];
 			}
 		);
+	}
+
+	/**
+	 * Returns the subscription of whoever suggested a request to it, or null when they do not follow it.
+	 *
+	 * @param int $request_id Request ID.
+	 * @return array<string, int|string>|null
+	 * @phpstan-return Subscription|null
+	 */
+	private static function subscription( int $request_id ): ?array {
+		$submitter = self::submitter( $request_id );
+		if ( $submitter ) {
+			return SubscriptionRepository::find( $request_id, $submitter );
+		}
+
+		return SubscriptionRepository::find_guest( $request_id, (int) get_post_meta( $request_id, RequestPostType::META_SUBMITTER_GUEST, true ) );
 	}
 
 	/**

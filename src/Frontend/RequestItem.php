@@ -24,10 +24,10 @@ final class RequestItem {
 	/**
 	 * Prepares one request for a template.
 	 *
-	 * @param WP_Post                                                $post     Request.
-	 * @param string                                                 $voting   Voting rule of the request's board, a BoardSettings value.
-	 * @param array{request: int, message: string, login: bool}|null $notice   Notice from a vote without JavaScript.
-	 * @param string                                                 $instance Unique prefix of the list or card that shows the request, or '' on the board and on the request's own page.
+	 * @param WP_Post                                                             $post     Request.
+	 * @param string                                                              $voting   Voting rule of the request's board, a BoardSettings value.
+	 * @param array{request: int, message: string, login: bool, email: bool}|null $notice   Notice from a vote without JavaScript.
+	 * @param string                                                              $instance Unique prefix of the list or card that shows the request, or '' on the board and on the request's own page.
 	 * @return array<string, mixed>
 	 */
 	public static function prepare( WP_Post $post, string $voting, ?array $notice, string $instance = '' ): array {
@@ -53,7 +53,9 @@ final class RequestItem {
 			] : null,
 			'categories'  => is_array( $categories ) ? wp_list_pluck( $categories, 'name' ) : [],
 			'votable'     => $votable,
-			'guest_votes' => $votable && BoardSettings::ANYONE === $voting,
+			'guest_votes' => $votable && in_array( $voting, [ BoardSettings::ANYONE, BoardSettings::VERIFIED ], true ),
+			// Visitors who have not confirmed their email give it in a form next to the vote button.
+			'email_vote'  => $votable && BoardSettings::VERIFIED === $voting,
 			'context'     => [
 				'id'         => $post->ID,
 				'votes'      => $votes,
@@ -61,6 +63,7 @@ final class RequestItem {
 				'busy'       => false,
 				'message'    => $notice ? $notice['message'] : '',
 				'needsLogin' => $notice ? $notice['login'] : false,
+				'needsEmail' => $notice ? $notice['email'] : false,
 			],
 		];
 	}

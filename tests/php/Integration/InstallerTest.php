@@ -54,8 +54,9 @@ final class InstallerTest extends TestCase {
 
 		$table = Schema::table( Schema::SUBSCRIPTIONS );
 
-		$this->assertSame( [ 'id', 'request_id', 'user_id', 'token', 'source', 'created_at' ], $wpdb->get_col( 'DESCRIBE ' . $table ) );
-		$this->assertEqualsCanonicalizing( [ 'PRIMARY', 'request_user', 'token', 'user_id' ], array_unique( $wpdb->get_col( 'SHOW INDEX FROM ' . $table, 2 ) ) );
+		// A site that had the table before database version 3 has guest_id at the end.
+		$this->assertEqualsCanonicalizing( [ 'id', 'request_id', 'user_id', 'guest_id', 'token', 'source', 'created_at' ], $wpdb->get_col( 'DESCRIBE ' . $table ) );
+		$this->assertEqualsCanonicalizing( [ 'PRIMARY', 'request_follower', 'token', 'user_id', 'guest_id' ], array_unique( $wpdb->get_col( 'SHOW INDEX FROM ' . $table, 2 ) ) );
 	}
 
 	public function test_subscriptions_table_holds_one_row_per_user_and_request(): void {
@@ -101,8 +102,8 @@ final class InstallerTest extends TestCase {
 		update_option( Installer::OPTION_DB_VERSION, 1 );
 		Installer::maybe_upgrade();
 
-		$this->assertSame( [ Schema::table( Schema::VOTES ), Schema::table( Schema::SUBSCRIPTIONS ) ], $examined );
-		$this->assertSame( 2, Installer::DB_VERSION );
+		$this->assertSame( [ Schema::table( Schema::VOTES ), Schema::table( Schema::SUBSCRIPTIONS ), Schema::table( Schema::GUESTS ) ], $examined );
+		$this->assertSame( 3, Installer::DB_VERSION );
 		$this->assertSame( Installer::DB_VERSION, (int) get_option( Installer::OPTION_DB_VERSION ) );
 	}
 

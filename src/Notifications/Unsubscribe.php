@@ -7,13 +7,15 @@
 
 namespace FeatureRequestSystem\Notifications;
 
+use FeatureRequestSystem\Guests\GuestRepository;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Serves the link at the end of every email to a follower. It works without logging in:
- * the secret token in the link stands for one user following one request.
+ * the secret token in the link stands for one user, or one guest who confirmed their
+ * email, following one request.
  *
  * Opening the link only asks. The user stops following when the page's button is pressed,
  * or when a mail program posts to the link for its own unsubscribe button. Programs that
@@ -109,6 +111,20 @@ final class Unsubscribe {
 			return self::ask( $subscription, $request );
 		}
 
+		if ( $all && $subscription['guest_id'] ) {
+			SubscriptionRepository::remove_all_of_guest( $subscription['guest_id'] );
+			GuestRepository::set_auto_follow( $subscription['guest_id'], false );
+
+			return self::page(
+				200,
+				__( 'You no longer follow any request', 'feature-request-system' ),
+				[
+					self::paragraph( __( 'We will not email you about feature requests again. Voting for a request or suggesting one no longer makes you follow it.', 'feature-request-system' ) ),
+					self::home_link(),
+				]
+			);
+		}
+
 		if ( $all ) {
 			SubscriptionRepository::remove_user( $subscription['user_id'] );
 			Subscriptions::set_automatic( $subscription['user_id'], false );
@@ -131,7 +147,7 @@ final class Unsubscribe {
 			);
 		}
 
-		SubscriptionRepository::remove( $subscription['request_id'], $subscription['user_id'] );
+		SubscriptionRepository::remove_by_id( $subscription['id'] );
 
 		return self::page(
 			200,
@@ -145,7 +161,7 @@ final class Unsubscribe {
 							: __( 'We will not email you about this request again.', 'feature-request-system' )
 					),
 				],
-				self::offer_all( $subscription['user_id'], true ),
+				self::offer_all( $subscription, true ),
 				$request ? [ self::link( (string) get_permalink( $request ), __( 'Go to the request', 'feature-request-system' ) ) ] : []
 			)
 		);
@@ -173,22 +189,24 @@ final class Unsubscribe {
 					),
 					self::form( $subscription['token'], false, __( 'Stop following', 'feature-request-system' ) ),
 				],
-				self::offer_all( $subscription['user_id'], false ),
+				self::offer_all( $subscription, false ),
 				$request ? [ self::link( (string) get_permalink( $request ), __( 'Keep following and go to the request', 'feature-request-system' ) ) ] : []
 			)
 		);
 	}
 
 	/**
-	 * Offers to stop every email, for a user who still follows requests.
+	 * Offers to stop every email, for a user or a guest who still follows requests.
 	 *
-	 * @param int  $user_id   User ID.
-	 * @param bool $unfollowed Whether the user just stopped following the link's request.
-	 * @return string[] HTML parts, or none when the user follows nothing.
+	 * @param array<string, int|string> $subscription Subscription of the link.
+	 * @param bool                      $unfollowed   Whether the follower just stopped following the link's request.
+	 * @phpstan-param Subscription $subscription
+	 * @return string[] HTML parts, or none when the follower follows nothing.
 	 */
-	private static function offer_all( int $user_id, bool $unfollowed ): array {
-		$count = SubscriptionRepository::count_of_user( $user_id );
-		$any   = SubscriptionRepository::of_user( $user_id, 1 );
+	private static function offer_all( array $subscription, bool $unfollowed ): array {
+		$guest_id = $subscription['guest_id'];
+		$count    = $guest_id ? SubscriptionRepository::count_of_guest( $guest_id ) : SubscriptionRepository::count_of_user( $subscription['user_id'] );
+		$any      = $guest_id ? SubscriptionRepository::of_guest( $guest_id, 1 ) : SubscriptionRepository::of_user( $subscription['user_id'], 1 );
 		if ( ! $any ) {
 			return [];
 		}
