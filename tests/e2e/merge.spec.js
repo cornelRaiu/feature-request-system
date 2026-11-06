@@ -199,7 +199,7 @@ test.describe( 'Merging a duplicate', () => {
 		await visitor.close();
 	} );
 
-	test( 'the merged request’s edit screen says where it went', async ( {
+	test( 'the merged request’s edit screen says where it went, and it can only go to the trash', async ( {
 		page,
 	} ) => {
 		const { target, duplicate } = setUp();
@@ -222,5 +222,13 @@ test.describe( 'Merging a duplicate', () => {
 		await expect(
 			box.getByRole( 'button', { name: 'Merge' } )
 		).toHaveCount( 0 );
+
+		// Publishing or saving it would change nothing, so the Publish box gives way to this one.
+		await expect( page.locator( '#submitdiv' ) ).toHaveCount( 0 );
+		await box.getByRole( 'link', { name: 'Move to Trash' } ).click();
+		await expect( page ).toHaveURL( /edit\.php\?post_type=mwtfrs_request/ );
+		expect(
+			wpEval( `echo get_post_status( ${ duplicate.id } );` ).trim()
+		).toBe( 'trash' );
 	} );
 } );

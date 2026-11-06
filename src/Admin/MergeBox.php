@@ -71,6 +71,11 @@ final class MergeBox {
 	private const ID = 'mwtfrs-merge';
 
 	/**
+	 * HTML id of WordPress's Publish box.
+	 */
+	private const PUBLISH_BOX = 'submitdiv';
+
+	/**
 	 * Handle of the script that finds requests by title.
 	 */
 	private const SCRIPT = 'mwtfrs-merge-box';
@@ -93,9 +98,19 @@ final class MergeBox {
 	/**
 	 * Registers the box for moderators, on requests that exist.
 	 *
+	 * A merged request stays merged whatever saves it, so its Publish box would only
+	 * mislead: "Publish" and "Save Draft" would change nothing and then say they had. On
+	 * its edit screen this box takes that one's place, with the link to the trash.
+	 *
 	 * @param WP_Post $post Request being edited.
 	 */
 	public static function add( WP_Post $post ): void {
+		if ( MergedStatus::NAME === $post->post_status ) {
+			remove_meta_box( self::PUBLISH_BOX, RequestPostType::NAME, 'side' );
+			add_meta_box( self::ID, _x( 'Merged', 'post status of a request merged into another', 'feature-request-system' ), [ self::class, 'render' ], RequestPostType::NAME, 'side', 'high' );
+
+			return;
+		}
 		if ( ! MergeService::can_merge() || in_array( $post->post_status, [ 'auto-draft', 'trash' ], true ) ) {
 			return;
 		}
@@ -120,6 +135,9 @@ final class MergeBox {
 				sprintf( esc_html__( 'This request was merged into %s. Its address leads there.', 'feature-request-system' ), '' !== $link ? '<a href="' . esc_url( $link ) . '">' . $title . '</a>' : $title ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts.
 				esc_html__( 'Merging cannot be undone.', 'feature-request-system' )
 			);
+			if ( current_user_can( 'delete_post', $post->ID ) ) {
+				printf( '<p><a class="submitdelete" href="%1$s">%2$s</a></p>', esc_url( (string) get_delete_post_link( $post->ID ) ), esc_html__( 'Move to Trash', 'feature-request-system' ) );
+			}
 
 			return;
 		}

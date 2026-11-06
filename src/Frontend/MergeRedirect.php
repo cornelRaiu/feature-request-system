@@ -54,8 +54,8 @@ final class MergeRedirect {
 	 * @return WP_Post[]
 	 */
 	public static function remember( array $posts, WP_Query $query ): array {
-		if ( $query->is_main_query() && $query->is_singular() ) {
-			$post         = $posts[0] ?? null;
+		if ( $query->is_main_query() ) {
+			$post         = $query->is_singular() ? $posts[0] ?? null : null;
 			self::$merged = $post instanceof WP_Post && RequestPostType::NAME === $post->post_type && MergedStatus::NAME === $post->post_status ? $post->ID : 0;
 		}
 

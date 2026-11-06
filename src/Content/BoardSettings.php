@@ -218,8 +218,8 @@ final class BoardSettings {
 			$clean[ self::CATEGORIES ] = array_values( array_unique( array_filter( array_map( 'absint', $settings[ self::CATEGORIES ] ) ) ) );
 		}
 
-		if ( isset( $settings[ self::MERGE_EMAIL ] ) && ( self::USE_SITE === $settings[ self::MERGE_EMAIL ] || array_key_exists( (string) $settings[ self::MERGE_EMAIL ], Settings::merge_email_choices() ) ) ) {
-			$clean[ self::MERGE_EMAIL ] = (string) $settings[ self::MERGE_EMAIL ];
+		if ( in_array( $settings[ self::MERGE_EMAIL ] ?? null, [ self::USE_SITE, Settings::MERGE_EMAIL_FOLLOWERS, Settings::MERGE_EMAIL_SUBMITTER, Settings::MERGE_EMAIL_NOBODY ], true ) ) {
+			$clean[ self::MERGE_EMAIL ] = $settings[ self::MERGE_EMAIL ];
 		}
 
 		return $clean;

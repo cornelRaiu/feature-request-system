@@ -106,6 +106,25 @@ final class MergeBoxTest extends TestCase {
 		$this->assertStringContainsString( 'This request was merged into <a href="' . esc_url( get_edit_post_link( $this->target ) ) . '">Dark mode</a>. Its address leads there.', $html );
 		$this->assertStringNotContainsString( 'type="radio"', $html );
 		$this->assertStringNotContainsString( MergeBox::ACTION, $html );
+		$this->assertStringContainsString( '<a class="submitdelete" href="' . esc_url( (string) get_delete_post_link( $this->duplicate ) ) . '">Move to Trash</a>', $html );
+	}
+
+	public function test_a_merged_request_has_no_publish_box_that_would_change_nothing(): void {
+		global $wp_meta_boxes;
+
+		MergeService::merge( $this->duplicate, $this->target );
+		$wp_meta_boxes = [];
+		add_meta_box( 'submitdiv', 'Publish', '__return_empty_string', RequestPostType::NAME, 'side', 'core' );
+
+		MergeBox::add( get_post( $this->duplicate ) );
+
+		$this->assertFalse( $wp_meta_boxes[ RequestPostType::NAME ]['side']['core']['submitdiv'], 'Removed.' );
+		$this->assertSame( 'Merged', $wp_meta_boxes[ RequestPostType::NAME ]['side']['high']['mwtfrs-merge']['title'], 'This box in its place.' );
+
+		$wp_meta_boxes = [];
+		add_meta_box( 'submitdiv', 'Publish', '__return_empty_string', RequestPostType::NAME, 'side', 'core' );
+		MergeBox::add( get_post( $this->target ) );
+		$this->assertIsArray( $wp_meta_boxes[ RequestPostType::NAME ]['side']['core']['submitdiv'], 'Other requests keep theirs.' );
 	}
 
 	public function test_the_form_merges_and_leads_to_the_request_the_votes_went_to(): void {
@@ -190,6 +209,8 @@ final class MergeBoxTest extends TestCase {
 
 		$this->save_board( $board, 'made-up' );
 		$this->assertSame( Settings::MERGE_EMAIL_SUBMITTER, BoardSettings::get( $board )[ BoardSettings::MERGE_EMAIL ], 'A value that is not a choice keeps the current one.' );
+		BoardSettings::update( $board, [ BoardSettings::MERGE_EMAIL => [ Settings::MERGE_EMAIL_NOBODY ] ] );
+		$this->assertSame( Settings::MERGE_EMAIL_SUBMITTER, BoardSettings::get( $board )[ BoardSettings::MERGE_EMAIL ], 'Nor does a list.' );
 
 		$this->save_board( $board, BoardSettings::USE_SITE );
 		$this->assertSame( Settings::MERGE_EMAIL_NOBODY, BoardSettings::merge_email( $board ) );
