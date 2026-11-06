@@ -1,6 +1,6 @@
 # Manual test plan
 
-A list of everything to try by hand before a release: 142 cases in 18 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
+A list of everything to try by hand before a release: 186 cases in 26 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
 
 - **Build to test:** the branch that is checked out in the plugin folder of the test site.
 - **Test site:** https://test-wp-plugins.test (WordPress 7.1, PHP 8.4, Twenty Twenty-Five).
@@ -15,9 +15,9 @@ A list of everything to try by hand before a release: 142 cases in 18 areas. The
 
 | Priority | Meaning | Cases |
 |---|---|---|
-| P1 | Must pass before the release. | 80 |
-| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 54 |
-| P3 | Extended checks that need extra setup. Run them if you have the time. | 8 |
+| P1 | Must pass before the release. | 104 |
+| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 72 |
+| P3 | Extended checks that need extra setup. Run them if you have the time. | 10 |
 
 ## Who does the steps
 
@@ -175,8 +175,9 @@ Steps:
 
 Expected:
 
-- The version is 2.
-- The tables `wp_mwtfrs_votes` and `wp_mwtfrs_subscriptions` exist.
+- The version is 3.
+- The tables `wp_mwtfrs_votes`, `wp_mwtfrs_subscriptions` and `wp_mwtfrs_guests` exist.
+- `wp db query "SHOW INDEX FROM wp_mwtfrs_subscriptions WHERE Key_name = 'request_follower'"` lists the columns request_id, user_id and guest_id.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 
@@ -2451,6 +2452,732 @@ Expected:
 
 - The server answers the board page in well under half a second. On the test machine it took about 70 ms.
 - The admin list sorts without a noticeable wait.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### FLT · Board filters and live filtering
+
+New in 1.1: the board's filters apply as they change, without a page load, and each of its four controls can be turned off.
+
+#### FLT-01 · Filters apply as they change
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Open the board.
+2. Choose Planned in Status.
+3. Type a word from a request's title in Search and stop typing.
+4. Choose Newest in Sort by.
+
+Expected:
+
+- Each change updates the list without reloading the page: the browser's tab shows no loading spinner.
+- The search applies about a third of a second after you stop typing, not at each letter.
+- The address bar shows the filters, such as `?fr-status=planned&fr-search=…`.
+- There is no Show requests button.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-02 · Back and Forward bring the lists back
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Do FLT-01.
+2. Press the browser's Back button three times, then Forward once.
+
+Expected:
+
+- Each press shows the list and the filter fields as they were at that step.
+- Reloading the page at any step shows the same list.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-03 · Page links turn pages in place
+
+**Priority:** P2 · **As:** Sam
+
+Steps:
+
+1. On a board with more than one page of requests (S4 gives 30), vote for a request on page 1.
+2. Press the link to page 2, then vote for a request there.
+3. Go back to page 1.
+
+Expected:
+
+- Page 2 opens without a page load, and the keyboard focus moves to the list.
+- Your votes show as pressed on both pages, and voting works on page 2.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-04 · Each control can be turned off
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Edit the board's page. Select the board block and open Filters in its sidebar.
+2. Turn off Search and Category filter, and update the page.
+3. Open the page, then add `?fr-search=dark` to its address.
+4. Turn off all four, and open the page again.
+
+Expected:
+
+- With two off, the board shows only Status and Sort by.
+- The link with `fr-search=dark` still lists only matching requests, and changing the status keeps that search.
+- With all four off, the board shows no filter form, and its requests and page links remain.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-05 · The shortcode turns controls off too
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. On a new page, add `[feature_requests search="no" sort_filter="no"]` and publish it.
+2. Open the page.
+
+Expected:
+
+- The board shows Status and Category, but no Search and no Sort by.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-06 · Screen readers hear the new count
+
+**Priority:** P2 · **As:** Guest
+
+Steps:
+
+1. Turn on VoiceOver (Cmd+F5) and open the board.
+2. Choose another status with the keyboard.
+
+Expected:
+
+- VoiceOver says how many requests are shown, such as "Showing 3 requests.", once the list changes.
+- The focus stays on the status field.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FLT-07 · Without JavaScript the board works as in 1.0
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Turn JavaScript off in the browser (see NJS) and open the board.
+2. Choose a status and press Show requests.
+
+Expected:
+
+- The Show requests button is there, and pressing it loads the filtered list.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### FRM · Form texts and the new request email
+
+New in 1.1: the form's texts can be changed, and the address for new request emails starts with the site's.
+
+#### FRM-01 · The form's texts can be changed in the block
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Edit the page with the form. Select the form block and open Texts in its sidebar.
+2. Fill in a heading, a label for the title, help for the title, a label for the details and a button text. Update the page.
+3. Open the page as Sam and send a request.
+
+Expected:
+
+- The form shows your texts instead of the defaults, in the editor and on the page.
+- Leaving a text empty brings its default back.
+- HTML typed into a text, such as `<b>Hi</b>`, is shown as typed, not as bold.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FRM-02 · The messages after sending can be changed
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. In the form's Texts panel, fill in the message for a request that waits for approval and the one for a published request.
+2. Send a request as Sam (it waits for approval), and one as Admin (it is published).
+
+Expected:
+
+- Each shows the message you wrote, with and without JavaScript.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FRM-03 · The shortcode takes the texts too
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. On a new page, add `[feature_request_form heading="Tell us what to build" submit_label="Send idea"]`.
+
+Expected:
+
+- The form's heading and button show those texts.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### FRM-04 · Send those emails to starts with the site's address
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. On the throwaway site (S6), open Feature Requests → Settings before saving anything there.
+
+Expected:
+
+- The "Send those emails to" field shows the address from Settings → General → Administration Email Address.
+- Saving the page keeps it, and a new request is emailed to it.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### RDM · The roadmap
+
+New in 1.1: the Feature Request Roadmap block, its shortcode and pattern, and the "Show on roadmap" setting of each status.
+
+#### RDM-01 · The roadmap pattern shows a column for each status on the roadmap
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Create a page and insert the Feature request roadmap pattern. Publish it.
+2. Give a few requests the statuses Planned, In Progress and Shipped, if S4 did not.
+3. Open the page.
+
+Expected:
+
+- There are three columns, Planned, In Progress and Shipped, in that order, each with its number of requests.
+- Each column lists its requests with the most votes first, with their vote buttons and categories.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RDM-02 · Show more adds ten at a time
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Give 12 requests the status Planned (Bulk Edit is quickest).
+2. Open the roadmap and press Show more under Planned.
+3. Do it again with JavaScript turned off.
+
+Expected:
+
+- The column shows 10 requests, then 12 after Show more. The other columns do not change.
+- With JavaScript the page does not reload; without it, the page reloads at the same column.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RDM-03 · Statuses choose whether they are on the roadmap
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Under Feature Requests → Statuses, untick "Show on roadmap" for Shipped and tick it for Under Review.
+2. Open the roadmap.
+
+Expected:
+
+- The Statuses list has a Roadmap column that shows the choice.
+- The roadmap shows Under Review and no longer Shipped, in the order of the statuses.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RDM-04 · Voting on the roadmap
+
+**Priority:** P1 · **As:** Sam
+
+Steps:
+
+1. On the roadmap, vote for a request, then open the board.
+
+Expected:
+
+- The count goes up at once, and the board shows the vote as pressed.
+- On a status closed for voting, such as Shipped, there is no vote button.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RDM-05 · A roadmap of one board, and the shortcode
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Create a second board with a request in Planned.
+2. On a page, add `[feature_roadmap board="<the second board's slug>"]`, and the roadmap block with no board chosen.
+
+Expected:
+
+- The shortcode's roadmap shows only the second board's requests; the block shows those of every board.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RDM-06 · The roadmap next to a filtered board
+
+**Priority:** P2 · **As:** Guest
+
+Steps:
+
+1. Put the roadmap block and the board block on one page.
+2. Filter the board by a status, then press Show more on the roadmap.
+
+Expected:
+
+- The board keeps its filter.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### MRG · Merging duplicates
+
+New in 1.1: a duplicate can be merged into another request, with its votes and followers.
+
+#### MRG-01 · Merging a duplicate moves its votes and followers
+
+**Priority:** P1 · **As:** Maya
+
+Steps:
+
+1. As Sam, vote for request A. As Riley, vote for A and for request B, on the same board.
+2. As Maya, open A's edit screen. In the "Merge into…" box, type part of B's title, choose B and press Merge.
+
+Expected:
+
+- The box asks you to confirm, and says it cannot be undone.
+- B now has its votes plus Sam's; Riley's vote counts once.
+- A is listed under Merged in the requests list, and B's page says that A was merged into it.
+- Sam and Riley follow B.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### MRG-02 · The duplicate's address leads to the other request
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Open A's old address from MRG-01.
+
+Expected:
+
+- The browser lands on B's page.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### MRG-03 · Who is emailed about a merge
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. With the default setting, merge a duplicate that Sam follows, as Maya. Run the scheduled action (S3).
+2. Under Feature Requests → Settings → Email about a merge, choose "Only the person who suggested it", and merge another one.
+3. Choose "Nobody" and merge a third.
+
+Expected:
+
+- First: everyone who followed the duplicate gets an email saying it was merged into B, and Maya gets none.
+- Second: only the person who suggested the duplicate gets one.
+- Third: nobody does, and the followers still move.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### MRG-04 · A board can choose for itself
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Under Feature Requests → Boards, edit a board and set Email about a merge to Nobody, while the site's setting is everyone.
+2. Merge two of its requests.
+
+Expected:
+
+- Nobody is emailed. On another board, followers still are.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### MRG-05 · Merges the plugin refuses
+
+**Priority:** P2 · **As:** Maya
+
+Steps:
+
+1. Try to merge a request into one on another board, into a request that was merged itself, and into itself (with the REST route or by editing the box's choice).
+
+Expected:
+
+- Each is refused with a message that says why, and nothing moves.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### MRG-06 · Only moderators can merge
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Open a request's edit screen as a user who can write requests but not edit others' (an author with the request capabilities), if you have one.
+
+Expected:
+
+- There is no "Merge into…" box.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### RUL · Trending, vote limits and the vote threshold
+
+New in 1.1: a Trending order, a limit on the votes each person can give on a board, and a threshold that moves a request to another status.
+
+#### RUL-01 · Trending puts recent votes first
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. On the board, choose Trending in Sort by.
+2. Compare with Most votes.
+
+Expected:
+
+- Requests with the most votes in the last 30 days come first. S4's sample votes are spread over time, so the order differs from Most votes.
+- `[feature_request_list sort="trending"]` and the list block's Order setting give the same order.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RUL-02 · Each person can give a limited number of votes
+
+**Priority:** P1 · **As:** Sam
+
+Steps:
+
+1. As Admin, set "Votes each person can give" to 2 for the board.
+2. As Sam, vote for three requests on the board.
+3. Take one vote back, and vote for the third again.
+
+Expected:
+
+- The board says each person can vote for 2 requests, and how many Sam has left.
+- The third vote is refused with a message that all votes are used.
+- After taking one back, the third vote counts.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RUL-03 · A closed request gives its votes back
+
+**Priority:** P2 · **As:** Maya
+
+Steps:
+
+1. After RUL-02, move one of Sam's requests to Shipped.
+2. As Sam, open the board.
+
+Expected:
+
+- Sam has one vote left again.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RUL-04 · The vote threshold moves a request once
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Edit the board: in Vote threshold, move requests from Open to Planned at 2 votes.
+2. As Sam and Riley, vote for an Open request.
+3. As Maya, move it back to Open, and vote for it as a third user.
+
+Expected:
+
+- The second vote moves it to Planned, and its followers get the status email after five minutes.
+- After Maya moves it back, it stays Open.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### RUL-05 · Developers can decide who votes and suggests
+
+**Priority:** P3 · **As:** Admin
+
+Steps:
+
+1. Add a small must-use plugin: `add_filter( 'mwtfrs_can_vote', '__return_false' );`
+2. As Sam, try to vote. Remove the file afterwards.
+
+Expected:
+
+- The board shows no vote button for Sam, and a vote sent anyway is refused.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### GST · Visitors who confirm their email
+
+New in 1.1: on boards that ask for it, visitors without an account vote and suggest once they confirm their address. Needs S3.
+
+#### GST-01 · A guest votes after confirming their email
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. As Admin, set the board's "Who can vote" to "Visitors who confirm their email".
+2. As Guest, vote for a request.
+3. Type an email address in the form that opens next to the button, and press "Send me the link".
+4. Open the link from the email, and press the button on its page.
+
+Expected:
+
+- The form asks for the address, and says to check the email once sent.
+- Opening the link alone confirms nothing; the button does.
+- After the button, the vote counts and the board shows it as pressed.
+- The next vote on another request counts at once, without another email.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### GST-02 · A guest suggests a feature after confirming
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Set the board's "Who can suggest features" to "Visitors who confirm their email".
+2. As Guest in a new private window, send a request with a name and an email address.
+3. Confirm with the link.
+
+Expected:
+
+- The form says to check the email, and the request is not in the admin yet.
+- After the button, the request is sent: it waits for approval as usual.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### GST-03 · Links are limited, and expire
+
+**Priority:** P2 · **As:** Guest
+
+Steps:
+
+1. Ask for a link twice within 10 minutes for the same address.
+2. Open a link more than 24 hours old, if you kept one.
+
+Expected:
+
+- Only one email is sent; the page says the same both times.
+- The old link says it has expired.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### GST-04 · A guest's emails and privacy
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. After GST-01, change the request's status, and run the scheduled action.
+2. Under Tools → Export Personal Data, export the guest's address.
+3. Under Tools → Erase Personal Data, erase it.
+
+Expected:
+
+- The guest gets the status email, with a link that stops the emails.
+- The export lists the guest's votes and follows; after erasing, they no longer follow, and the vote count stays.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### GST-05 · Pages stay the same for every guest
+
+**Priority:** P2 · **As:** Guest
+
+Steps:
+
+1. Open the board as a guest who confirmed, and as one who did not, and compare the page source.
+
+Expected:
+
+- Apart from ids and the spam check token, the HTML is the same: no email address, no pressed buttons. The confirmed guest's votes appear after the page loads.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### TRN · Cloudflare Turnstile
+
+New in 1.1: Turnstile as a spam check. Cloudflare publishes test keys: site key `1x00000000000000000000AA` with secret `1x0000000000000000000000000000000AA` always passes; secret `2x0000000000000000000000000000000AA` always fails.
+
+#### TRN-01 · The form checks guests once both keys are saved
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Set the board's "Who can suggest features" to Everyone.
+2. Under Feature Requests → Settings → Spam check, save the passing test keys.
+3. As Guest, open the form and send a request.
+
+Expected:
+
+- The form shows Cloudflare's widget, which passes by itself, and the request is sent.
+- The settings page does not show the secret key again, only that one is saved.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### TRN-02 · A failing check refuses the request
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. Save the failing secret key, and send a request as Guest.
+
+Expected:
+
+- The request is refused with a message about the spam check, and nothing is saved.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### TRN-03 · Logged-in users only when asked
+
+**Priority:** P2 · **As:** Sam
+
+Steps:
+
+1. With the passing keys, open the form as Sam, then tick "Check logged-in users too" and open it again.
+
+Expected:
+
+- Sam sees no widget at first, and sees it after the box is ticked.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### TRN-04 · The email form next to a vote button is checked too
+
+**Priority:** P1 · **As:** Guest
+
+Steps:
+
+1. With the passing keys and a board for visitors who confirm their email, vote as Guest.
+
+Expected:
+
+- The email form shows the widget when it opens, and the link is sent.
+- Boards where guests vote without confirming load nothing from Cloudflare (check the Network tab for challenges.cloudflare.com).
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### TRN-05 · The widget fits a phone
+
+**Priority:** P2 · **As:** Guest
+
+Steps:
+
+1. Open the form in the browser's device view at a width of 390 pixels.
+
+Expected:
+
+- The widget takes its compact size and nothing sticks out of the page.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### TRN-06 · Removing a key turns the check off
+
+**Priority:** P2 · **As:** Admin
+
+Steps:
+
+1. Tick "Remove the saved secret key" and save.
+
+Expected:
+
+- The form no longer shows the widget, and works without JavaScript again.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+### EXP · CSV export and the dashboard widget
+
+New in 1.1: exports of requests and voters, and a dashboard widget for moderators.
+
+#### EXP-01 · Export to CSV follows the list
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Under Feature Requests, filter the list by a status and a board, and press "Export to CSV".
+2. Open the file in Numbers or Excel.
+
+Expected:
+
+- The file has the requests the list shows, in its order, with their votes, followers, status, board, categories, link, and who suggested them with their email.
+- Accented names show correctly, and a title that starts with `=` is shown as text, not run as a formula.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### EXP-02 · Export voters to CSV
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Press "Export voters to CSV".
+
+Expected:
+
+- One row per vote, with the voter's name, email and the date. Visitors are named Visitor; a visitor who confirmed their email is named, with their address.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### EXP-03 · Who gets the email addresses
+
+**Priority:** P2 · **As:** Maya
+
+Steps:
+
+1. Export as Maya, then as an author with the request capabilities, if you have one.
+
+Expected:
+
+- Maya's files have the addresses. The author's have names but no addresses.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### EXP-04 · The export with WP-CLI
+
+**Priority:** P3 · **As:** Admin
+
+Steps:
+
+1. Run `wp mwtfrs export --status=planned > planned.csv` and `wp mwtfrs export --voters > voters.csv`.
+
+Expected:
+
+- The files match the admin's exports for the same filters.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### EXP-05 · The dashboard widget
+
+**Priority:** P1 · **As:** Maya
+
+Steps:
+
+1. Leave three requests waiting for approval, and open the Dashboard.
+
+Expected:
+
+- The Feature Requests widget lists the requests that waited longest, with a link to all of them, and this week's top requests with their votes.
+- Sam, a subscriber, does not see the widget.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 
