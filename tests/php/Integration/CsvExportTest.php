@@ -118,6 +118,46 @@ final class CsvExportTest extends TestCase {
 		}
 	}
 
+	public function test_filters_can_change_who_may_export_and_who_gets_the_emails(): void {
+		$request = $this->create_request( [ 'post_title' => 'Dark mode' ] );
+		update_post_meta( $request, RequestPostType::META_SUBMITTER_EMAIL, 'gina@example.com' );
+		$seen = [];
+		add_filter(
+			CsvExport::FILTER_CAN_EXPORT,
+			static function ( bool $allowed, int $user_id ) use ( &$seen ): bool {
+				$seen[] = [ $allowed, $user_id ];
+
+				return ! $allowed;
+			},
+			10,
+			2
+		);
+
+		$editor = $this->log_in( 'editor' );
+		try {
+			$this->download();
+			$this->fail( 'The filter did not refuse an editor.' );
+		} catch ( WPDieException $refused ) {
+			$this->assertSame( 'You are not allowed to export feature requests.', $refused->getMessage() );
+		}
+		$this->assertSame( [ true, $editor ], $seen[0] );
+
+		$subscriber = $this->log_in( 'subscriber' );
+		$this->assertStringContainsString( 'Dark mode', $this->download(), 'The filter let a subscriber export.' );
+		$this->assertStringNotContainsString( 'gina@example.com', $this->download() );
+		$this->assertContains( [ false, $subscriber ], $seen );
+
+		add_filter(
+			CsvExport::FILTER_WITH_EMAILS,
+			static function ( bool $allowed, int $user_id ) use ( $subscriber ): bool {
+				return $allowed || $subscriber === $user_id;
+			},
+			10,
+			2
+		);
+		$this->assertStringContainsString( 'gina@example.com', $this->download() );
+	}
+
 	public function test_a_link_without_its_nonce_exports_nothing(): void {
 		$this->log_in( 'editor' );
 		$this->create_request( [ 'post_title' => 'Secret plans' ] );
@@ -169,6 +209,22 @@ final class CsvExportTest extends TestCase {
 		$this->assertSame( [ $reported ], $this->exported_ids( [ CategoryTaxonomy::NAME => 'reports' ] ) );
 		$this->assertSame( [ $on_phone ], $this->exported_ids( [ 's' => 'phone' ] ) );
 		$this->assertSame( [], $this->exported_ids( [ StatusTaxonomy::NAME => 'no-such-status' ] ), 'As on the list, a filter that matches nothing finds nothing.' );
+	}
+
+	public function test_the_export_follows_the_mine_view_of_the_list(): void {
+		$writer = $this->log_in_as_writer();
+		$own    = $this->create_request( [ 'post_author' => $writer ] );
+		$other  = $this->create_request( [ 'post_author' => self::factory()->user->create( [ 'role' => 'editor' ] ) ] );
+
+		$this->assertSame( [ $own ], $this->exported_ids( [ 'author' => (string) $writer ] ) );
+		$this->assertEqualSets( [ $own, $other ], $this->exported_ids( [ 'author' => 'nobody' ] ) );
+
+		// The list opens on "Mine" for those who can't edit others' requests, and sets the author itself.
+		set_current_screen( 'edit-' . RequestPostType::NAME );
+		$_GET = [ 'author' => (string) $writer ];
+		preg_match( '#href="([^"]+)"#', $this->buttons( 'top' ), $link );
+		parse_str( (string) wp_parse_url( html_entity_decode( $link[1] ), PHP_URL_QUERY ), $args );
+		$this->assertSame( (string) $writer, $args['author'] );
 	}
 
 	public function test_the_export_follows_the_post_status_of_the_list_and_leaves_out_the_trash(): void {
@@ -291,9 +347,22 @@ final class CsvExportTest extends TestCase {
 			$ids[] = $this->create_request( [ 'post_date' => '2026-11-01 12:00:00' ] );
 		}
 
+		// When the second page is read, the first one is no longer held in memory.
+		$cached = [];
+		add_filter(
+			'the_posts',
+			static function ( array $posts ) use ( $ids, &$cached ): array {
+				$cached[] = false !== wp_cache_get( $ids[ CsvExport::PAGE_SIZE ], 'posts' );
+
+				return $posts;
+			}
+		);
+
 		$queries  = get_num_queries();
 		$exported = $this->exported_ids( [] );
 		$this->assertLessThan( 30, get_num_queries() - $queries, 'Each page is read with a few queries, not a few per request.' );
+		$this->assertCount( 2, $cached );
+		$this->assertFalse( $cached[1], 'The newest request, on the first page, was let go of before the second page was read.' );
 
 		$this->assertCount( CsvExport::PAGE_SIZE + 1, $exported );
 		$this->assertSame( array_reverse( $ids ), $exported );

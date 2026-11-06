@@ -7,7 +7,6 @@
 
 namespace FeatureRequestSystem\Admin;
 
-use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Export\CsvExport;
 
@@ -53,7 +52,7 @@ final class ExportLinks {
 	 */
 	public static function render( string $which ): void {
 		$screen = get_current_screen();
-		if ( 'top' !== $which || ! $screen || RequestPostType::NAME !== $screen->post_type || ! self::can_export() ) {
+		if ( 'top' !== $which || ! $screen || RequestPostType::NAME !== $screen->post_type || ! CsvExport::can_export( get_current_user_id() ) ) {
 			return;
 		}
 
@@ -108,7 +107,7 @@ final class ExportLinks {
 		if ( ! wp_verify_nonce( (string) ( $input['_wpnonce'] ?? '' ), self::ACTION ) ) {
 			wp_nonce_ays( self::ACTION );
 		}
-		if ( ! self::can_export() ) {
+		if ( ! CsvExport::can_export( get_current_user_id() ) ) {
 			wp_die( esc_html__( 'You are not allowed to export feature requests.', 'feature-request-system' ), '', [ 'response' => 403 ] );
 		}
 
@@ -128,7 +127,7 @@ final class ExportLinks {
 		$write       = static function ( string $csv ): void {
 			echo $csv; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A CSV file, not HTML; CsvExport::line() guards each cell.
 		};
-		$with_emails = current_user_can( Capabilities::MODERATE );
+		$with_emails = CsvExport::with_emails( get_current_user_id() );
 		$filters     = CsvExport::filters( $input );
 
 		if ( $voters ) {
@@ -136,14 +135,5 @@ final class ExportLinks {
 		} else {
 			CsvExport::requests( $filters, $with_emails, $write );
 		}
-	}
-
-	/**
-	 * Whether the current user may export: anyone who can see the requests list.
-	 */
-	private static function can_export(): bool {
-		$type = get_post_type_object( RequestPostType::NAME );
-
-		return $type && current_user_can( $type->cap->edit_posts );
 	}
 }

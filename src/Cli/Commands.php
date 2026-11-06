@@ -7,7 +7,6 @@
 
 namespace FeatureRequestSystem\Cli;
 
-use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\StatusTaxonomy;
@@ -102,7 +101,7 @@ final class Commands {
 		}
 
 		// Whoever runs WP-CLI can read the database. With --user, the user's own rights apply.
-		$with_emails = ! is_user_logged_in() || current_user_can( Capabilities::MODERATE );
+		$with_emails = ! is_user_logged_in() || CsvExport::with_emails( get_current_user_id() );
 		$write       = static function ( string $csv ): void {
 			echo $csv; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV for a terminal or a file, not HTML.
 		};

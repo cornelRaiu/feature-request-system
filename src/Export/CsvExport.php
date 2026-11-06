@@ -8,6 +8,7 @@
 namespace FeatureRequestSystem\Export;
 
 use FeatureRequestSystem\Admin\RequestList;
+use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
@@ -39,6 +40,18 @@ final class CsvExport {
 	public const PAGE_SIZE = 500;
 
 	/**
+	 * Filter to change who may export. Receives whether the user can see the requests
+	 * list, and the user's ID.
+	 */
+	public const FILTER_CAN_EXPORT = 'mwtfrs_can_export';
+
+	/**
+	 * Filter to change who gets submitters' names and emails, and voters' emails, in an
+	 * export. Receives whether the user can edit others' requests, and the user's ID.
+	 */
+	public const FILTER_WITH_EMAILS = 'mwtfrs_export_with_emails';
+
+	/**
 	 * Taxonomies the list can be filtered by. Their names are also the list's query arguments.
 	 */
 	private const TAXONOMIES = [ StatusTaxonomy::NAME, BoardTaxonomy::NAME, CategoryTaxonomy::NAME ];
@@ -54,6 +67,28 @@ final class CsvExport {
 	private const FORMULA_START = "=+-@\t\r";
 
 	/**
+	 * Whether a user may export: by default, anyone who can see the requests list.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public static function can_export( int $user_id ): bool {
+		$type    = get_post_type_object( RequestPostType::NAME );
+		$allowed = $type && user_can( $user_id, $type->cap->edit_posts );
+
+		return (bool) apply_filters( self::FILTER_CAN_EXPORT, $allowed, $user_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+	}
+
+	/**
+	 * Whether a user's export holds who submitted each request and the emails of voters:
+	 * by default, for those who can edit others' requests.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public static function with_emails( int $user_id ): bool {
+		return (bool) apply_filters( self::FILTER_WITH_EMAILS, user_can( $user_id, Capabilities::MODERATE ), $user_id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
+	}
+
+	/**
 	 * Reads the list's filters, search and sort order from its query arguments.
 	 *
 	 * Values that the list would not accept are dropped, as the list drops them.
@@ -67,11 +102,14 @@ final class CsvExport {
 		};
 
 		$post_status = sanitize_key( $text( 'post_status' ) );
+		$author      = absint( $text( 'author' ) );
 		$orderby     = sanitize_key( $text( 'orderby' ) );
 		$order       = strtolower( $text( 'order' ) );
 
 		$filters = [
 			'post_status' => in_array( $post_status, get_post_stati(), true ) ? $post_status : '',
+			// The list's "Mine", which is also where it opens for those who can't edit others' requests.
+			'author'      => $author ? (string) $author : '',
 			's'           => sanitize_text_field( $text( 's' ) ),
 			// The list's months dropdown sends 0 for every month.
 			'm'           => preg_match( '/^\d{4}(\d{2})?$/', $text( 'm' ) ) ? $text( 'm' ) : '',
@@ -238,6 +276,10 @@ final class CsvExport {
 			if ( $requests ) {
 				$callback( $requests );
 			}
+			// What the page put in the object cache, so that memory stays the same for any number of pages.
+			if ( wp_cache_supports( 'flush_runtime' ) ) {
+				wp_cache_flush_runtime();
+			}
 			$total += $fetched;
 			++$page;
 		} while ( self::PAGE_SIZE === $fetched );
@@ -295,6 +337,9 @@ final class CsvExport {
 			$args['perm'] = 'readable';
 		}
 
+		if ( '' !== ( $filters['author'] ?? '' ) ) {
+			$args['author'] = (int) $filters['author'];
+		}
 		if ( '' !== ( $filters['s'] ?? '' ) ) {
 			$args['s'] = $filters['s'];
 		}
