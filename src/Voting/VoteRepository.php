@@ -200,4 +200,38 @@ final class VoteRepository {
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE request_id = %d', Schema::table( Schema::VOTES ), $request_id )
 		);
 	}
+
+	/**
+	 * Moves every vote for one request to another. A voter who voted for both keeps the
+	 * one vote they gave the other request.
+	 *
+	 * @param int $from_id Request the votes are taken from.
+	 * @param int $to_id   Request the votes go to.
+	 * @return int How many votes moved.
+	 */
+	public static function move( int $from_id, int $to_id ): int {
+		global $wpdb;
+
+		// IGNORE leaves the votes that the unique key on request_id and voter_key refuses: those voters already voted for the other request.
+		$moved = (int) $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare( 'UPDATE IGNORE %i SET request_id = %d WHERE request_id = %d', Schema::table( Schema::VOTES ), $to_id, $from_id )
+		);
+		self::remove_all( $from_id );
+
+		return $moved;
+	}
+
+	/**
+	 * Whether a user voted for a request.
+	 *
+	 * @param int $request_id Request ID.
+	 * @param int $user_id    User ID.
+	 */
+	public static function user_voted( int $request_id, int $user_id ): bool {
+		global $wpdb;
+
+		return $user_id > 0 && (bool) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
+			$wpdb->prepare( 'SELECT 1 FROM %i WHERE request_id = %d AND user_id = %d LIMIT 1', Schema::table( Schema::VOTES ), $request_id, $user_id )
+		);
+	}
 }

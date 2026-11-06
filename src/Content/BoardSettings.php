@@ -7,6 +7,8 @@
 
 namespace FeatureRequestSystem\Content;
 
+use FeatureRequestSystem\Settings;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -45,6 +47,17 @@ final class BoardSettings {
 	public const CATEGORIES = 'categories';
 
 	/**
+	 * Setting: who gets an email when one of the board's requests is merged into another.
+	 * USE_SITE, or one of the MERGE_EMAIL_* values of the site's settings.
+	 */
+	public const MERGE_EMAIL = 'merge_email';
+
+	/**
+	 * The board follows the site's choice. The default for MERGE_EMAIL.
+	 */
+	public const USE_SITE = 'site';
+
+	/**
 	 * Everyone may take part, including visitors who are not logged in.
 	 */
 	public const ANYONE = 'anyone';
@@ -66,11 +79,12 @@ final class BoardSettings {
 	 */
 	public static function defaults(): array {
 		return [
-			self::VOTING     => self::LOGGED_IN,
-			self::SUBMITTING => self::LOGGED_IN,
-			self::MODERATION => true,
-			self::PAGE       => 0,
-			self::CATEGORIES => [],
+			self::VOTING      => self::LOGGED_IN,
+			self::SUBMITTING  => self::LOGGED_IN,
+			self::MODERATION  => true,
+			self::PAGE        => 0,
+			self::CATEGORIES  => [],
+			self::MERGE_EMAIL => self::USE_SITE,
 		];
 	}
 
@@ -152,6 +166,21 @@ final class BoardSettings {
 	}
 
 	/**
+	 * Who is emailed when one of a board's requests is merged: one of the site's
+	 * MERGE_EMAIL_* values, the board's own or, by default, the site's.
+	 *
+	 * @param int $board_id Board term ID.
+	 */
+	public static function merge_email( int $board_id ): string {
+		$choice = (string) self::get( $board_id )[ self::MERGE_EMAIL ];
+		if ( self::USE_SITE === $choice ) {
+			$choice = (string) Settings::get( Settings::MERGE_EMAIL );
+		}
+
+		return array_key_exists( $choice, Settings::merge_email_choices() ) ? $choice : Settings::MERGE_EMAIL_FOLLOWERS;
+	}
+
+	/**
 	 * Saves settings for a board. Settings not passed, and invalid values, leave the current value in place.
 	 *
 	 * @param int                  $board_id Board term ID.
@@ -187,6 +216,10 @@ final class BoardSettings {
 
 		if ( isset( $settings[ self::CATEGORIES ] ) && is_array( $settings[ self::CATEGORIES ] ) ) {
 			$clean[ self::CATEGORIES ] = array_values( array_unique( array_filter( array_map( 'absint', $settings[ self::CATEGORIES ] ) ) ) );
+		}
+
+		if ( isset( $settings[ self::MERGE_EMAIL ] ) && ( self::USE_SITE === $settings[ self::MERGE_EMAIL ] || array_key_exists( (string) $settings[ self::MERGE_EMAIL ], Settings::merge_email_choices() ) ) ) {
+			$clean[ self::MERGE_EMAIL ] = (string) $settings[ self::MERGE_EMAIL ];
 		}
 
 		return $clean;

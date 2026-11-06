@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Privacy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Merging\MergedStatus;
 use FeatureRequestSystem\Notifications\Mailer;
 use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Notifications\Subscriptions;
@@ -45,7 +46,7 @@ final class PersonalData {
 	/**
 	 * Post statuses a suggested request can be in. Everything but automatic drafts.
 	 */
-	private const STATUSES = [ 'publish', 'pending', 'draft', 'future', 'private', 'trash' ];
+	private const STATUSES = [ 'publish', 'pending', 'draft', 'future', 'private', 'trash', MergedStatus::NAME ];
 
 	/**
 	 * Adds the exporter and the eraser to WordPress's privacy tools.

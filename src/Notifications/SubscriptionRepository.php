@@ -254,6 +254,60 @@ final class SubscriptionRepository {
 	}
 
 	/**
+	 * Moves every follower of one request to another. A user who followed both keeps
+	 * the stronger of their two reasons: choosing to follow, then suggesting, then voting.
+	 *
+	 * The subscriptions keep their tokens, so the links in emails sent before still work.
+	 *
+	 * @param int $from_id Request the followers are taken from.
+	 * @param int $to_id   Request the followers go to.
+	 */
+	public static function move( int $from_id, int $to_id ): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::SUBSCRIPTIONS );
+
+		// A user who follows both: the reason from the first request wins where it is the stronger one.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'UPDATE %i AS kept INNER JOIN %i AS moved ON moved.user_id = kept.user_id AND moved.request_id = %d SET kept.source = moved.source WHERE kept.request_id = %d AND FIELD( moved.source, %s, %s, %s ) > FIELD( kept.source, %s, %s, %s )',
+				$table,
+				$table,
+				$from_id,
+				$to_id,
+				self::SOURCE_VOTE,
+				self::SOURCE_AUTHOR,
+				self::SOURCE_FOLLOW,
+				self::SOURCE_VOTE,
+				self::SOURCE_AUTHOR,
+				self::SOURCE_FOLLOW
+			)
+		);
+
+		// IGNORE leaves the subscriptions that the unique key on request_id and user_id refuses: those users were handled above.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare( 'UPDATE IGNORE %i SET request_id = %d WHERE request_id = %d', $table, $to_id, $from_id )
+		);
+		self::remove_request( $from_id );
+	}
+
+	/**
+	 * Returns the IDs of the users who follow a request.
+	 *
+	 * @param int $request_id Request ID.
+	 * @return int[]
+	 */
+	public static function user_ids( int $request_id ): array {
+		global $wpdb;
+
+		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare( 'SELECT user_id FROM %i WHERE request_id = %d ORDER BY id ASC', Schema::table( Schema::SUBSCRIPTIONS ), $request_id )
+		);
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Turns database rows into subscriptions with typed fields.
 	 *
 	 * @param mixed $rows Rows from $wpdb->get_results().
