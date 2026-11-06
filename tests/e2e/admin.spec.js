@@ -225,6 +225,37 @@ test.describe( 'Feature request admin', () => {
 		await guest.close();
 	} );
 
+	test( 'the address for new request emails starts as the administration email, and saving stores it', async ( {
+		page,
+	} ) => {
+		setUp( [] );
+		const stored = () =>
+			wpEval( `
+				use FeatureRequestSystem\\Settings;
+				echo Settings::get( Settings::NOTIFY_EMAILS );
+			` );
+		wpEval( `
+			use FeatureRequestSystem\\Settings;
+			Settings::update( Settings::NOTIFY_EMAILS, '' );
+		` );
+		const admin = wpEval( `echo get_option( 'admin_email' );` );
+
+		await page.goto( `${ LIST }&page=mwtfrs-settings` );
+		await expect( page.getByLabel( 'Send those emails to' ) ).toHaveValue(
+			admin
+		);
+		expect( stored() ).toBe( '' );
+
+		await page.getByRole( 'button', { name: 'Save Changes' } ).click();
+		await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
+		expect( stored() ).toBe( admin );
+
+		wpEval( `
+			use FeatureRequestSystem\\Settings;
+			Settings::update( Settings::NOTIFY_EMAILS, '' );
+		` );
+	} );
+
 	test( 'the vote limits on the settings page apply, to guests and to logged-in users apart', async ( {
 		page,
 		browser,

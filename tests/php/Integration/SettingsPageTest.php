@@ -73,6 +73,9 @@ final class SettingsPageTest extends TestCase {
 				Settings::VOTES_PER_ADDRESS_USERS  => 250,
 				Settings::VOTES_PER_ADDRESS_GUESTS => 60,
 				Settings::MERGE_EMAIL              => Settings::MERGE_EMAIL_FOLLOWERS,
+				Settings::TURNSTILE_SITE_KEY       => '',
+				Settings::TURNSTILE_SECRET_KEY     => '',
+				Settings::TURNSTILE_LOGGED_IN      => false,
 			],
 			get_option( Settings::OPTION )
 		);
@@ -173,6 +176,23 @@ final class SettingsPageTest extends TestCase {
 			);
 		}
 		$this->assertStringContainsString( 'The emails go out 5 minutes after the last change', $html );
+	}
+
+	public function test_the_address_field_shows_the_administration_email_until_addresses_are_saved(): void {
+		update_option( 'admin_email', 'owner@example.com' );
+		$field = '<input type="text" class="regular-text" id="mwtfrs-settings-notify-emails" name="' . Settings::OPTION . '[' . Settings::NOTIFY_EMAILS . ']" value="%s"';
+
+		$this->assertStringContainsString( sprintf( $field, 'owner@example.com' ), $this->page(), 'The address the emails go to while none is saved.' );
+		$this->assertSame( '', Settings::get( Settings::NOTIFY_EMAILS ), 'Showing it saves nothing.' );
+
+		// Saving the page as it is stores the address that was shown.
+		update_option( Settings::OPTION, [ Settings::NOTIFY_EMAILS => 'owner@example.com' ] );
+		update_option( 'admin_email', 'new-owner@example.com' );
+
+		$this->assertStringContainsString( sprintf( $field, 'owner@example.com' ), $this->page() );
+
+		Settings::update( Settings::NOTIFY_EMAILS, 'team@example.com, lead@example.com' );
+		$this->assertStringContainsString( sprintf( $field, 'team@example.com, lead@example.com' ), $this->page() );
 	}
 
 	public function test_page_has_a_vote_limit_for_logged_in_users_and_one_for_guests(): void {

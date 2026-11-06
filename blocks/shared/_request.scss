@@ -163,6 +163,15 @@
 	@include base.button;
 }
 
+.mwtfrs-guest__captcha {
+	display: block;
+
+	// Space only once the widget is drawn in it.
+	&:not(:empty) {
+		margin-top: 0.5em;
+	}
+}
+
 .mwtfrs-guest__help {
 	color: var(--mwtfrs-muted);
 }

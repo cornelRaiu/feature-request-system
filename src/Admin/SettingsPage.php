@@ -39,7 +39,13 @@ final class SettingsPage {
 		Settings::NOTIFY_FOLLOWERS,
 		Settings::SUBSCRIBE_VOTERS,
 		Settings::DELETE_DATA_ON_UNINSTALL,
+		Settings::TURNSTILE_LOGGED_IN,
 	];
+
+	/**
+	 * Form field that removes the saved Turnstile secret key. It is not a setting of its own.
+	 */
+	private const FORGET_SECRET = 'turnstile_forget_secret';
 
 	/**
 	 * Adds the page and registers what it saves.
@@ -88,6 +94,7 @@ final class SettingsPage {
 			'requests'  => [ __( 'New requests', 'feature-request-system' ), '' ],
 			'followers' => [ __( 'Followers', 'feature-request-system' ), __( 'A follower of a request gets an email when its status changes, and whoever suggested a request gets one when it is approved. Every email has a link to stop following. Only logged-in users can follow.', 'feature-request-system' ) ],
 			'guests'    => [ __( 'Visitors without an account', 'feature-request-system' ), __( 'Each board decides whether visitors without an account can vote or suggest features. Set that on the board, under Feature Requests → Boards.', 'feature-request-system' ) ],
+			'spam'      => [ __( 'Spam check', 'feature-request-system' ), __( 'Cloudflare Turnstile checks that a person, not a program, sends the form, usually without asking them to do anything. Add a widget for this site in your Cloudflare account and enter its two keys here. Once both keys are saved, the form loads a script from Cloudflare, and it can then only be sent with JavaScript.', 'feature-request-system' ) ],
 			'limits'    => [ __( 'Vote limits', 'feature-request-system' ), __( 'Votes from one IP address are limited, so that one person cannot vote many times. Taking a vote back counts as well. People in one office, or behind one proxy, share an address: raise the limit for logged-in users if they run into it.', 'feature-request-system' ) ],
 			'uninstall' => [ __( 'Uninstalling', 'feature-request-system' ), '' ],
 		];
@@ -116,6 +123,9 @@ final class SettingsPage {
 			Settings::VOTES_PER_ADDRESS_GUESTS => [ __( 'Visitors without an account', 'feature-request-system' ), 'limits', 'render_votes_per_address_guests' ],
 			Settings::DELETE_DATA_ON_UNINSTALL => [ __( 'Data', 'feature-request-system' ), 'uninstall', 'render_delete_data' ],
 			Settings::MERGE_EMAIL              => [ __( 'Email about a merge', 'feature-request-system' ), 'followers', 'render_merge_email' ],
+			Settings::TURNSTILE_SITE_KEY       => [ __( 'Turnstile site key', 'feature-request-system' ), 'spam', 'render_turnstile_site_key' ],
+			Settings::TURNSTILE_SECRET_KEY     => [ __( 'Turnstile secret key', 'feature-request-system' ), 'spam', 'render_turnstile_secret_key' ],
+			Settings::TURNSTILE_LOGGED_IN      => [ __( 'Logged-in users', 'feature-request-system' ), 'spam', 'render_turnstile_logged_in' ],
 		];
 		foreach ( $fields as $key => list( $title, $section, $callback ) ) {
 			$labelled = in_array( $key, self::CHECKBOXES, true ) ? [] : [ 'label_for' => self::id( $key ) ];
@@ -138,6 +148,11 @@ final class SettingsPage {
 
 		foreach ( Settings::defaults() as $key => $default ) {
 			$clean[ $key ] = array_key_exists( $key, $input ) ? self::sanitize_value( $key, $input[ $key ] ) : Settings::get( $key );
+		}
+
+		// The saved secret key is never printed back, so an empty field keeps it, and a box removes it.
+		if ( ! empty( $input[ self::FORGET_SECRET ] ) ) {
+			$clean[ Settings::TURNSTILE_SECRET_KEY ] = '';
 		}
 
 		return $clean;
@@ -188,7 +203,8 @@ final class SettingsPage {
 			'<input type="text" class="regular-text" id="%1$s" name="%2$s" value="%3$s" placeholder="%4$s"><p class="description">%5$s</p>',
 			esc_attr( self::id( Settings::NOTIFY_EMAILS ) ),
 			esc_attr( self::name( Settings::NOTIFY_EMAILS ) ),
-			esc_attr( (string) Settings::get( Settings::NOTIFY_EMAILS ) ),
+			// Until addresses are saved, the emails go to the administration email, so the field shows it.
+			esc_attr( '' !== (string) Settings::get( Settings::NOTIFY_EMAILS ) ? (string) Settings::get( Settings::NOTIFY_EMAILS ) : (string) get_option( 'admin_email' ) ),
 			esc_attr( (string) get_option( 'admin_email' ) ),
 			esc_html__( 'One or more email addresses, separated by commas. Leave empty to use the site\'s administration email address.', 'feature-request-system' )
 		);
@@ -259,6 +275,52 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Prints the site key of the Turnstile widget.
+	 */
+	public static function render_turnstile_site_key(): void {
+		printf(
+			'<input type="text" class="regular-text code" id="%1$s" name="%2$s" value="%3$s" autocomplete="off" spellcheck="false"><p class="description">%4$s</p>',
+			esc_attr( self::id( Settings::TURNSTILE_SITE_KEY ) ),
+			esc_attr( self::name( Settings::TURNSTILE_SITE_KEY ) ),
+			esc_attr( (string) Settings::get( Settings::TURNSTILE_SITE_KEY ) ),
+			esc_html__( 'Leave empty to turn the check off.', 'feature-request-system' )
+		);
+	}
+
+	/**
+	 * Prints the field for the secret key of the Turnstile widget. A saved key is never printed back.
+	 */
+	public static function render_turnstile_secret_key(): void {
+		$saved = '' !== (string) Settings::get( Settings::TURNSTILE_SECRET_KEY );
+
+		printf(
+			// A new password, so browsers do not fill in the user's own password here.
+			'<input type="password" class="regular-text code" id="%1$s" name="%2$s" value="" autocomplete="new-password" spellcheck="false"%3$s><p class="description">%4$s</p>',
+			esc_attr( self::id( Settings::TURNSTILE_SECRET_KEY ) ),
+			esc_attr( self::name( Settings::TURNSTILE_SECRET_KEY ) ),
+			$saved ? ' placeholder="' . esc_attr__( 'Saved', 'feature-request-system' ) . '"' : '',
+			$saved
+				? esc_html__( 'A secret key is saved. It is not shown again. Leave this field empty to keep it, or enter a new one to replace it.', 'feature-request-system' )
+				: esc_html__( 'Once it is saved, the secret key is not shown again, on this page or anywhere else.', 'feature-request-system' )
+		);
+
+		if ( $saved ) {
+			printf(
+				'<p><label><input type="checkbox" name="%1$s" value="1"> %2$s</label></p>',
+				esc_attr( self::name( self::FORGET_SECRET ) ),
+				esc_html__( 'Remove the saved secret key, which turns the check off', 'feature-request-system' )
+			);
+		}
+	}
+
+	/**
+	 * Prints the switch for checking logged-in users too.
+	 */
+	public static function render_turnstile_logged_in(): void {
+		self::checkbox( Settings::TURNSTILE_LOGGED_IN, __( 'Check logged-in users too. Visitors without an account are always checked.', 'feature-request-system' ) );
+	}
+
+	/**
 	 * Cleans one setting.
 	 *
 	 * @param string $key   Setting key.
@@ -275,6 +337,12 @@ final class SettingsPage {
 				return self::emails( is_string( $value ) ? $value : '' );
 			case Settings::DATA_USE_NOTE:
 				return DataUseNote::sanitize( is_string( $value ) ? $value : '' );
+			case Settings::TURNSTILE_SITE_KEY:
+				return is_string( $value ) ? sanitize_text_field( $value ) : '';
+			case Settings::TURNSTILE_SECRET_KEY:
+				$secret = is_string( $value ) ? sanitize_text_field( $value ) : '';
+
+				return '' !== $secret ? $secret : (string) Settings::get( $key );
 			case Settings::VOTES_PER_ADDRESS_USERS:
 			case Settings::VOTES_PER_ADDRESS_GUESTS:
 				return self::count_or_current( $key, $value );

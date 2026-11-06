@@ -93,6 +93,21 @@ final class Settings {
 	public const MERGE_EMAIL_NOBODY = 'nobody';
 
 	/**
+	 * Site key of a Cloudflare Turnstile widget. Public: it is printed on the form.
+	 */
+	public const TURNSTILE_SITE_KEY = 'turnstile_site_key';
+
+	/**
+	 * Secret key of that widget, for checking its answers. Never printed on any page.
+	 */
+	public const TURNSTILE_SECRET_KEY = 'turnstile_secret_key';
+
+	/**
+	 * Whether logged-in users get the Turnstile check too. Visitors without an account always do.
+	 */
+	public const TURNSTILE_LOGGED_IN = 'turnstile_logged_in';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -110,6 +125,9 @@ final class Settings {
 			self::VOTES_PER_ADDRESS_USERS  => 60,
 			self::VOTES_PER_ADDRESS_GUESTS => 60,
 			self::MERGE_EMAIL              => self::MERGE_EMAIL_FOLLOWERS,
+			self::TURNSTILE_SITE_KEY       => '',
+			self::TURNSTILE_SECRET_KEY     => '',
+			self::TURNSTILE_LOGGED_IN      => false,
 		];
 	}
 

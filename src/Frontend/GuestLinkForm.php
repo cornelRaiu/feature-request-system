@@ -11,6 +11,7 @@ use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Security\RequestOrigin;
 use FeatureRequestSystem\Submission\SpamGuard;
 use FeatureRequestSystem\Submission\SubmissionService;
+use FeatureRequestSystem\Submission\Turnstile;
 use FeatureRequestSystem\Voting\VoteService;
 
 defined( 'ABSPATH' ) || exit;
@@ -42,6 +43,9 @@ final class GuestLinkForm {
 		VoteService::ERROR_CLOSED         => 'closed',
 		VoteService::ERROR_DISABLED       => 'disabled',
 		VoteService::ERROR_LOGIN_REQUIRED => 'login',
+		VoteService::ERROR_NOT_ALLOWED    => 'refused',
+		VoteService::ERROR_LIMIT_REACHED  => 'votes-used',
+		Turnstile::ERROR_FAILED           => 'link-captcha',
 	];
 
 	/**
@@ -56,16 +60,34 @@ final class GuestLinkForm {
 	/**
 	 * What a template needs to render the form, besides what the vote form has.
 	 *
-	 * @return array{action: string, trap_field: string, token_field: string, token: string, max_length: int}
+	 * @return array{action: string, trap_field: string, token_field: string, token: string, max_length: int, captcha_field: string}
 	 */
 	public static function template_args(): array {
 		return [
-			'action'      => self::ACTION,
-			'trap_field'  => SpamGuard::FIELD_TRAP,
-			'token_field' => SpamGuard::FIELD_TOKEN,
-			'token'       => SpamGuard::token(),
-			'max_length'  => SubmissionService::MAX_EMAIL,
+			'action'        => self::ACTION,
+			'trap_field'    => SpamGuard::FIELD_TRAP,
+			'token_field'   => SpamGuard::FIELD_TOKEN,
+			'token'         => SpamGuard::token(),
+			'max_length'    => SubmissionService::MAX_EMAIL,
+			'captcha_field' => Turnstile::FIELD,
 		];
+	}
+
+	/**
+	 * The Turnstile site key for the form, or '' while the check is off. When it is on, this
+	 * loads Cloudflare's script. The widget is drawn only when a visitor opens the form, so a
+	 * board with many requests does not start a check for each of them.
+	 *
+	 * Visitors who are not logged in all get the same key, so cached pages stay correct.
+	 */
+	public static function captcha_key(): string {
+		if ( ! Turnstile::applies() ) {
+			return '';
+		}
+
+		Turnstile::enqueue();
+
+		return Turnstile::site_key();
 	}
 
 	/**

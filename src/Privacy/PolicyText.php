@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Privacy;
 
 use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Submission\Akismet;
+use FeatureRequestSystem\Submission\Turnstile;
 use FeatureRequestSystem\Voting\VoterIdentity;
 
 defined( 'ABSPATH' ) || exit;
@@ -16,7 +17,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Offers site owners a text about this plugin for their privacy policy, under
  * Settings → Privacy → Policy Guide. It says what the plugin stores, as it works on
- * this site: the part about Akismet is only there when Akismet checks new requests.
+ * this site: the part about Akismet is only there when Akismet checks new requests, and
+ * the part about Cloudflare Turnstile only when the form uses it.
  */
 final class PolicyText {
 
@@ -60,6 +62,14 @@ final class PolicyText {
 				/* translators: %s: URL of Akismet's privacy policy. */
 				__( 'New feature requests are checked by Akismet, an anti-spam service. It receives the text of the request, the name and email address you gave, your IP address and the name of your browser. Akismet has its own <a href="%s">privacy policy</a>.', 'feature-request-system' ),
 				'https://akismet.com/privacy/'
+			);
+		}
+
+		if ( Turnstile::is_active() ) {
+			$paragraphs[] = sprintf(
+				/* translators: %s: URL of Cloudflare's privacy policy for Turnstile. */
+				__( 'The form for suggesting a feature is protected by Cloudflare Turnstile, which checks that a person, not a program, sends it. While the form is open, Cloudflare receives your IP address and details of your browser and device. Cloudflare has its own <a href="%s">privacy policy for Turnstile</a>.', 'feature-request-system' ),
+				'https://www.cloudflare.com/turnstile-privacy-policy/'
 			);
 		}
 

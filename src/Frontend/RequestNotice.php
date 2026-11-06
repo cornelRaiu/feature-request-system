@@ -108,6 +108,7 @@ final class RequestNotice {
 			'link-sent'    => __( 'Check your email. Open the link we sent you within 24 hours and press the button on its page: then your vote counts.', 'feature-request-system' ),
 			'link-limit'   => __( 'You have asked for several links in a short time. Try again later.', 'feature-request-system' ),
 			'rejected'     => __( 'Your email address could not be sent. Reload the page and try again.', 'feature-request-system' ),
+			'link-captcha' => __( 'The spam check next to the button did not pass, so no link was sent. The check needs JavaScript: turn it on, reload the page and try again.', 'feature-request-system' ),
 		];
 
 		return $messages[ $code ] ?? '';

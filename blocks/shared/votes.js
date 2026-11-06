@@ -99,6 +99,7 @@ const { state } = store( 'mwtfrs/votes', {
 					context.message = data.message;
 					context.needsEmail = true;
 					yield* focusEmail( event.target );
+					showCaptcha( event.target );
 				} else {
 					context.message = data.message || state.strings.error;
 					context.needsLogin = response.status === 401;
@@ -120,6 +121,16 @@ const { state } = store( 'mwtfrs/votes', {
 
 			const context = getContext();
 			if ( context.busy ) {
+				return;
+			}
+
+			// Cloudflare's script may have loaded only after the form opened. The widget is drawn
+			// now, and its answer goes with the next try.
+			const captcha = event.target.querySelector(
+				'.mwtfrs-guest__captcha'
+			);
+			if ( captcha && ! captcha.dataset.widget ) {
+				showCaptcha( event.target );
 				return;
 			}
 
@@ -146,6 +157,8 @@ const { state } = store( 'mwtfrs/votes', {
 				context.message = state.strings.linkError;
 			} finally {
 				context.busy = false;
+				// A Turnstile answer works once, so the next try needs a new one.
+				resetCaptcha( event.target );
 			}
 		},
 	},
@@ -211,6 +224,40 @@ function* focusEmail( voteForm ) {
 		.closest( '[data-wp-context]' )
 		?.querySelector( '.mwtfrs-guest__email' )
 		?.focus();
+}
+
+/**
+ * Draws the Turnstile widget in a request's email form, the first time the form opens.
+ * Pages draw none until then, so a board with many requests starts no check for each.
+ *
+ * @param {HTMLFormElement} voteForm The request's vote form.
+ */
+function showCaptcha( voteForm ) {
+	const box = voteForm
+		.closest( '[data-wp-context]' )
+		?.querySelector( '.mwtfrs-guest__captcha' );
+	if ( ! box || box.dataset.widget || ! window.turnstile ) {
+		return;
+	}
+
+	box.dataset.widget = window.turnstile.render( box, {
+		sitekey: box.dataset.sitekey,
+		'response-field-name': box.dataset.responseFieldName,
+		// The widget needs 300 pixels. Narrower forms, as on a phone, get its compact size.
+		size: box.parentElement.clientWidth < 300 ? 'compact' : 'flexible',
+	} );
+}
+
+/**
+ * Asks the Turnstile widget of an email form, if it has one, for a new answer.
+ *
+ * @param {HTMLFormElement} form The email form.
+ */
+function resetCaptcha( form ) {
+	const box = form.querySelector( '.mwtfrs-guest__captcha' );
+	if ( box?.dataset.widget && window.turnstile ) {
+		window.turnstile.reset( box.dataset.widget );
+	}
 }
 
 /**

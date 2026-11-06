@@ -12,6 +12,34 @@
 		"board": {
 			"type": "integer",
 			"default": 0
+		},
+		"heading": {
+			"type": "string",
+			"default": ""
+		},
+		"titleLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"titleHelp": {
+			"type": "string",
+			"default": ""
+		},
+		"detailsLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"submitLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"pendingMessage": {
+			"type": "string",
+			"default": ""
+		},
+		"publishedMessage": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"example": {},

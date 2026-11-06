@@ -54,7 +54,7 @@ final class VoteForm {
 	 * What a template needs to render vote forms.
 	 *
 	 * @param string $return_url Page to come back to after a vote without JavaScript.
-	 * @return array{url: string, action: string, nonce: string, redirect_to: string, email: array{action: string, trap_field: string, token_field: string, token: string, max_length: int}}
+	 * @return array{url: string, action: string, nonce: string, redirect_to: string, email: array{action: string, trap_field: string, token_field: string, token: string, max_length: int, captcha_field: string}}
 	 */
 	public static function template_args( string $return_url ): array {
 		return [

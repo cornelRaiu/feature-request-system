@@ -11,6 +11,7 @@ use FeatureRequestSystem\Security\RequestOrigin;
 use FeatureRequestSystem\Submission\SimilarRequests;
 use FeatureRequestSystem\Submission\SpamGuard;
 use FeatureRequestSystem\Submission\SubmissionService;
+use FeatureRequestSystem\Submission\Turnstile;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -75,6 +76,10 @@ final class RequestsController {
 						'description' => __( 'Token from the rendered form.', 'feature-request-system' ),
 						'type'        => 'string',
 						'required'    => true,
+					],
+					Turnstile::FIELD       => [
+						'description' => __( 'Answer of the Cloudflare Turnstile widget, when the site uses it.', 'feature-request-system' ),
+						'type'        => 'string',
 					],
 				],
 			]

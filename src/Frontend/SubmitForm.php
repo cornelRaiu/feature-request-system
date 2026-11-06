@@ -17,6 +17,7 @@ use FeatureRequestSystem\Submission\DataUseNote;
 use FeatureRequestSystem\Submission\SimilarRequests;
 use FeatureRequestSystem\Submission\SpamGuard;
 use FeatureRequestSystem\Submission\SubmissionService;
+use FeatureRequestSystem\Submission\Turnstile;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -45,6 +46,20 @@ final class SubmitForm {
 	public const PARAM_NOTICE = 'fr-form';
 
 	/**
+	 * Texts a site can change, by shortcode attribute, as in [feature_request_form heading="…"],
+	 * with the block attribute of each. Plain text. Empty means the default text.
+	 */
+	public const TEXTS = [
+		'heading'           => 'heading',
+		'title_label'       => 'titleLabel',
+		'title_help'        => 'titleHelp',
+		'details_label'     => 'detailsLabel',
+		'submit_label'      => 'submitLabel',
+		'pending_message'   => 'pendingMessage',
+		'published_message' => 'publishedMessage',
+	];
+
+	/**
 	 * Notice codes for submission errors.
 	 */
 	private const ERROR_NOTICES = [
@@ -56,6 +71,7 @@ final class SubmitForm {
 		SpamGuard::ERROR_REJECTED                => 'rejected',
 		Guests::ERROR_INVALID_EMAIL              => 'invalid-no-email',
 		Guests::ERROR_RATE_LIMITED               => 'limit',
+		Turnstile::ERROR_FAILED                  => 'captcha',
 	];
 
 	/**
@@ -74,7 +90,8 @@ final class SubmitForm {
 	/**
 	 * Renders the form. Called by the block's render.php; the shortcode renders the block.
 	 *
-	 * @param array<string, mixed> $attributes         Block attributes: board (term ID, 0 for the default board).
+	 * @param array<string, mixed> $attributes         Block attributes: board (term ID, 0 for the default board),
+	 *                                                 and the texts in TEXTS.
 	 * @param string               $wrapper_attributes Attributes from get_block_wrapper_attributes().
 	 */
 	public static function render( array $attributes, string $wrapper_attributes ): string {
@@ -86,7 +103,13 @@ final class SubmitForm {
 		$rule      = BoardSettings::submitting( $board->term_id );
 		$logged_in = is_user_logged_in();
 		$page_url  = CurrentPage::url();
-		$notice    = self::notice_from_request();
+		$texts     = self::texts( $attributes );
+		$notice    = self::notice_from_request(
+			[
+				'pending'   => $texts['pending_message'],
+				'published' => $texts['published_message'],
+			]
+		);
 
 		if ( SubmissionService::can_submit( $board->term_id, $rule ) ) {
 			$mode = 'form';
@@ -97,6 +120,12 @@ final class SubmitForm {
 		} else {
 			// The board takes requests, and the mwtfrs_can_submit filter refused this visitor.
 			$mode = 'refused';
+		}
+
+		// Every visitor without an account gets the same widget, so cached pages stay correct.
+		$captcha = 'form' === $mode && Turnstile::applies() ? Turnstile::site_key() : '';
+		if ( '' !== $captcha ) {
+			Turnstile::enqueue();
 		}
 
 		self::provide_state();
@@ -118,8 +147,16 @@ final class SubmitForm {
 					'isError'      => $notice ? $notice['error'] : false,
 					'needsLogin'   => $notice ? $notice['login'] : false,
 					'url'          => '',
+					// By the status the REST API answers with.
+					'messages'     => [
+						'pending' => $texts['pending_message'],
+						'publish' => $texts['published_message'],
+					],
 				],
 				'id_prefix'          => wp_unique_id( 'mwtfrs-submit-' ),
+				'texts'              => $texts,
+				'captcha_key'        => $captcha,
+				'captcha_field'      => Turnstile::FIELD,
 				'board_id'           => $board->term_id,
 				'categories'         => self::categories( $board->term_id ),
 				'guest_fields'       => ! $logged_in,
@@ -176,13 +213,14 @@ final class SubmitForm {
 	/**
 	 * Returns the notice from the current URL, if there is one.
 	 *
+	 * @param array<string, string> $custom The form's own messages, by notice code: pending and published.
 	 * @return array{message: string, error: bool, login: bool}|null
 	 */
-	public static function notice_from_request(): ?array {
+	public static function notice_from_request( array $custom = [] ): ?array {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only picks a message to display.
 		$code = isset( $_GET[ self::PARAM_NOTICE ] ) && is_string( $_GET[ self::PARAM_NOTICE ] ) ? sanitize_key( $_GET[ self::PARAM_NOTICE ] ) : '';
 
-		$message = self::message( $code );
+		$message = in_array( $code, [ 'pending', 'published' ], true ) && isset( $custom[ $code ] ) ? $custom[ $code ] : self::message( $code );
 		if ( '' === $message ) {
 			return null;
 		}
@@ -262,11 +300,38 @@ final class SubmitForm {
 			'rejected'  => __( 'Your request could not be sent. Reload the page and try again.', 'feature-request-system' ),
 			'expired'   => __( 'This page has expired. Reload it and try again.', 'feature-request-system' ),
 			'origin'    => __( 'Your request could not be verified. Reload the page and try again.', 'feature-request-system' ),
+			'captcha'   => __( 'Complete the spam check above the button, then send your request again.', 'feature-request-system' ),
 			'missing'   => __( 'This board does not exist.', 'feature-request-system' ),
 			'error'     => __( 'Your request could not be saved. Try again.', 'feature-request-system' ),
 		];
 
 		return $messages[ $code ] ?? '';
+	}
+
+	/**
+	 * The form's texts, by shortcode attribute: the block's own where it has one, otherwise the default.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 * @return array<string, string>
+	 */
+	private static function texts( array $attributes ): array {
+		$defaults = [
+			'heading'           => __( 'Suggest a feature', 'feature-request-system' ),
+			'title_label'       => __( 'Title', 'feature-request-system' ),
+			'title_help'        => __( 'One short sentence, such as "Export requests as CSV".', 'feature-request-system' ),
+			'details_label'     => __( 'Details', 'feature-request-system' ),
+			'submit_label'      => __( 'Send request', 'feature-request-system' ),
+			'pending_message'   => __( 'Thanks! Your request will appear on the board once it is approved.', 'feature-request-system' ),
+			'published_message' => __( 'Thanks! Your request is on the board.', 'feature-request-system' ),
+		];
+
+		$texts = [];
+		foreach ( self::TEXTS as $key => $attribute ) {
+			$text          = isset( $attributes[ $attribute ] ) && is_string( $attributes[ $attribute ] ) ? trim( $attributes[ $attribute ] ) : '';
+			$texts[ $key ] = '' !== $text ? $text : $defaults[ $key ];
+		}
+
+		return $texts;
 	}
 
 	/**

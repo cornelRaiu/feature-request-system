@@ -130,6 +130,17 @@ final class NewRequestEmailTest extends TestCase {
 		$this->assertSame( [ 'team@example.com', 'lead@example.com' ], array_column( $this->mailer()->get_sent()->to, 0 ) );
 	}
 
+	public function test_while_no_address_is_saved_the_emails_follow_the_administration_email(): void {
+		update_option( 'admin_email', 'new-owner@example.com' );
+		reset_phpmailer_instance(); // WordPress emailed the old address about the change.
+		wp_set_current_user( self::factory()->user->create() );
+
+		$this->submit();
+
+		$this->assertSame( '', Settings::get( Settings::NOTIFY_EMAILS ) );
+		$this->assertSame( [ 'new-owner@example.com' ], array_column( $this->mailer()->get_sent()->to, 0 ) );
+	}
+
 	public function test_sites_can_turn_the_emails_off(): void {
 		Settings::update( Settings::NOTIFY_NEW_REQUESTS, false );
 		wp_set_current_user( self::factory()->user->create() );

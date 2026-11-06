@@ -22,6 +22,8 @@ $mwtfrs_item  = $args['item'];
 $mwtfrs_vote  = $args['vote'];
 $mwtfrs_email = $mwtfrs_vote['email'];
 $mwtfrs_id    = $mwtfrs_item['dom_id'] . '-email';
+// The Turnstile site key while the spam check is on, or ''. The script draws the widget when the form opens.
+$mwtfrs_captcha = FeatureRequestSystem\Frontend\GuestLinkForm::captcha_key();
 ?>
 <form
 	class="mwtfrs-guest"
@@ -50,6 +52,11 @@ $mwtfrs_id    = $mwtfrs_item['dom_id'] . '-email';
 		<button type="submit" class="mwtfrs-guest__button" data-wp-bind--disabled="context.busy"><?php esc_html_e( 'Send me the link', 'feature-request-system' ); ?></button>
 	</span>
 	<span class="mwtfrs-guest__help" id="<?php echo esc_attr( $mwtfrs_id . '-help' ); ?>"><?php esc_html_e( 'We email you a link to confirm it. Only our team sees your address.', 'feature-request-system' ); ?></span>
+
+	<?php if ( '' !== $mwtfrs_captcha ) : ?>
+		<?php // Cloudflare's Turnstile widget goes here when the form opens. It adds its answer to the form. ?>
+		<span class="mwtfrs-guest__captcha" data-sitekey="<?php echo esc_attr( $mwtfrs_captcha ); ?>" data-response-field-name="<?php echo esc_attr( $mwtfrs_email['captcha_field'] ); ?>"></span>
+	<?php endif; ?>
 
 	<?php // A field people never see. Bots that fill in every field give themselves away. ?>
 	<span class="mwtfrs-guest__trap" aria-hidden="true">
