@@ -284,6 +284,18 @@ test.describe( 'Accessibility', () => {
 		expect(
 			await problems( page, [ '#mwtfrs-following + table' ] )
 		).toEqual( [] );
+
+		// The export buttons above the requests list, and the dashboard widget.
+		await page.goto( '/wp-admin/edit.php?post_type=mwtfrs_request' );
+		expect(
+			await problems( page, [
+				'.tablenav.top .actions:has(a[href*="action=mwtfrs_export"])',
+			] )
+		).toEqual( [] );
+
+		await page.goto( '/wp-admin/index.php' );
+		await expect( page.locator( '#mwtfrs-dashboard li' ) ).toHaveCount( 4 );
+		expect( await problems( page, [ '#mwtfrs-dashboard' ] ) ).toEqual( [] );
 	} );
 
 	test.describe( 'for visitors who are not logged in', () => {

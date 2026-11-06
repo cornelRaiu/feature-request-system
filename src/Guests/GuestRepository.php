@@ -46,6 +46,40 @@ final class GuestRepository {
 	}
 
 	/**
+	 * Returns the confirmed guests whose votes have these voter keys, by voter key: each
+	 * one's name and email address. Votes keep only the key, made from the guest's ID.
+	 *
+	 * @param string[] $voter_keys Voter keys from votes by people without an account.
+	 * @return array<string, array{name: string, email: string}>
+	 */
+	public static function by_voter_keys( array $voter_keys ): array {
+		global $wpdb;
+
+		$voter_keys = array_values( array_unique( array_filter( $voter_keys, 'is_string' ) ) );
+		if ( ! $voter_keys ) {
+			return [];
+		}
+
+		// The key is sha256( 'e:' . ID ), as VoterIdentity::guest_key() makes it.
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read for an export.
+			$wpdb->prepare(
+				"SELECT SHA2( CONCAT( 'e:', id ), 256 ) AS voter_key, name, email FROM %i WHERE confirmed_at IS NOT NULL HAVING voter_key IN (" . implode( ',', array_fill( 0, count( $voter_keys ), '%s' ) ) . ')', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %s placeholders are added.
+				array_merge( [ Schema::table( Schema::GUESTS ) ], $voter_keys )
+			)
+		);
+
+		$guests = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$guests[ (string) $row->voter_key ] = [
+				'name'  => (string) $row->name,
+				'email' => (string) $row->email,
+			];
+		}
+
+		return $guests;
+	}
+
+	/**
 	 * Returns the guest with an email address, or null.
 	 *
 	 * The database compares addresses without regard to case, and its key covers the

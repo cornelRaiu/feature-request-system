@@ -139,6 +139,68 @@ final class VoteRepository {
 	}
 
 	/**
+	 * Returns the votes for a request, oldest first, a page at a time.
+	 *
+	 * @param int $request_id Request ID.
+	 * @param int $limit      Most votes to return.
+	 * @param int $offset     Votes to skip.
+	 * @return array<int, array{user_id: int, voter_key: string, created_at: string}>
+	 */
+	public static function of_request( int $request_id, int $limit, int $offset ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read for an export.
+			$wpdb->prepare(
+				'SELECT user_id, voter_key, created_at FROM %i WHERE request_id = %d ORDER BY created_at ASC, id ASC LIMIT %d OFFSET %d',
+				Schema::table( Schema::VOTES ),
+				$request_id,
+				$limit,
+				$offset
+			)
+		);
+
+		$votes = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$votes[] = [
+				'user_id'    => (int) $row->user_id,
+				'voter_key'  => (string) $row->voter_key,
+				'created_at' => (string) $row->created_at,
+			];
+		}
+
+		return $votes;
+	}
+
+	/**
+	 * Returns the published requests with the most votes cast since a moment, most first.
+	 *
+	 * @param string $since Moment in UTC, as a MySQL datetime.
+	 * @param int    $limit Most requests to return.
+	 * @return array<int, int> Votes cast since then, by request ID.
+	 */
+	public static function top_since( string $since, int $limit ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; shown to moderators on their dashboard.
+			$wpdb->prepare(
+				'SELECT v.request_id, COUNT(*) AS votes FROM %i AS v INNER JOIN %i AS p ON p.ID = v.request_id WHERE v.created_at >= %s AND p.post_status = %s GROUP BY v.request_id ORDER BY votes DESC, v.request_id DESC LIMIT %d',
+				Schema::table( Schema::VOTES ),
+				$wpdb->posts,
+				$since,
+				'publish',
+				$limit
+			)
+		);
+
+		$top = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$top[ (int) $row->request_id ] = (int) $row->votes;
+		}
+
+		return $top;
+	}
+
+	/**
 	 * Returns the votes of a user, oldest first, a page at a time.
 	 *
 	 * @param int $user_id User ID.
