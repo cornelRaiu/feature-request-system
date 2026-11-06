@@ -36,4 +36,15 @@ class WP_CLI {
 	public static function log( $message ): void {
 		self::$lines[] = $message;
 	}
+
+	/**
+	 * Prints an error. WP-CLI then ends the command, which here becomes an exception.
+	 *
+	 * @param string $message Message to print.
+	 * @throws RuntimeException Always.
+	 */
+	public static function error( $message ): void {
+		self::$lines[] = 'Error: ' . $message;
+		throw new RuntimeException( $message );
+	}
 }

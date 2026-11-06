@@ -216,6 +216,35 @@ final class SubscriptionRepository {
 	}
 
 	/**
+	 * Counts the followers of several requests in one query.
+	 *
+	 * @param int[] $request_ids Request IDs.
+	 * @return array<int, int> Followers by request ID. Requests without followers are left out.
+	 */
+	public static function counts( array $request_ids ): array {
+		global $wpdb;
+
+		$request_ids = array_values( array_unique( array_filter( array_map( 'intval', $request_ids ) ) ) );
+		if ( ! $request_ids ) {
+			return [];
+		}
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read for an export.
+			$wpdb->prepare(
+				'SELECT request_id, COUNT(*) AS followers FROM %i WHERE request_id IN (' . implode( ',', array_fill( 0, count( $request_ids ), '%d' ) ) . ') GROUP BY request_id', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %d placeholders are added.
+				array_merge( [ Schema::table( Schema::SUBSCRIPTIONS ) ], $request_ids )
+			)
+		);
+
+		$counts = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$counts[ (int) $row->request_id ] = (int) $row->followers;
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Returns the subscriptions of a user, newest first, a page at a time.
 	 *
 	 * @param int $user_id User ID.

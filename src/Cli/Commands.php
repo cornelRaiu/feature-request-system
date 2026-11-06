@@ -7,6 +7,11 @@
 
 namespace FeatureRequestSystem\Cli;
 
+use FeatureRequestSystem\Capabilities;
+use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\CategoryTaxonomy;
+use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Export\CsvExport;
 use FeatureRequestSystem\Voting\VoteCount;
 use WP_CLI;
 
@@ -43,6 +48,70 @@ final class Commands {
 				1 === $result['fixed'] ? 'vote count' : 'vote counts'
 			)
 		);
+	}
+
+	/**
+	 * Prints requests, or their voters, as CSV, like "Export to CSV" on the requests list.
+	 *
+	 * The file has the same columns as the one from the list, with who submitted each
+	 * request and the emails of voters with an account. Without --user, every request is
+	 * exported, private ones too.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--voters]
+	 * : List the voters of the requests instead: one row per vote.
+	 *
+	 * [--board=<slug>]
+	 * : Only requests on this board.
+	 *
+	 * [--status=<slug>]
+	 * : Only requests with this status, such as planned.
+	 *
+	 * [--category=<slug>]
+	 * : Only requests in this category.
+	 *
+	 * [--post_status=<status>]
+	 * : Only requests in this post status, such as publish or pending. Without it, every post status but the trash.
+	 *
+	 * [--search=<text>]
+	 * : Only requests that match this search, as on the requests list.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp mwtfrs export > feature-requests.csv
+	 *     wp mwtfrs export --status=planned --voters > planned-voters.csv
+	 *
+	 * @when after_wp_load
+	 *
+	 * @param string[]             $args       Positional arguments. None are used.
+	 * @param array<string, mixed> $assoc_args Options.
+	 */
+	public function export( array $args, array $assoc_args ): void {
+		$filters = CsvExport::filters(
+			[
+				BoardTaxonomy::NAME    => $assoc_args['board'] ?? '',
+				StatusTaxonomy::NAME   => $assoc_args['status'] ?? '',
+				CategoryTaxonomy::NAME => $assoc_args['category'] ?? '',
+				'post_status'          => $assoc_args['post_status'] ?? '',
+				's'                    => $assoc_args['search'] ?? '',
+			]
+		);
+		if ( isset( $assoc_args['post_status'] ) && '' === $filters['post_status'] ) {
+			WP_CLI::error( sprintf( 'There is no post status "%s".', $assoc_args['post_status'] ) );
+		}
+
+		// Whoever runs WP-CLI can read the database. With --user, the user's own rights apply.
+		$with_emails = ! is_user_logged_in() || current_user_can( Capabilities::MODERATE );
+		$write       = static function ( string $csv ): void {
+			echo $csv; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV for a terminal or a file, not HTML.
+		};
+
+		if ( ! empty( $assoc_args['voters'] ) ) {
+			CsvExport::voters( $filters, $with_emails, $write );
+		} else {
+			CsvExport::requests( $filters, $with_emails, $write );
+		}
 	}
 
 	/**

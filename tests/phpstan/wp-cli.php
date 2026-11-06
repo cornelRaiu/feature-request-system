@@ -38,4 +38,14 @@ class WP_CLI {
 	 */
 	public static function log( $message ): void {
 	}
+
+	/**
+	 * Prints an error and ends the command.
+	 *
+	 * @param string $message Message to print.
+	 * @return never
+	 */
+	public static function error( $message ): void {
+		exit( 1 );
+	}
 }

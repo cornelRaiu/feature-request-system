@@ -9,6 +9,8 @@ namespace FeatureRequestSystem;
 
 use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Admin\CommentActions;
+use FeatureRequestSystem\Admin\DashboardWidget;
+use FeatureRequestSystem\Admin\ExportLinks;
 use FeatureRequestSystem\Admin\NotifySwitch;
 use FeatureRequestSystem\Admin\PendingBadge;
 use FeatureRequestSystem\Admin\ProfileFollows;
@@ -104,8 +106,10 @@ final class Plugin {
 		OfficialResponseLink::add_hooks();
 		CommentActions::add_hooks();
 		RequestList::add_hooks();
+		ExportLinks::add_hooks();
 		StatusQuickEdit::add_hooks();
 		PendingBadge::add_hooks();
+		DashboardWidget::add_hooks();
 		RequestDetailsBox::add_hooks();
 		TermSelectBox::add_hooks();
 		NotifySwitch::add_hooks();
