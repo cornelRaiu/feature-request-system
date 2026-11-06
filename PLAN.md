@@ -234,12 +234,13 @@ Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a C
 - `show_in_rest => true`, so the core REST API and the Site Editor see the post type.
 - Edited in the classic editor (the block editor is turned off for this post type), where board and status are single-choice dropdowns.
 - `capability_type => ['mwtfrs_request', 'mwtfrs_requests']`, `map_meta_cap => true`.
-- Post status: `pending` means awaiting moderation, `publish` means visible. Rejected requests go to `trash`.
+- Post status: `pending` means awaiting moderation, `publish` means visible. Rejected requests go to `trash`. A merged duplicate gets `mwtfrs_merged` (1.1), which is not public and has its own view in the requests list.
 - Meta:
   - `_mwtfrs_votes` (int, always set)
-  - `_mwtfrs_trending` (int, 1.1)
-  - `_mwtfrs_merged_into` (int, 1.1)
-  - `_mwtfrs_submitter_id` (logged-in submitter), `_mwtfrs_submitter_name` and `_mwtfrs_submitter_email` (a guest's details): private, never exposed
+  - `_mwtfrs_trending` (int, 1.1): the votes of the last 30 days, recounted on every vote, on a merge and hourly (Action Scheduler hook `mwtfrs_recount_trending`)
+  - `_mwtfrs_merged_into` (int, 1.1): the request a merged duplicate went to
+  - `_mwtfrs_threshold_reached` (1.1): set once the board's vote threshold moved the request, so it never moves it again
+  - `_mwtfrs_submitter_id` (logged-in submitter), `_mwtfrs_submitter_name` and `_mwtfrs_submitter_email` (a guest's details), `_mwtfrs_submitter_guest` (the guest who confirmed their email, 1.1): private, never exposed
   - `_mwtfrs_flagged_as_spam` (set when a spam check held the request for review)
   - `_mwtfrs_status_notice` (the status announcement that waits to be emailed, or was emailed last; M7)
 - Comment meta: `_mwtfrs_official` marks a comment as an official response (M5).
@@ -247,7 +248,7 @@ Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a C
 - No `author` support: front-end submitters are not WordPress post authors (`post_author` is 0), so their names stay out of author archives, oEmbed data and the public users endpoint. Built in M4.
 
 **Taxonomies**
-- `mwtfrs_board`: not hierarchical, one per request. Term meta holds the board's settings as one array: who can vote, who can submit (each: everyone, logged-in users or nobody), moderation, the board's page, and the categories its requests can have (M8; none chosen means every category).
+- `mwtfrs_board`: not hierarchical, one per request. Term meta holds the board's settings as one array: who can vote, who can submit (each: everyone, visitors who confirm their email (1.1), logged-in users or nobody), moderation, the board's page, and the categories its requests can have (M8; none chosen means every category). Since 1.1 also `vote_limit` (0 for none), `threshold` (`votes`, `from`, `to`) and `merge_email` (`site` by default).
 - `mwtfrs_status`: exactly one per request. Term meta: `color`, `order`, `is_closed`, `on_roadmap`. Default statuses are seeded on activation. **Status lives only in this taxonomy, never in meta as well** (v0.5 kept both).
 - `mwtfrs_category`: hierarchical and optional.
 
@@ -266,19 +267,32 @@ Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a C
   KEY user_id (user_id)
   KEY request_created (request_id, created_at)      -- trending
 
-{prefix}mwtfrs_subscriptions                       -- built in M7, database version 2
+{prefix}mwtfrs_subscriptions                       -- built in M7; guest_id since 1.1, database version 3
   id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
   request_id   BIGINT UNSIGNED NOT NULL
-  user_id      BIGINT UNSIGNED NOT NULL
+  user_id      BIGINT UNSIGNED NOT NULL   -- 0 for a guest
+  guest_id     BIGINT UNSIGNED NOT NULL DEFAULT 0   -- 0 for a user
   token        CHAR(32)        NOT NULL   -- secret of the unsubscribe link
   source       VARCHAR(20)     NOT NULL   -- vote | follow | author
   created_at   DATETIME        NOT NULL
-  UNIQUE KEY request_user (request_id, user_id)
+  UNIQUE KEY request_follower (request_id, user_id, guest_id)
   KEY token (token)
   KEY user_id (user_id)
+  KEY guest_id (guest_id)
+
+{prefix}mwtfrs_guests                              -- 1.1, database version 3
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+  email        VARCHAR(254)    NOT NULL   -- unique in its first 191 characters, compared in full
+  name         VARCHAR(60)     NOT NULL DEFAULT ''
+  token_hash   CHAR(64)        NOT NULL DEFAULT ''   -- sha256 of the emailed link's token
+  link_sent_at DATETIME        NULL
+  pending      LONGTEXT        NULL       -- the vote or request that waits for the confirmation
+  auto_follow  TINYINT(1)      NOT NULL DEFAULT 1
+  confirmed_at DATETIME        NULL
+  created_at   DATETIME        NOT NULL
 ```
 
-The subscriptions table holds only what 1.0 uses: one row per user per request they follow. No email address is stored, because a user's emails go to the address of their account, which can change. When guests can follow (1.1), the table gets `email` and `confirmed_at` columns, and its unique key becomes `(request_id, user_id, email)`.
+A user's emails go to the address of their account, which can change, so subscriptions store no address. A guest's go to the address they confirmed, in the guests table (1.1). Addresses that are never confirmed are deleted once their link expires.
 
 No IP addresses are stored. Rate limit counters are keyed on an HMAC of the address with WordPress's salt, and on the hour. They are rows in the options table named as transients are, or entries in the object cache when the site has a persistent one, and they expire on their own.
 
@@ -299,12 +313,16 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 - Subscriptions go when their request or their user is deleted. Trashing a request keeps them.
 - A deleted user's votes stay, so counts stay correct, but lose the user ID and get a random voter key (M8). Some databases give the ID of a deleted user to the next new user, who must not inherit votes.
 - On a network of sites, "logged-in" means any user of the network, as for WordPress comments. A user who is removed from one site stops following there and keeps their votes. A user who is deleted from the network is handled on every site they belonged to; a subscription whose user no longer exists is deleted when its next email would go out (M8).
-- `VoteService` announces votes with two actions, `mwtfrs_vote_cast` and `mwtfrs_vote_retracted`, which is how following hears of them.
+- `VoteService` announces votes with two actions, `mwtfrs_vote_cast` and `mwtfrs_vote_retracted`, which is how following hears of them. Since 1.1 they also pass the ID of a guest who confirmed their email.
+- Guests who confirmed their email (1.1) follow the requests they vote for or suggest, like users, but have no Follow button. They stop through the link in every email.
 
 ### 5.4 Identity and anti-abuse
 
 - **Logged-in user:** `voter_key = sha256('u:'.ID)`.
 - **Guest:** a random 128-bit token in the `mwtfrs_vid` cookie (HttpOnly, SameSite=Lax, Secure on HTTPS, one-year lifetime). `voter_key = sha256('g:'.token)`. Clearing cookies allows another vote. **This is documented as best-effort**; boards that need hard guarantees require login, or verified email from 1.1.
+- **Guest who confirmed their email (1.1):** `voter_key = sha256('e:'.guest_id)`. The `mwtfrs_guest` cookie (HttpOnly, one year) holds the guest's ID with a signature that includes the blog ID, so a cookie from another site of a network is never accepted. The emailed link works for 24 hours; opening it only shows a button, and pressing it confirms. One link email per address every 10 minutes, and per IP address and voter through `mwtfrs_rate_limit` (action `link`); the answer is the same whether or not an address is known. `Guests::sign_in( $email, $name )` confirms an address without a link, for Pro's signed links (D7).
+- **Access hooks (1.1):** `mwtfrs_can_vote( $allowed, $request_id, $user_id )` and `mwtfrs_can_submit( $allowed, $board_id, $user_id )` get the board's answer and can change it either way, but cannot open unpublished requests or closed statuses. Pages render from the same answer, treating every visitor who is not logged in as confirmed so that cached pages stay correct. The readme warns that a filter whose answer depends on the visitor breaks page caches.
+- **Vote limit (1.1):** per board, the votes each voter key has on requests still open for voting; refused with 403 `mwtfrs_vote_limit_reached`. Guests are limited per cookie, best effort like their votes.
 - **Rate limits** (filterable):
   - Votes: 30 per hour per voter. Per IP address there are two limits, which the site sets on the settings page: one for its logged-in users and one for its visitors without an account, 60 an hour each by default. The two groups are counted apart, so a busy office does not use up what guests may do, and a site behind a proxy can raise the limit for its users without opening the door to guests. Retracting counts as an attempt too. (Settings added after M8, at the owner's request.)
   - Submissions: 5 per hour per voter and 10 per hour per IP hash.
@@ -317,7 +335,7 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 - **Submissions** (built in M4):
   - A honeypot field, and a minimum 3 seconds between rendering the form and submitting it, checked with an HMAC-signed timestamp. The timestamp has no maximum age, so a form served from a page cache keeps working. With JavaScript, the form waits out the rest of the 3 seconds itself, so quick people are never refused.
   - Refusals don't say which check failed.
-  - The `mwtfrs_verify_captcha` filter lets a captcha plugin refuse a submission, and the `mwtfrs_is_spam` filter lets a spam service flag one. The Akismet adapter uses the second when Akismet is active and has a key. A flagged request is held as `pending` with `_mwtfrs_flagged_as_spam`, never deleted, because spam checks sometimes get it wrong.
+  - The `mwtfrs_verify_captcha` filter lets a captcha plugin refuse a submission, and the `mwtfrs_is_spam` filter lets a spam service flag one. Since 1.1 the plugin brings Cloudflare Turnstile through the first: once both keys are saved, guests (and logged-in users if the site says so) get the widget on the form and on the email form next to a vote button, and siteverify is called after the cheap checks. The secret key is never printed back. While it is on, these forms need JavaScript. The Akismet adapter uses the second when Akismet is active and has a key. A flagged request is held as `pending` with `_mwtfrs_flagged_as_spam`, never deleted, because spam checks sometimes get it wrong.
   - Text is saved as plain text: tags are stripped, and square brackets are stored as entities so a shortcode in a visitor's text displays instead of running.
   - A web address in a request stays text (M8). WordPress would embed an address that stands alone on a line: the server would fetch what a visitor typed, and the page would load a player from that site. `PlainDescription` turns that off for requests, on the page, in the classic editor's preview and in its fetch-ahead. A moderator who wants a video uses `[embed]`. A request written with blocks, on a site that turns the block editor on for requests, is left alone.
   - A guest's email address may be 254 characters long, the longest a mail server takes.
@@ -335,21 +353,22 @@ This is idempotent and self-correcting, and there's no read-increment-write race
 | `GET /boards/{board}/similar?q=` | public | Top 5 published requests whose titles share a meaningful word with `q`, most shared words first, then most votes. Built in M4. |
 | `POST /requests/{id}/vote` | per board setting | Cast a vote. Returns `{votes, voted: true}`, and for logged-in users `{following}`, because a vote can make them follow. Built in M2. |
 | `DELETE /requests/{id}/vote` | voter | Retract a vote. Returns `{votes, voted: false}`, and for logged-in users `{following}`. Built in M2. |
-| `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on. Used to hydrate cached pages. |
+| `POST /me/state` | anyone | Body `{ids: [...]}` → which of these the current visitor has voted on. Used to hydrate cached pages. Since 1.1, with `board`, also `votes_left` on a board that limits votes. |
+| `POST /guests/link` (1.1) | guests | Body `{email, request, fr_token, fr_website, …}`: emails the link that confirms the address and counts the vote. Returns `{message}`, the same whether or not the address is known. |
 | `POST` / `DELETE /requests/{id}/subscription` | logged-in users | Follow a request, or stop. Returns `{following}`. Built in M7. |
-| `POST /requests/{id}/merge` (1.1) | `edit_others_mwtfrs_requests` | Merge into a target request. |
+| `POST /requests/{id}/merge` (1.1) | `edit_others_mwtfrs_requests` (filter `mwtfrs_can_merge`) | Body `{target}`. Merges into a published request on the same board. Returns `{id, merged_into, votes, url}`. |
 
 Every route declares its `args` with a type, and returns only the fields listed above.
 
 Routes for reading requests were planned and left out, because nothing calls them: the board is rendered on the server. Requests can be read through WordPress's own REST API (`/wp/v2/mwtfrs_request`), which shows published requests with their title, text and terms. It never returns who submitted a request, and votes and followers aren't part of it.
 
-Vote errors: 401 `mwtfrs_login_required`; 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled` or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
+Vote responses carry `votes_left` on a board that limits votes (1.1). Vote errors: 401 `mwtfrs_login_required` or `mwtfrs_email_required` (1.1); 403 `mwtfrs_voting_closed`, `mwtfrs_voting_disabled`, `mwtfrs_vote_not_allowed` (1.1, the access filter), `mwtfrs_vote_limit_reached` (1.1) or `mwtfrs_invalid_origin`; 404 `mwtfrs_request_not_found` (also for pending, private and password-protected requests); 429 `mwtfrs_rate_limited` with a `Retry-After` header.
 
 Follow errors: 401 `mwtfrs_follow_login_required`; 403 `mwtfrs_following_disabled` (the site doesn't email followers); 404 `mwtfrs_request_not_found`.
 
 The unsubscribe link is not a REST route. It is the home URL with a `mwtfrs_unsubscribe` parameter (see 5.8), because sites often close the REST API and `wp-admin` to visitors who aren't logged in. Whether a user follows a request isn't part of `/me/state` either: only logged-in users follow, their pages aren't cached, so the request's page says it directly.
 
-Submission errors: 400 `mwtfrs_submission_invalid` (with `data.reason`: `title`, `title-long`, `details-long`, `category`, `name-long` or `email`) or `mwtfrs_submission_rejected` (spam checks); 401 `mwtfrs_submit_login_required`; 403 `mwtfrs_submissions_closed` or `mwtfrs_invalid_origin`; 404 `mwtfrs_board_not_found`; 429 `mwtfrs_submit_rate_limited` with a `Retry-After` header.
+Submission errors: 400 `mwtfrs_submission_invalid` (with `data.reason`: `title`, `title-long`, `details-long`, `category`, `name-long` or `email`) or `mwtfrs_submission_rejected` (spam checks); 401 `mwtfrs_submit_login_required`; 403 `mwtfrs_submissions_closed`, `mwtfrs_submit_not_allowed` (1.1) or `mwtfrs_invalid_origin`; 403 `mwtfrs_captcha_failed` while Turnstile is on (1.1); on a board for confirmed guests, 202 with `status` `unconfirmed` and the new reasons `name` and `no-email`; 404 `mwtfrs_board_not_found`; 429 `mwtfrs_submit_rate_limited` with a `Retry-After` header.
 
 WordPress search needs every word to match, which would miss most duplicates ("Add dark mode" against "Dark mode"). The similar endpoint instead matches any word of three or more letters that isn't a common word (a translatable list), and ranks titles by how many words they share.
 
@@ -361,6 +380,7 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - The vote button is a `<form method="post">` pointing at an `admin-post.php` handler. Without JavaScript, submitting it toggles the vote and returns to the board with a notice ("Your vote was added"). The Interactivity API takes over when JavaScript is available.
   - The submit form works the same way: without JavaScript it posts to `admin-post.php` and returns to the form with an `fr-form` notice. Its `required` and `maxlength` attributes catch most mistakes before a post.
   - Search and filters are GET query arguments (`fr-search`, `fr-status`, `fr-category`, `fr-sort`, `fr-page`).
+  - **Live filtering (1.1).** With JavaScript, `@wordpress/interactivity-router` fetches the same public URLs and swaps the results, so caches keep working. The filter form and the results are two interactive roots inside the block wrapper; the results are a router region with an inner element keyed by the filters, so new results remount and fetch their votes. Selects apply at once, search 300 ms after typing stops, and each change is a history entry. A polite live region outside the results says the count. The router is imported on first use. Each control can be switched off (`showSearch`, `showStatus`, `showCategory`, `showSort`; shortcode `search`, `status_filter`, `category_filter`, `sort_filter`), and a switched-off filter in the URL still applies and is kept as a hidden field. The roadmap's links keep the board's filters.
 - **Default view:** the board shows requests that are open for voting. Closed statuses (Shipped, Declined) appear under "All statuses" or their own filter.
 - **Cache safety:** the HTML never contains per-visitor state, and guests get no nonces. After load, each block that shows requests makes one `POST /me/state` call, which marks the buttons the visitor has already voted on. A visitor who is not logged in has votes only where a board lets guests vote, so everywhere else the script makes no call, and a list on a busy home page costs the server nothing more. Logged-in users get the REST nonce in the page, which caches do not serve to them; an expired nonce is refreshed through `admin-ajax.php?action=rest-nonce` and the request retried once.
 - **One vote script.** The board, the list, the card and the request page share the Interactivity API store `mwtfrs/votes`, one vote button template and the stylesheet partials for it.
@@ -394,8 +414,10 @@ WordPress search needs every word to match, which would miss most duplicates ("A
   - The edges of text fields and of the Follow button are the text colour at 60%, for the 3:1 that WCAG asks of a control's boundary. Decorative lines stay at 20%.
   - Fields keep to the width of the form in themes that give fields a margin.
   - The board's search form has a name for screen readers.
-- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3), `submit-form.php` (since M4), `vote-button.php`, `request.php` and `official-response.php` (since M5), the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7), and `request-list.php`, `request-card.php` and `request-item.php` (after M8).
-- **Patterns:** "Feature request page" puts the form, a heading and the board on one page (M4). Three more came after M8: "Feature request form beside the board", in two columns; "Most wanted feature requests", a heading above the list; and "Suggest a feature", a few words with a button that leads to the page of the default board. Finding that page takes the database, so this last pattern is registered only in the admin and for the REST API, where patterns are listed, and not for a visitor's page view.
+- **The roadmap (1.1).** `mwtfrs/roadmap` and `[feature_roadmap board="slug"]` show a column for each status with `on_roadmap`, in workflow order, 10 requests each, most votes first. Show more adds 10 at a time up to 100 (`fr-roadmap-<slug>`), live through the router or as a plain link. Board 0 means every board, and each card follows its own board's voting rule.
+- **Form texts (1.1).** The submit block's heading, labels, help, button and both messages are attributes, and shortcode attributes; empty means the translated default, and they are printed as plain text.
+- **Templates** can be overridden from `yourtheme/feature-request-system/`: `board.php` (since M3; changed in 1.1 for live filtering, and a 1.0 copy still works without it), `submit-form.php` (since M4; 1.1 adds the Turnstile widget and the texts), `vote-button.php`, `request.php` and `official-response.php` (since M5), the emails `emails/status-changed.php` and `emails/request-approved.php` (since M7), `request-list.php`, `request-card.php` and `request-item.php` (after M8), and since 1.1 `roadmap.php`, `guest-email-form.php`, `emails/request-merged.php` and `emails/confirm-email.php`.
+- **Patterns:** "Feature request page" puts the form, a heading and the board on one page (M4). "Feature request roadmap" puts a heading above the roadmap (1.1). Three more came after M8: "Feature request form beside the board", in two columns; "Most wanted feature requests", a heading above the list; and "Suggest a feature", a few words with a button that leads to the page of the default board. Finding that page takes the database, so this last pattern is registered only in the admin and for the REST API, where patterns are listed, and not for a visitor's page view.
 - **Icons (after M8).** The admin menu and the blocks carry the plugin's logo instead of dashicons. The menu icon is an SVG that WordPress paints in the colours of the user's admin colour scheme. In the inserter, the board has the logo, and the list, the card, the form and the details each have the part of it they show.
 
 ### 5.7 Admin
@@ -409,10 +431,13 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
 - **One status hook.** `mwtfrs_status_changed( $request_id, $old_status, $new_status )` fires once per change, whether it comes from the edit screen, Quick Edit, Bulk Edit, the REST API, WP-CLI or other code, because all of them end in `wp_set_object_terms()`. The old status is read on `add_term_relationship`, just before WordPress adds the new one, since WordPress doesn't report the previous terms when terms are appended. A new request getting its first status is not a change, and neither is a change that other code undid. The notifier listens to this hook (see 5.8).
 - **Notify switch (M7).** Next to the status on the edit screen, in Quick Edit and in Bulk Edit there is a ticked box, "Email followers when the status changes". Unticking it changes the status without an email. It counts only in a form that WordPress accepted for that request, so the REST API and other code can't carry it; code uses the `mwtfrs_notify_status_change` filter instead.
 - **Profile (M7).** A user's profile screen lists the requests they follow, each with a box to stop following, and has the choice "Follow the requests I vote for or suggest". Those who may edit a user see the same on that user's edit screen.
-- **Settings page** (Feature Requests → Settings): the default board and status, the new request emails and who gets them, whether users can follow requests and whether voting follows (M7), the "How we use your data" note for guests (see 5.10), the two limits on votes from one IP address (see 5.4), and deleting data on uninstall. Settings that a save doesn't send keep their value, so saving one setting from code can't reset the others; the form's checkboxes send 0 when unticked.
-- **Boards screen.** Each board's form has who can vote, who can suggest features, whether new requests wait for approval, and the board's page.
+- **Settings page** (Feature Requests → Settings): the default board and status, the new request emails and who gets them (the field shows the administration email until addresses are saved, 1.1), Turnstile's keys and whether logged-in users are checked (1.1), who is emailed about a merge (1.1), whether users can follow requests and whether voting follows (M7), the "How we use your data" note for guests (see 5.10), the two limits on votes from one IP address (see 5.4), and deleting data on uninstall. Settings that a save doesn't send keep their value, so saving one setting from code can't reset the others; the form's checkboxes send 0 when unticked.
+- **Boards screen.** Each board's form has who can vote, who can suggest features, whether new requests wait for approval, and the board's page. Since 1.1 also the votes each person can give, the vote threshold, and who is emailed about a merge.
+- **Merge box (1.1).** "Merge into…" on a request's edit screen, for moderators: a search of the board's requests by title (the five similar titles without JavaScript), and a Merge button that asks first. Votes move, counted once for a person who voted for both; followers move and keep the stronger reason; the duplicate gets `mwtfrs_merged` and redirects (301) to the target; comments stay. Refused into itself, into a merged request and across boards. It cannot be undone in 1.1.
+- **CSV export (1.1).** "Export to CSV" and "Export voters to CSV" above the requests list export what the list shows, in pages of 500, with a byte order mark. Names and emails of submitters and voters only for moderators (`mwtfrs_can_export`, `mwtfrs_export_with_emails`); confirmed guests are named. Cells that would run as formulas start with an apostrophe. `wp mwtfrs export` does the same from WP-CLI.
+- **Dashboard widget (1.1).** For moderators: the five requests waiting longest for approval, and this week's top requests.
 - **Board page.** A request's page links back to the page that shows its board ("← Back to Feature Requests"). The plugin can't know this page by itself, because the board is a block that can sit on any page. So the board remembers the first published page it is shown on, and the page can also be chosen on the board's form. If that page stops being published, the link goes away and the board takes the next page it is shown on.
-- **Statuses screen.** Each status's form has its colour (the browser's colour picker), its position, and a "Closed for voting" switch. The list shows the colour and whether voting is open, in workflow order. A new status gets a colour and the last position from wherever it is created. The "show on roadmap" flag gets its field in 1.1, with the roadmap.
+- **Statuses screen.** Each status's form has its colour (the browser's colour picker), its position, and a "Closed for voting" switch. The list shows the colour and whether voting is open, in workflow order. A new status gets a colour and the last position from wherever it is created. Since 1.1 it also has "Show on roadmap", with a Roadmap column in the list.
 - The board, status and comment screens save their fields only when their own form was submitted, checked with a nonce. The REST API, WP-CLI and other code leave those settings alone.
 
 ### 5.8 Notifications
@@ -436,6 +461,9 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
   - The page also offers to stop all emails at once. That ends every subscription of the user and turns off following by itself for them, so their next vote doesn't bring the emails back.
   - A request that isn't public is neither named nor linked on the page.
   - WordPress encodes long headers when it sends with PHP's `mail()`, which not every mail program reads. The headers arrive as written on sites that send through SMTP or a mail service. The link in the email works either way.
+- **Merge emails (1.1).** `MergeNotifier` listens to `mwtfrs_request_merged( $merged_id, $target_id, $user_ids, $guest_ids )` and emails, in batches of 50, everyone who followed the duplicate, only its submitter (a user or a confirmed guest), or nobody, as the board or the site chose. The person who merges is never emailed, and nobody twice. Template `emails/request-merged.php`.
+- **Confirmation email (1.1).** The link for a guest's address, with what waits for it (`emails/confirm-email.php`, filter `mwtfrs_confirmation_email`). It is sent at once, not through the queue, so the token is never stored in plain text.
+- **Guests' emails (1.1).** `Mailer` sends to a guest's confirmed address; `mwtfrs_follower_email` gets null for the user and the subscription as a fifth argument.
 - All strings are translatable.
 
 ### 5.9 Capabilities
@@ -460,7 +488,8 @@ Built in M6 with classic PHP screens: the posts list table, the Settings API and
   - The text allows links and emphasis only. It is sanitised when saved and again when shown. Every guest gets the same text, so cached pages stay correct.
   - It is empty by default, which shows nothing. The settings field offers a suggested text built from what the plugin does on that site. The suggestion mentions Akismet only when Akismet is connected, which covers what the form's short "Only our team sees this" note leaves out.
   - It is one site-wide text, not one per board. Logged-in users don't see it, because the form asks them for nothing.
-- **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy.
+- **External services:** when the Akismet plugin is active and connected, a new request's title, details, the name and email a guest gave, their IP address and user agent go to Akismet for a spam check. The readme discloses this with links to Akismet's terms and privacy policy. Since 1.1, Cloudflare Turnstile once both its keys are saved: pages with its widget load Cloudflare's script, and the site sends the widget's answer and the secret key to siteverify. The readme, the policy text and the "How we use your data" suggestion name it only while it is on.
+- **Guests who confirmed their email (1.1)** are found by their address in the exporter and the eraser: their votes, follows and pending link are exported, and erasing deletes the guest and their subscriptions and gives their votes a random key.
 - **`uninstall.php`:** if "Delete all data on uninstall" is enabled, it drops the tables and deletes the posts, terms, options and caps. It also deletes each user's choice about following, cancels the emails that still wait, and removes the map of the category tree that WordPress keeps in an option of its own (`mwtfrs_category_children`; found in M8 by uninstalling on a real site). Action Scheduler's own tables stay, because other plugins may use them. It handles multisite by looping over sites.
 - **Upgrades:** on `init` (after the content types register, because installing seeds terms), if `mwtfrs_db_version` is behind the code, run the installer. It is idempotent and wrapped in an option lock. This also covers network activation and sites where the files were copied in place.
 - **Default board and status** can't be deleted from the admin or REST. If code such as WP-CLI deletes one anyway, the oldest remaining term becomes the default and the affected requests move to it.
@@ -477,17 +506,20 @@ feature-request-system/
 │   ├── Plugin.php                  # wiring only: instantiates services, registers hooks
 │   ├── Install/                    # Installer (tables, terms, caps, upgrades), Schema, Uninstaller
 │   ├── Content/                    # RequestPostType, BoardTaxonomy, StatusTaxonomy, CategoryTaxonomy, BoardSettings
-│   ├── Voting/                     # VoteRepository, VoteService, VoterIdentity
+│   ├── Voting/                     # VoteRepository, VoteService, VoterIdentity, VoteCount, Trending, VoteLimit, VoteThreshold (1.1)
+│   ├── Guests/                     # Guests, GuestRepository, ConfirmationLink (1.1)
+│   ├── Merging/                    # MergeService, MergedStatus (1.1)
+│   ├── Export/                     # CsvExport (1.1)
 │   ├── Security/                   # RateLimiter, RequestOrigin
-│   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, SimilarRequests
-│   ├── Notifications/              # NewRequestEmail, SubscriptionRepository, Subscriptions, StatusNotifier, ApprovalEmail, Mailer, Unsubscribe, Queue
-│   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, ManagedTermsController, Response
+│   ├── Submission/                 # SubmissionService, SpamGuard, Akismet, Turnstile (1.1), SimilarRequests
+│   ├── Notifications/              # NewRequestEmail, SubscriptionRepository, Subscriptions, StatusNotifier, ApprovalEmail, MergeNotifier (1.1), Mailer, Unsubscribe, Queue
+│   ├── Rest/                       # RestApi, RequestsController, VotesController, StateController, SubscriptionsController, ManagedTermsController, GuestsController and MergeController (1.1), Response
 │   ├── Comments/                   # OfficialResponse, CommentForm, CommentThread
-│   ├── Frontend/                   # Blocks, Board, CompactBoard, RequestCard, SubmitForm, RequestView, PlainDescription, VoteForm, FollowForm, RequestNotice, VoteStore, Template
-│   ├── Admin/                      # RequestList, StatusQuickEdit, NotifySwitch, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions, ProfileFollows
+│   ├── Frontend/                   # Blocks, Board, CompactBoard, RequestCard, Roadmap (1.1), SubmitForm, RequestView, PlainDescription, VoteForm, FollowForm, GuestLinkForm (1.1), MergeRedirect (1.1), RequestNotice, VoteStore, Template
+│   ├── Admin/                      # RequestList, StatusQuickEdit, NotifySwitch, PendingBadge, RequestDetailsBox, TermSelectBox, SettingsPage, BoardFields, StatusFields, CommentActions, ProfileFollows, MergeBox, ExportLinks, DashboardWidget (1.1)
 │   ├── Privacy/                    # PersonalData (exporter and eraser), PolicyText, DepartedUsers
-│   └── Cli/                        # Commands (`wp mwtfrs recount|seed`), SampleData
-├── blocks/                         # board/, submit/, request/, request-card/ (block.json, render.php, view.js, style.scss), shared/
+│   └── Cli/                        # Commands (`wp mwtfrs recount|seed|export`), SampleData
+├── blocks/                         # board/, submit/, request/, request-card/, roadmap/ (block.json, render.php, view.js, style.scss), shared/
 ├── templates/                      # overridable PHP partials, emails/ (plain text), and the block template single-request.html
 ├── languages/                      # feature-request-system.pot
 ├── .wordpress-org/                 # icon, banner and screenshots for the listing, with their sources
