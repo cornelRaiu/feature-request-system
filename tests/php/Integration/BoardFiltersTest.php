@@ -231,6 +231,27 @@ final class BoardFiltersTest extends TestCase {
 		$this->assertStringNotContainsString( 'data-wp-router-region', $plain, 'The list has no pages to turn.' );
 	}
 
+	public function test_a_theme_copy_of_the_board_template_from_1_0_still_works(): void {
+		global $wp_stylesheet_path, $wp_template_path;
+		wp_set_template_globals();
+		$theme              = [ $wp_stylesheet_path, $wp_template_path ];
+		$wp_stylesheet_path = dirname( __DIR__ ) . '/Fixtures/theme-1.0';
+		$wp_template_path   = $wp_stylesheet_path;
+
+		try {
+			$html = $this->render( [ 'perPage' => 2 ], [ BoardQuery::PARAM_STATUS => BoardQuery::STATUS_ALL ] );
+		} finally {
+			list( $wp_stylesheet_path, $wp_template_path ) = $theme;
+		}
+
+		$this->assertMatchesRegularExpression( "#^<div[^>]*data-wp-interactive=\"" . preg_quote( VoteStore::NAME, '#' ) . "\"\\s+data-wp-context='\\{\"ids\":\\[\\d+,\\d+\\]#", $html, 'The board is interactive as in 1.0, with the ids of its requests.' );
+		$this->assertStringContainsString( 'data-wp-init="callbacks.hydrate"', $html );
+		$this->assertStringContainsString( '<option value="' . BoardQuery::STATUS_ALL . '"  selected=\'selected\'', $html );
+		$this->assertStringContainsString( 'Show requests', $html );
+		$this->assertStringContainsString( BoardQuery::PARAM_PAGE . '=2', $html );
+		$this->assertStringNotContainsString( 'data-wp-router-region', $html, 'Live filtering needs the new template.' );
+	}
+
 	/**
 	 * Renders the board block.
 	 *

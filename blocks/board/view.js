@@ -212,8 +212,14 @@ const { callbacks } = store( 'mwtfrs/votes', {
 
 			if ( shown.has( region ) ) {
 				const live = document.getElementById( `${ region }-summary` );
+				const { summary } = getContext();
 				if ( live ) {
-					live.textContent = getContext().summary;
+					// Screen readers do not read the same words again, so a repeat ends in a
+					// no-break space, as wp.a11y.speak() does it.
+					live.textContent =
+						live.textContent === summary
+							? `${ summary }\u00A0`
+							: summary;
 				}
 				if ( focusRegion === region ) {
 					focusRegion = '';

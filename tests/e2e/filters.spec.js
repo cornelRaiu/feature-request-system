@@ -201,6 +201,67 @@ test.describe( 'Board filters', () => {
 		expect( fetched[ 0 ] ).toMatch( /fr-search=dark(&|$)/ );
 	} );
 
+	test( 'Enter applies a search at once with one history entry, and the same count is said again', async ( {
+		page,
+	} ) => {
+		const board = setUpBoard( { requests: REQUESTS } );
+		await page.goto( board.url );
+		await markPage( page );
+		const titles = page.locator( '.mwtfrs-request__title' );
+		const summary = page.locator( '[id$="-summary"]' );
+
+		await page.getByLabel( 'Status' ).selectOption( 'planned' );
+		await expect( summary ).toHaveText( 'Showing 1 request.' );
+		const said = await summary.textContent();
+		const entries = await page.evaluate( () => window.history.length );
+
+		// Enter sends the form and also changes the field: both apply the same search.
+		const search = page.getByLabel( 'Search requests' );
+		await search.fill( 'dark' );
+		await search.press( 'Enter' );
+		await expect( page ).toHaveURL( /[?&]fr-search=dark(&|$)/ );
+		await expect( titles ).toHaveText( [ 'Dark mode' ] );
+		await expect( summary ).toHaveText( 'Showing 1 request.' );
+		expect( await summary.textContent() ).not.toBe( said );
+		expect( await page.evaluate( () => window.history.length ) ).toBe(
+			entries + 1
+		);
+
+		await page.goBack();
+		await expect( page ).not.toHaveURL( /fr-search=/ );
+		await expect( titles ).toHaveText( [ 'Dark mode' ] );
+		await expect( search ).toHaveValue( '' );
+		expect( await notReloaded( page ) ).toBe( true );
+	} );
+
+	test( 'a page link opened in a new tab leaves the list as it is', async ( {
+		context,
+		page,
+	} ) => {
+		const board = setUpBoard( {
+			attributes: { perPage: 2 },
+			requests: REQUESTS,
+		} );
+		await page.goto( board.url );
+		const titles = page.locator( '.mwtfrs-request__title' );
+		await expect( titles ).toHaveText( [ 'Dark mode', 'Export to CSV' ] );
+
+		const opened = context.waitForEvent( 'page' );
+		await page
+			.getByRole( 'navigation', { name: 'More requests' } )
+			.getByRole( 'link', { name: '2' } )
+			.click( { modifiers: [ 'ControlOrMeta' ] } );
+		const tab = await opened;
+
+		await expect( tab ).toHaveURL( /[?&]fr-page=2(&|$)/ );
+		await expect( tab.locator( '.mwtfrs-request__title' ) ).toHaveText( [
+			'Calendar view',
+		] );
+		await tab.close();
+		await expect( page ).not.toHaveURL( /fr-page=/ );
+		await expect( titles ).toHaveText( [ 'Dark mode', 'Export to CSV' ] );
+	} );
+
 	test( 'page links turn pages in place, and the votes on the new page are marked', async ( {
 		page,
 	} ) => {

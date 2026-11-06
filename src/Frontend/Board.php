@@ -101,6 +101,7 @@ final class Board {
 			[
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
+				// The board's context before live filtering, for theme copies of the template from 1.0.
 				'context'            => VoteStore::context( $items ),
 				'id_prefix'          => wp_unique_id( 'mwtfrs-board-' ),
 				'items'              => $items,
