@@ -88,6 +88,22 @@ final class GuestSubmissionTest extends TestCase {
 		$this->assertStringContainsString( 'href="' . get_permalink( $request ) . '" rel="noreferrer">Go to your request', $page );
 	}
 
+	public function test_a_request_confirmed_while_logged_in_is_the_guests_and_waits_for_approval(): void {
+		$this->submit_as_visitor();
+		$token = $this->emailed_token();
+		$admin = self::factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin );
+
+		$this->open_link( $token, true );
+		$request = $this->only_request();
+
+		$this->assertSame( 'pending', $request->post_status, 'Whoever presses the button, a visitor\'s request waits for a moderator.' );
+		$this->assertSame( '', get_post_meta( $request->ID, RequestPostType::META_SUBMITTER_ID, true ) );
+		$this->assertSame( 'Jane', get_post_meta( $request->ID, RequestPostType::META_SUBMITTER_NAME, true ) );
+		$this->assertSame( (string) $this->guest( 'jane@example.com' )['id'], get_post_meta( $request->ID, RequestPostType::META_SUBMITTER_GUEST, true ) );
+		$this->assertSame( $admin, get_current_user_id() );
+	}
+
 	public function test_a_confirmed_guest_who_gives_their_address_sends_the_request_straight_away(): void {
 		$guest = $this->become_guest( 'jane@example.com' );
 

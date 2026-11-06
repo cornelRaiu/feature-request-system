@@ -8,8 +8,11 @@
 namespace FeatureRequestSystem\Guests;
 
 use FeatureRequestSystem\Content\BoardSettings;
+use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Notifications\Mailer;
+use FeatureRequestSystem\Notifications\Queue;
 use FeatureRequestSystem\Security\RateLimiter;
 use FeatureRequestSystem\Submission\SpamGuard;
 use FeatureRequestSystem\Submission\SubmissionService;
@@ -58,6 +61,11 @@ final class Guests {
 	public const MAX_PENDING = 10;
 
 	/**
+	 * Background hook that forgets what waited for links that expired, once they have.
+	 */
+	public const HOOK_FORGET = 'mwtfrs_forget_expired_guests';
+
+	/**
 	 * A waiting vote. Holds the request ID.
 	 */
 	public const PENDING_VOTE = 'vote';
@@ -76,6 +84,25 @@ final class Guests {
 	 * The visitor asked for too many links. The error data holds retry_after in seconds.
 	 */
 	public const ERROR_RATE_LIMITED = 'mwtfrs_guest_rate_limited';
+
+	/**
+	 * The request's board takes votes without an email address, so no link is sent for it.
+	 */
+	public const ERROR_NOT_NEEDED = 'mwtfrs_guest_link_not_needed';
+
+	/**
+	 * Adds the hook that forgets what waited for expired links.
+	 */
+	public static function add_hooks(): void {
+		add_action( self::HOOK_FORGET, [ self::class, 'forget_expired' ] );
+	}
+
+	/**
+	 * Forgets addresses that were never confirmed, and what waited for links, once the links expired.
+	 */
+	public static function forget_expired(): void {
+		GuestRepository::forget_expired( self::LINK_LIFETIME );
+	}
 
 	/**
 	 * Returns the confirmed guest the current visitor is, or null.
@@ -151,6 +178,12 @@ final class Guests {
 			return $allowed;
 		}
 
+		// Only a board that asks for an address sends links, so the form cannot email anyone about other boards.
+		$board = RequestTerms::term_of( $request_id, BoardTaxonomy::NAME );
+		if ( BoardSettings::VERIFIED !== BoardSettings::voting( $board ? $board->term_id : 0 ) ) {
+			return new WP_Error( self::ERROR_NOT_NEEDED, __( 'Votes for this request need no email address.', 'feature-request-system' ), [ 'status' => 400 ] );
+		}
+
 		$guard = SpamGuard::check( $fields );
 		if ( is_wp_error( $guard ) ) {
 			return $guard;
@@ -195,7 +228,7 @@ final class Guests {
 		}
 
 		// Addresses that were never confirmed, and what waited for expired links, are kept no longer than needed.
-		GuestRepository::forget_expired( self::LINK_LIFETIME );
+		self::forget_expired();
 
 		$guest = GuestRepository::find_or_create( $email );
 		if ( ! $guest ) {
@@ -210,6 +243,8 @@ final class Guests {
 		$token = bin2hex( random_bytes( 16 ) );
 		if ( GuestRepository::claim_link( $guest['id'], self::hash( $token ), self::LINK_INTERVAL ) ) {
 			ConfirmationLink::send( $guest['email'], $token, $pending );
+			// Also on a site where nobody asks for another link, what waits for this one goes when it expires.
+			Queue::schedule( time() + self::LINK_LIFETIME + MINUTE_IN_SECONDS, self::HOOK_FORGET, [ $guest['id'] ] );
 		}
 
 		return true;
@@ -238,9 +273,19 @@ final class Guests {
 
 		self::remember( $guest );
 
-		$done = [];
-		foreach ( $guest['pending'] as $action ) {
-			$done[] = self::complete( $action, $guest['id'] );
+		// What waited was started by a visitor without an account, so it is done as the guest even
+		// when the button is pressed while logged in: the votes are the guest's, and the requests
+		// wait for a moderator whatever the account could do.
+		$user_id = get_current_user_id();
+		$done    = [];
+		wp_set_current_user( 0 );
+
+		try {
+			foreach ( $guest['pending'] as $action ) {
+				$done[] = self::complete( $action, $guest['id'] );
+			}
+		} finally {
+			wp_set_current_user( $user_id );
 		}
 
 		return $done;

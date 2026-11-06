@@ -238,6 +238,20 @@ final class GuestLinkTest extends TestCase {
 		$this->assertCount( 1, $this->guest( 'recent@example.com' )['pending'], 'A link that still works keeps what waits for it.' );
 	}
 
+	public function test_an_address_never_confirmed_is_forgotten_once_its_link_expires_even_if_nobody_asks_again(): void {
+		$this->ask_for_link( 'never@example.com', $this->request );
+		$guest = $this->guest( 'never@example.com' );
+
+		$actions = $this->waiting_actions( Guests::HOOK_FORGET );
+		$this->assertCount( 1, $actions, 'Sending the link schedules the cleanup.' );
+		$this->assertGreaterThan( time() + DAY_IN_SECONDS, reset( $actions )->get_schedule()->get_date()->getTimestamp() );
+
+		$this->age_link( $guest['id'], DAY_IN_SECONDS + MINUTE_IN_SECONDS );
+		$this->run_waiting_actions( Guests::HOOK_FORGET );
+
+		$this->assertNull( $this->guest( 'never@example.com' ) );
+	}
+
 	public function test_a_button_pressed_on_another_site_confirms_nothing(): void {
 		$this->ask_for_link( 'jane@example.com', $this->request );
 
@@ -288,7 +302,36 @@ final class GuestLinkTest extends TestCase {
 		$this->board_rules( BoardSettings::LOGGED_IN );
 		$this->assertSame( VoteService::ERROR_LOGIN_REQUIRED, $this->ask_for_link( 'jane@example.com', $this->create_request() )->get_data()['code'] );
 
+		// A board that takes every visitor's vote needs no address, so nobody is emailed for it.
+		$this->board_rules( BoardSettings::ANYONE );
+		$response = $this->ask_for_link( 'jane@example.com', $this->create_request() );
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( Guests::ERROR_NOT_NEEDED, $response->get_data()['code'] );
+
 		$this->assertSame( [], $this->sent_emails() );
+		$this->assertNull( $this->guest( 'jane@example.com' ) );
+	}
+
+	public function test_pressing_the_button_while_logged_in_counts_the_vote_as_the_guest_who_started_it(): void {
+		$this->ask_for_link( 'jane@example.com', $this->request );
+		$token = $this->emailed_token();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+
+		$page  = $this->open_link( $token, true );
+		$guest = $this->guest( 'jane@example.com' );
+
+		$this->assertStringContainsString( 'Your vote for &quot;Dark mode&quot; was added.', $page );
+		$this->assertEquals(
+			[
+				(object) [
+					'user_id'   => '0',
+					'voter_key' => VoterIdentity::guest_key( $guest['id'] ),
+				],
+			],
+			$this->vote_rows_of( $this->request ),
+			'The vote is the guest\'s, not the account that happened to be logged in.'
+		);
+		$this->assertNotSame( 0, get_current_user_id(), 'The visitor stays logged in.' );
 	}
 
 	public function test_a_vote_that_can_no_longer_be_cast_is_explained_on_the_page(): void {

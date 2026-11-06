@@ -117,6 +117,8 @@ final class ConfirmationLink {
 		nocache_headers();
 		if ( ! headers_sent() ) {
 			header( 'Referrer-Policy: strict-origin' );
+			// No other site may show the page in a frame and get a visitor to press its button.
+			send_frame_options_header();
 		}
 
 		$page = self::process( $token, $posted && RequestOrigin::is_same_site( $origin, $referer ) );

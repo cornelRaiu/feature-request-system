@@ -109,10 +109,13 @@ final class PersonalData {
 		$items    = [];
 
 		// The same address can belong to a user and to a guest, who signed up after confirming it.
-		$guest = GuestRepository::find_by_email( Guests::normalise_email( $email ) );
+		// The guest's items get their own IDs: the export merges items that share one.
+		$guest   = GuestRepository::find_by_email( Guests::normalise_email( $email ) );
+		$votes   = [ 'vote-' => $votes ];
+		$follows = [ 'follow-' => $follows ];
 		if ( $guest ) {
-			$votes   = array_merge( $votes, VoteRepository::of_voter( VoterIdentity::guest_key( $guest['id'] ), self::PER_PAGE, $offset ) );
-			$follows = array_merge( $follows, SubscriptionRepository::of_guest( $guest['id'], self::PER_PAGE, $offset ) );
+			$votes['guest-vote-']     = VoteRepository::of_voter( VoterIdentity::guest_key( $guest['id'] ), self::PER_PAGE, $offset );
+			$follows['guest-follow-'] = SubscriptionRepository::of_guest( $guest['id'], self::PER_PAGE, $offset );
 		}
 
 		foreach ( $requests as $request ) {
@@ -125,33 +128,37 @@ final class PersonalData {
 			);
 		}
 
-		foreach ( $votes as $vote ) {
-			$items[] = self::item(
-				'mwtfrs-votes',
-				__( 'Feature request votes', 'feature-request-system' ),
-				__( 'The feature requests this user voted for.', 'feature-request-system' ),
-				'vote-' . $vote['request_id'],
-				array_merge(
-					self::named_request( $vote['request_id'] ),
-					[ __( 'Voted on', 'feature-request-system' ) => self::date( $vote['created_at'] ) ]
-				)
-			);
+		foreach ( $votes as $prefix => $list ) {
+			foreach ( $list as $vote ) {
+				$items[] = self::item(
+					'mwtfrs-votes',
+					__( 'Feature request votes', 'feature-request-system' ),
+					__( 'The feature requests this user voted for.', 'feature-request-system' ),
+					$prefix . $vote['request_id'],
+					array_merge(
+						self::named_request( $vote['request_id'] ),
+						[ __( 'Voted on', 'feature-request-system' ) => self::date( $vote['created_at'] ) ]
+					)
+				);
+			}
 		}
 
-		foreach ( $follows as $follow ) {
-			$items[] = self::item(
-				'mwtfrs-follows',
-				__( 'Followed feature requests', 'feature-request-system' ),
-				__( 'The feature requests this user follows, and gets emails about.', 'feature-request-system' ),
-				'follow-' . $follow['request_id'],
-				array_merge(
-					self::named_request( $follow['request_id'] ),
-					[
-						__( 'Following since', 'feature-request-system' ) => self::date( $follow['created_at'] ),
-						__( 'Because', 'feature-request-system' ) => self::reason( $follow['source'] ),
-					]
-				)
-			);
+		foreach ( $follows as $prefix => $list ) {
+			foreach ( $list as $follow ) {
+				$items[] = self::item(
+					'mwtfrs-follows',
+					__( 'Followed feature requests', 'feature-request-system' ),
+					__( 'The feature requests this user follows, and gets emails about.', 'feature-request-system' ),
+					$prefix . $follow['request_id'],
+					array_merge(
+						self::named_request( $follow['request_id'] ),
+						[
+							__( 'Following since', 'feature-request-system' ) => self::date( $follow['created_at'] ),
+							__( 'Because', 'feature-request-system' ) => self::reason( $follow['source'] ),
+						]
+					)
+				);
+			}
 		}
 
 		// What the plugin stores about a guest goes out once, with the first page.
@@ -178,7 +185,7 @@ final class PersonalData {
 
 		return [
 			'data' => $items,
-			'done' => max( count( $requests ), count( $votes ), count( $follows ) ) < self::PER_PAGE,
+			'done' => max( array_merge( [ count( $requests ) ], array_map( 'count', $votes ), array_map( 'count', $follows ) ) ) < self::PER_PAGE,
 		];
 	}
 

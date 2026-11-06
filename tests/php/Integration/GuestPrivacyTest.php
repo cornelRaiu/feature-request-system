@@ -75,10 +75,20 @@ final class GuestPrivacyTest extends TestCase {
 		$this->assertSame( 'Jane Doe', $groups['mwtfrs-guest'][ 'guest-' . $this->guest ]['Name'] );
 		$this->assertArrayHasKey( 'Confirmed on', $groups['mwtfrs-guest'][ 'guest-' . $this->guest ] );
 		$this->assertSame( 'Your vote for "Export to CSV" is added.', $groups['mwtfrs-guest'][ 'guest-' . $this->guest ]['Waiting for the confirmation'] );
-		$this->assertSame( 'Dark mode', $groups['mwtfrs-votes'][ 'vote-' . $this->request ]['Request'] );
-		$this->assertArrayHasKey( 'follow-' . $this->request, $groups['mwtfrs-follows'] );
-		$this->assertArrayHasKey( 'follow-' . $suggested, $groups['mwtfrs-follows'] );
+		$this->assertSame( 'Dark mode', $groups['mwtfrs-votes'][ 'guest-vote-' . $this->request ]['Request'] );
+		$this->assertArrayHasKey( 'guest-follow-' . $this->request, $groups['mwtfrs-follows'] );
+		$this->assertArrayHasKey( 'guest-follow-' . $suggested, $groups['mwtfrs-follows'] );
 		$this->assertSame( 'Calendar view', $groups['mwtfrs-requests'][ 'request-' . $suggested ]['Title'] );
+	}
+
+	public function test_a_user_and_a_guest_with_one_address_who_voted_for_one_request_are_both_exported(): void {
+		$this->forget_visitor();
+		wp_set_current_user( self::factory()->user->create( [ 'user_email' => 'jane@example.com' ] ) );
+		$this->rest_vote( 'POST', $this->request );
+
+		$ids = wp_list_pluck( wp_list_filter( PersonalData::export( 'jane@example.com' )['data'], [ 'group_id' => 'mwtfrs-votes' ] ), 'item_id' );
+
+		$this->assertEqualsCanonicalizing( [ 'vote-' . $this->request, 'guest-vote-' . $this->request ], $ids, 'The export would merge two items with one ID into one.' );
 	}
 
 	public function test_the_export_says_when_a_guest_stopped_every_email(): void {

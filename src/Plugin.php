@@ -35,6 +35,7 @@ use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Guests\ConfirmationLink;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Install\Installer;
 use FeatureRequestSystem\Notifications\ApprovalEmail;
 use FeatureRequestSystem\Notifications\NewRequestEmail;
@@ -120,6 +121,7 @@ final class Plugin {
 		DepartedUsers::add_hooks();
 		GuestLinkForm::add_hooks();
 		ConfirmationLink::add_hooks();
+		Guests::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 
