@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Settings;
 use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
@@ -20,7 +21,8 @@ defined( 'ABSPATH' ) || exit;
  * Adds each board's settings to the forms that add and edit a board: who can vote, who
  * can suggest features, whether new requests wait for approval, the board's page and the
  * categories its requests can have. Since 1.1 also how many votes each person can give,
- * and the vote threshold that moves a request to another status.
+ * the vote threshold that moves a request to another status, and who is emailed when one
+ * of the board's requests is merged.
  */
 final class BoardFields {
 
@@ -112,16 +114,17 @@ final class BoardFields {
 		BoardSettings::update(
 			$board_id,
 			[
-				BoardSettings::VOTING     => $sent[ BoardSettings::VOTING ] ?? '',
-				BoardSettings::SUBMITTING => $sent[ BoardSettings::SUBMITTING ] ?? '',
+				BoardSettings::VOTING      => $sent[ BoardSettings::VOTING ] ?? '',
+				BoardSettings::SUBMITTING  => $sent[ BoardSettings::SUBMITTING ] ?? '',
 				// An unticked box sends nothing.
-				BoardSettings::MODERATION => ! empty( $sent[ BoardSettings::MODERATION ] ),
-				BoardSettings::PAGE       => absint( $sent[ BoardSettings::PAGE ] ?? 0 ),
+				BoardSettings::MODERATION  => ! empty( $sent[ BoardSettings::MODERATION ] ),
+				BoardSettings::PAGE        => absint( $sent[ BoardSettings::PAGE ] ?? 0 ),
 				// No ticked box sends nothing, which means every category.
-				BoardSettings::CATEGORIES => isset( $sent[ BoardSettings::CATEGORIES ] ) && is_array( $sent[ BoardSettings::CATEGORIES ] ) ? $sent[ BoardSettings::CATEGORIES ] : [],
+				BoardSettings::CATEGORIES  => isset( $sent[ BoardSettings::CATEGORIES ] ) && is_array( $sent[ BoardSettings::CATEGORIES ] ) ? $sent[ BoardSettings::CATEGORIES ] : [],
 				// An empty field sends '', which means no limit, and no threshold.
-				BoardSettings::VOTE_LIMIT => (int) ( $sent[ BoardSettings::VOTE_LIMIT ] ?? 0 ),
-				BoardSettings::THRESHOLD  => isset( $sent[ BoardSettings::THRESHOLD ] ) && is_array( $sent[ BoardSettings::THRESHOLD ] ) ? $sent[ BoardSettings::THRESHOLD ] : [],
+				BoardSettings::VOTE_LIMIT  => (int) ( $sent[ BoardSettings::VOTE_LIMIT ] ?? 0 ),
+				BoardSettings::THRESHOLD   => isset( $sent[ BoardSettings::THRESHOLD ] ) && is_array( $sent[ BoardSettings::THRESHOLD ] ) ? $sent[ BoardSettings::THRESHOLD ] : [],
+				BoardSettings::MERGE_EMAIL => $sent[ BoardSettings::MERGE_EMAIL ] ?? '',
 			]
 		);
 	}
@@ -197,6 +200,11 @@ final class BoardFields {
 				self::category_boxes( array_map( 'intval', (array) $settings[ BoardSettings::CATEGORIES ] ) ),
 				__( 'The categories that people can choose for a request on this board, and that the board can be filtered by. Tick none to offer every category.', 'feature-request-system' ),
 			],
+			'mwtfrs-board-merge'      => [
+				__( 'Email about a merge', 'feature-request-system' ),
+				self::select( 'mwtfrs-board-merge', BoardSettings::MERGE_EMAIL, self::merge_email_choices(), (string) $settings[ BoardSettings::MERGE_EMAIL ] ),
+				__( 'Who gets an email when one of this board\'s requests is merged into another. Its followers move to the other request whatever you choose.', 'feature-request-system' ),
+			],
 		];
 	}
 
@@ -244,6 +252,21 @@ final class BoardFields {
 			$status_select( 'from', __( 'Status to move the request from', 'feature-request-system' ), $from ),
 			$status_select( 'to', __( 'Status to move the request to', 'feature-request-system' ), $to )
 		);
+	}
+
+	/**
+	 * The choices for who is emailed about a merge: the site's choice first, by its name.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function merge_email_choices(): array {
+		$choices = Settings::merge_email_choices();
+		$site    = (string) Settings::get( Settings::MERGE_EMAIL );
+
+		return [
+			/* translators: %s: the site's choice, such as "Everyone who followed the merged request". */
+			BoardSettings::USE_SITE => sprintf( __( 'The site\'s choice (%s)', 'feature-request-system' ), $choices[ $site ] ?? $choices[ Settings::MERGE_EMAIL_FOLLOWERS ] ),
+		] + $choices;
 	}
 
 	/**

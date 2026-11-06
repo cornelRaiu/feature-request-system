@@ -9,6 +9,7 @@ namespace FeatureRequestSystem;
 
 use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Admin\CommentActions;
+use FeatureRequestSystem\Admin\MergeBox;
 use FeatureRequestSystem\Admin\NotifySwitch;
 use FeatureRequestSystem\Admin\PendingBadge;
 use FeatureRequestSystem\Admin\ProfileFollows;
@@ -30,6 +31,7 @@ use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\FollowForm;
 use FeatureRequestSystem\Frontend\GuestLinkForm;
+use FeatureRequestSystem\Frontend\MergeRedirect;
 use FeatureRequestSystem\Frontend\PlainDescription;
 use FeatureRequestSystem\Frontend\RequestView;
 use FeatureRequestSystem\Frontend\SubmitForm;
@@ -37,7 +39,9 @@ use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Guests\ConfirmationLink;
 use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Install\Installer;
+use FeatureRequestSystem\Merging\MergedStatus;
 use FeatureRequestSystem\Notifications\ApprovalEmail;
+use FeatureRequestSystem\Notifications\MergeNotifier;
 use FeatureRequestSystem\Notifications\NewRequestEmail;
 use FeatureRequestSystem\Notifications\StatusNotifier;
 use FeatureRequestSystem\Notifications\Subscriptions;
@@ -126,6 +130,10 @@ final class Plugin {
 		GuestLinkForm::add_hooks();
 		ConfirmationLink::add_hooks();
 		Guests::add_hooks();
+		MergedStatus::add_hooks();
+		MergeRedirect::add_hooks();
+		MergeNotifier::add_hooks();
+		MergeBox::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

@@ -84,13 +84,14 @@ final class BoardFieldsTest extends TestCase {
 
 		$this->assertSame(
 			[
-				BoardSettings::VOTING     => BoardSettings::ANYONE,
-				BoardSettings::SUBMITTING => BoardSettings::NOBODY,
-				BoardSettings::MODERATION => false,
-				BoardSettings::PAGE       => $page,
-				BoardSettings::CATEGORIES => [],
-				BoardSettings::VOTE_LIMIT => 0,
-				BoardSettings::THRESHOLD  => [],
+				BoardSettings::VOTING      => BoardSettings::ANYONE,
+				BoardSettings::SUBMITTING  => BoardSettings::NOBODY,
+				BoardSettings::MODERATION  => false,
+				BoardSettings::PAGE        => $page,
+				BoardSettings::CATEGORIES  => [],
+				BoardSettings::VOTE_LIMIT  => 0,
+				BoardSettings::THRESHOLD   => [],
+				BoardSettings::MERGE_EMAIL => BoardSettings::USE_SITE,
 			],
 			BoardSettings::get( $this->default_board() ),
 			'An unticked moderation box turns moderation off.'

@@ -72,6 +72,7 @@ final class SettingsPageTest extends TestCase {
 				Settings::SUBSCRIBE_VOTERS         => false,
 				Settings::VOTES_PER_ADDRESS_USERS  => 250,
 				Settings::VOTES_PER_ADDRESS_GUESTS => 60,
+				Settings::MERGE_EMAIL              => Settings::MERGE_EMAIL_FOLLOWERS,
 			],
 			get_option( Settings::OPTION )
 		);

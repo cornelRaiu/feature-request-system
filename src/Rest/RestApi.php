@@ -28,5 +28,6 @@ final class RestApi {
 		RequestsController::register_routes();
 		SubscriptionsController::register_routes();
 		GuestsController::register_routes();
+		MergeController::register_routes();
 	}
 }

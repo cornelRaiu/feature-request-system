@@ -115,6 +115,7 @@ final class SettingsPage {
 			Settings::VOTES_PER_ADDRESS_USERS  => [ __( 'Logged-in users', 'feature-request-system' ), 'limits', 'render_votes_per_address_users' ],
 			Settings::VOTES_PER_ADDRESS_GUESTS => [ __( 'Visitors without an account', 'feature-request-system' ), 'limits', 'render_votes_per_address_guests' ],
 			Settings::DELETE_DATA_ON_UNINSTALL => [ __( 'Data', 'feature-request-system' ), 'uninstall', 'render_delete_data' ],
+			Settings::MERGE_EMAIL              => [ __( 'Email about a merge', 'feature-request-system' ), 'followers', 'render_merge_email' ],
 		];
 		foreach ( $fields as $key => list( $title, $section, $callback ) ) {
 			$labelled = in_array( $key, self::CHECKBOXES, true ) ? [] : [ 'label_for' => self::id( $key ) ];
@@ -246,6 +247,18 @@ final class SettingsPage {
 	}
 
 	/**
+	 * Prints who is emailed when a request is merged into another.
+	 */
+	public static function render_merge_email(): void {
+		printf( '<select id="%1$s" name="%2$s">', esc_attr( self::id( Settings::MERGE_EMAIL ) ), esc_attr( self::name( Settings::MERGE_EMAIL ) ) );
+		foreach ( Settings::merge_email_choices() as $value => $label ) {
+			printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $value ), selected( (string) Settings::get( Settings::MERGE_EMAIL ), $value, false ), esc_html( $label ) );
+		}
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'Who gets an email when a request is merged into another that asks for the same. Its followers move to the other request whatever you choose, and the person who merges is never emailed. Each board can choose for itself, under Feature Requests → Boards.', 'feature-request-system' ) . '</p>';
+	}
+
+	/**
 	 * Cleans one setting.
 	 *
 	 * @param string $key   Setting key.
@@ -265,6 +278,8 @@ final class SettingsPage {
 			case Settings::VOTES_PER_ADDRESS_USERS:
 			case Settings::VOTES_PER_ADDRESS_GUESTS:
 				return self::count_or_current( $key, $value );
+			case Settings::MERGE_EMAIL:
+				return is_string( $value ) && array_key_exists( $value, Settings::merge_email_choices() ) ? $value : Settings::get( $key );
 			default:
 				return ! empty( $value );
 		}

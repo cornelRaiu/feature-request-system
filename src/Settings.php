@@ -72,6 +72,27 @@ final class Settings {
 	public const VOTES_PER_ADDRESS_GUESTS = 'votes_per_address_guests';
 
 	/**
+	 * Who gets an email when a request is merged into another: one of the MERGE_EMAIL_* values.
+	 * Each board can choose for itself instead.
+	 */
+	public const MERGE_EMAIL = 'merge_email';
+
+	/**
+	 * Everyone who followed the merged request is emailed about the merge.
+	 */
+	public const MERGE_EMAIL_FOLLOWERS = 'followers';
+
+	/**
+	 * Only the person who suggested the merged request is emailed about the merge.
+	 */
+	public const MERGE_EMAIL_SUBMITTER = 'submitter';
+
+	/**
+	 * Nobody is emailed about a merge.
+	 */
+	public const MERGE_EMAIL_NOBODY = 'nobody';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, mixed>
@@ -88,6 +109,7 @@ final class Settings {
 			self::SUBSCRIBE_VOTERS         => true,
 			self::VOTES_PER_ADDRESS_USERS  => 60,
 			self::VOTES_PER_ADDRESS_GUESTS => 60,
+			self::MERGE_EMAIL              => self::MERGE_EMAIL_FOLLOWERS,
 		];
 	}
 
@@ -116,6 +138,19 @@ final class Settings {
 		$limit = (int) self::get( $key );
 
 		return $limit >= 1 ? $limit : (int) self::defaults()[ $key ];
+	}
+
+	/**
+	 * Who is emailed about a merge, by value: the label of each choice.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function merge_email_choices(): array {
+		return [
+			self::MERGE_EMAIL_FOLLOWERS => __( 'Everyone who followed the merged request', 'feature-request-system' ),
+			self::MERGE_EMAIL_SUBMITTER => __( 'Only the person who suggested it', 'feature-request-system' ),
+			self::MERGE_EMAIL_NOBODY    => __( 'Nobody', 'feature-request-system' ),
+		];
 	}
 
 	/**

@@ -413,6 +413,82 @@ final class SubscriptionRepository {
 	}
 
 	/**
+	 * Moves every follower of one request to another. A user or a guest who followed both keeps
+	 * the stronger of their two reasons: choosing to follow, then suggesting, then voting.
+	 *
+	 * The subscriptions keep their tokens, so the links in emails sent before still work.
+	 *
+	 * @param int $from_id Request the followers are taken from.
+	 * @param int $to_id   Request the followers go to.
+	 */
+	public static function move( int $from_id, int $to_id ): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::SUBSCRIPTIONS );
+
+		// Someone who follows both: the reason from the first request wins where it is the stronger one.
+		// A guest's subscriptions have user_id 0, so the guest's ID is matched too.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'UPDATE %i AS kept INNER JOIN %i AS moved ON moved.user_id = kept.user_id AND moved.guest_id = kept.guest_id AND moved.request_id = %d SET kept.source = moved.source WHERE kept.request_id = %d AND FIELD( moved.source, %s, %s, %s ) > FIELD( kept.source, %s, %s, %s )',
+				$table,
+				$table,
+				$from_id,
+				$to_id,
+				self::SOURCE_VOTE,
+				self::SOURCE_AUTHOR,
+				self::SOURCE_FOLLOW,
+				self::SOURCE_VOTE,
+				self::SOURCE_AUTHOR,
+				self::SOURCE_FOLLOW
+			)
+		);
+
+		// IGNORE leaves the subscriptions that the unique key on request_id, user_id and guest_id refuses: those were handled above.
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare( 'UPDATE IGNORE %i SET request_id = %d WHERE request_id = %d', $table, $to_id, $from_id )
+		);
+		self::remove_request( $from_id );
+	}
+
+	/**
+	 * Returns the IDs of the users who follow a request.
+	 *
+	 * @param int $request_id Request ID.
+	 * @return int[]
+	 */
+	public static function user_ids( int $request_id ): array {
+		return self::follower_ids( $request_id, 'user_id' );
+	}
+
+	/**
+	 * Returns the IDs of the guests who follow a request.
+	 *
+	 * @param int $request_id Request ID.
+	 * @return int[]
+	 */
+	public static function guest_ids( int $request_id ): array {
+		return self::follower_ids( $request_id, 'guest_id' );
+	}
+
+	/**
+	 * Returns the users' or the guests' IDs from a request's subscriptions, oldest first.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param string $column     "user_id" or "guest_id".
+	 * @return int[]
+	 */
+	private static function follower_ids( int $request_id, string $column ): array {
+		global $wpdb;
+
+		$ids = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare( 'SELECT %i FROM %i WHERE request_id = %d AND %i > 0 ORDER BY id ASC', $column, Schema::table( Schema::SUBSCRIPTIONS ), $request_id, $column )
+		);
+
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Turns database rows into subscriptions with typed fields.
 	 *
 	 * @param mixed $rows Rows from $wpdb->get_results().
