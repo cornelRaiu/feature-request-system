@@ -20,6 +20,7 @@ use FeatureRequestSystem\Frontend\RequestCard;
 use FeatureRequestSystem\Frontend\RequestItem;
 use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\RequestView;
+use FeatureRequestSystem\Frontend\Roadmap;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use FeatureRequestSystem\Frontend\VoteForm;
 use FeatureRequestSystem\Frontend\VoteStore;
@@ -130,7 +131,7 @@ final class BoardRenderTest extends TestCase {
 
 	public function test_the_stylesheets_load_with_the_blocks_unless_a_site_turns_them_off(): void {
 		$registry = WP_Block_Type_Registry::get_instance();
-		$names    = [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK, RequestCard::BLOCK ];
+		$names    = [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK, RequestCard::BLOCK, Roadmap::BLOCK ];
 		foreach ( $names as $name ) {
 			$this->assertCount( 1, $registry->get_registered( $name )->style_handles, $name );
 			$registry->unregister( $name );

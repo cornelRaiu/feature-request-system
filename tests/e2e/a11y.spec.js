@@ -17,7 +17,7 @@ const RULES = [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ];
  *
  * @param {Object} options
  * @param {string} [options.submitting] Who may submit: ANYONE, LOGGED_IN or NOBODY.
- * @return {{page: string, blocks: string, request: string, edit: string, stopLink: string}} URLs to check.
+ * @return {{page: string, blocks: string, roadmap: string, request: string, edit: string, stopLink: string}} URLs to check.
  */
 function setUp( { submitting = 'LOGGED_IN' } = {} ) {
 	return JSON.parse(
@@ -107,9 +107,20 @@ function setUp( { submitting = 'LOGGED_IN' } = {} ) {
 				'post_content' => '<!-- wp:mwtfrs/board {"compact":true,"perPage":3,"status":"all"} /-->' . "\n\n" . '<!-- wp:mwtfrs/request-card {"requestId":' . (int) $ids['Export to CSV'] . '} /-->' . "\n\n" . '<!-- wp:mwtfrs/request-card {"requestId":' . (int) $ids['Old idea'] . '} /-->',
 			] );
 
+			// The roadmap pattern: a heading above columns of planned, in-progress and shipped requests.
+			$roadmap = get_page_by_path( 'e2e-a11y-roadmap' );
+			$roadmap = $roadmap ? $roadmap->ID : wp_insert_post( [
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_title'   => 'E2E roadmap',
+				'post_name'    => 'e2e-a11y-roadmap',
+				'post_content' => WP_Block_Patterns_Registry::get_instance()->get_registered( Blocks::PATTERN_ROADMAP )['content'],
+			] );
+
 			echo wp_json_encode( [
 				'page'     => get_permalink( $page_id ),
 				'blocks'   => get_permalink( $blocks ),
+				'roadmap'  => get_permalink( $roadmap ),
 				'request'  => get_permalink( $request ),
 				'edit'     => admin_url( 'post.php?post=' . $request . '&action=edit' ),
 				'stopLink' => Unsubscribe::url( SubscriptionRepository::find( $request, $follower )['token'] ),
@@ -147,6 +158,7 @@ const BOARD = '.wp-block-mwtfrs-board';
 const FORM = '.wp-block-mwtfrs-submit';
 const DETAILS = '.wp-block-mwtfrs-request';
 const CARD = '.wp-block-mwtfrs-request-card';
+const ROADMAP = '.wp-block-mwtfrs-roadmap';
 
 test.describe( 'Accessibility', () => {
 	test( 'the board and the form for a logged-in user', async ( { page } ) => {
@@ -183,6 +195,21 @@ test.describe( 'Accessibility', () => {
 				.getByRole( 'button', { name: /Vote for Export to CSV/ } )
 		).toHaveAttribute( 'aria-pressed', 'true' );
 		expect( await problems( page, [ BOARD, CARD ] ) ).toEqual( [] );
+	} );
+
+	test( 'the roadmap for a logged-in user', async ( { page } ) => {
+		const urls = setUp();
+		await page.goto( urls.roadmap );
+
+		expect( await problems( page, [ ROADMAP ] ) ).toEqual( [] );
+
+		// With a vote cast on a card.
+		const vote = page
+			.locator( ROADMAP )
+			.getByRole( 'button', { name: /Vote for Dark mode/ } );
+		await vote.click();
+		await expect( vote ).toHaveAttribute( 'aria-pressed', 'true' );
+		expect( await problems( page, [ ROADMAP ] ) ).toEqual( [] );
 	} );
 
 	test( 'the board with every status shown and a search without results', async ( {
@@ -296,6 +323,20 @@ test.describe( 'Accessibility', () => {
 					.getByText( 'Log in to vote on this request.' )
 			).toBeVisible();
 			expect( await problems( page, [ BOARD, CARD ] ) ).toEqual( [] );
+
+			// The roadmap, with the same message on one of its cards.
+			await page.goto( urls.roadmap );
+			expect( await problems( page, [ ROADMAP ] ) ).toEqual( [] );
+			await page
+				.locator( ROADMAP )
+				.getByRole( 'button', { name: /Vote for Dark mode/ } )
+				.click();
+			await expect(
+				page
+					.locator( ROADMAP )
+					.getByText( 'Log in to vote on this request.' )
+			).toBeVisible();
+			expect( await problems( page, [ ROADMAP ] ) ).toEqual( [] );
 		} );
 
 		test( 'the form for guests, with its note and an error', async ( {
@@ -347,12 +388,17 @@ test.describe( 'Accessibility', () => {
 		// WCAG 1.4.10: content fits a width of 320 CSS pixels.
 		await page.setViewportSize( { width: 320, height: 640 } );
 
-		for ( const url of [ urls.page, urls.request, urls.blocks ] ) {
+		for ( const url of [
+			urls.page,
+			urls.request,
+			urls.blocks,
+			urls.roadmap,
+		] ) {
 			await page.goto( url );
 			const overflow = await page.evaluate( () =>
 				[
 					...document.querySelectorAll(
-						'.wp-block-mwtfrs-board, .wp-block-mwtfrs-submit, .wp-block-mwtfrs-request, .wp-block-mwtfrs-request-card, .mwtfrs-official-response'
+						'.wp-block-mwtfrs-board, .wp-block-mwtfrs-submit, .wp-block-mwtfrs-request, .wp-block-mwtfrs-request-card, .wp-block-mwtfrs-roadmap, .mwtfrs-roadmap__column, .mwtfrs-official-response'
 					),
 				]
 					.filter(
@@ -372,12 +418,17 @@ test.describe( 'Accessibility', () => {
 	} ) => {
 		const urls = setUp();
 		// WCAG 2.5.8: targets are at least 24 by 24 CSS pixels, unless they sit in a line of text.
-		for ( const url of [ urls.page, urls.request, urls.blocks ] ) {
+		for ( const url of [
+			urls.page,
+			urls.request,
+			urls.blocks,
+			urls.roadmap,
+		] ) {
 			await page.goto( url );
 			const small = await page.evaluate( () =>
 				[
 					...document.querySelectorAll(
-						':is(.wp-block-mwtfrs-board, .wp-block-mwtfrs-submit, .wp-block-mwtfrs-request, .wp-block-mwtfrs-request-card) :is(button, select, input:not([type=hidden]), summary, .page-numbers, .mwtfrs-board__more a)'
+						':is(.wp-block-mwtfrs-board, .wp-block-mwtfrs-submit, .wp-block-mwtfrs-request, .wp-block-mwtfrs-request-card, .wp-block-mwtfrs-roadmap) :is(button, select, input:not([type=hidden]), summary, .page-numbers, .mwtfrs-board__more a, .mwtfrs-roadmap__more a)'
 					),
 				]
 					// Shown, and not the field that only bots fill in.

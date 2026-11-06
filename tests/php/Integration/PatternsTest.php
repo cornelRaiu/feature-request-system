@@ -12,6 +12,7 @@ use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\Board;
 use FeatureRequestSystem\Frontend\RequestCard;
 use FeatureRequestSystem\Frontend\RequestView;
+use FeatureRequestSystem\Frontend\Roadmap;
 use FeatureRequestSystem\Frontend\SubmitForm;
 use WP_Block_Patterns_Registry;
 use WP_Block_Type_Registry;
@@ -34,7 +35,7 @@ final class PatternsTest extends TestCase {
 
 	public function test_every_pattern_is_in_the_plugins_category_and_has_nothing_outside_its_blocks(): void {
 		Blocks::register_invitation_pattern();
-		$names = [ Blocks::PATTERN, Blocks::PATTERN_COLUMNS, Blocks::PATTERN_MOST_WANTED, Blocks::PATTERN_INVITATION ];
+		$names = [ Blocks::PATTERN, Blocks::PATTERN_COLUMNS, Blocks::PATTERN_MOST_WANTED, Blocks::PATTERN_INVITATION, Blocks::PATTERN_ROADMAP ];
 
 		foreach ( $names as $name ) {
 			$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( $name );
@@ -74,6 +75,17 @@ final class PatternsTest extends TestCase {
 		$this->assertStringContainsString( '>Most wanted</h2>', $inside[0]['innerHTML'] );
 	}
 
+	public function test_a_pattern_puts_a_heading_above_the_roadmap_in_the_wide_width(): void {
+		$blocks = $this->blocks_of( Blocks::PATTERN_ROADMAP );
+
+		$this->assertSame( [ 'core/group' ], wp_list_pluck( $blocks, 'blockName' ) );
+		$this->assertSame( 'wide', $blocks[0]['attrs']['align'], 'Columns side by side need the room.' );
+		$inside = $this->named( $blocks[0]['innerBlocks'] );
+		$this->assertSame( [ 'core/heading', Roadmap::BLOCK ], wp_list_pluck( $inside, 'blockName' ) );
+		$this->assertStringContainsString( '>Roadmap</h2>', $inside[0]['innerHTML'] );
+		$this->assertSame( 'Feature request roadmap', WP_Block_Patterns_Registry::get_instance()->get_registered( Blocks::PATTERN_ROADMAP )['title'] );
+	}
+
 	public function test_the_invitation_leads_to_the_page_that_shows_the_default_board(): void {
 		Blocks::register_invitation_pattern();
 		$blocks = $this->blocks_of( Blocks::PATTERN_INVITATION );
@@ -109,7 +121,7 @@ final class PatternsTest extends TestCase {
 	 * Runs the registration that WordPress runs on init, for blocks that are not registered yet.
 	 */
 	private function register_again(): void {
-		foreach ( [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK, RequestCard::BLOCK ] as $name ) {
+		foreach ( [ Board::BLOCK, SubmitForm::BLOCK, RequestView::BLOCK, RequestCard::BLOCK, Roadmap::BLOCK ] as $name ) {
 			WP_Block_Type_Registry::get_instance()->unregister( $name );
 		}
 		Blocks::register();

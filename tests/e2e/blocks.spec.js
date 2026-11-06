@@ -276,6 +276,7 @@ test.describe( 'Feature request list and card', () => {
 
 		expect( patterns ).toEqual( [
 			{ name: 'mwtfrs/feature-request-page', notValid: [], link: '' },
+			{ name: 'mwtfrs/feature-request-roadmap', notValid: [], link: '' },
 			{ name: 'mwtfrs/form-beside-board', notValid: [], link: '' },
 			{ name: 'mwtfrs/most-wanted', notValid: [], link: '' },
 			// Its button leads to the page that shows the board.

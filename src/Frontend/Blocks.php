@@ -42,6 +42,11 @@ final class Blocks {
 	public const CARD_SHORTCODE = 'feature_request';
 
 	/**
+	 * Roadmap shortcode tag, as in [feature_roadmap board="mobile-app"].
+	 */
+	public const ROADMAP_SHORTCODE = 'feature_roadmap';
+
+	/**
 	 * Pattern with the form above the board.
 	 */
 	public const PATTERN = 'mwtfrs/feature-request-page';
@@ -62,6 +67,11 @@ final class Blocks {
 	public const PATTERN_INVITATION = 'mwtfrs/suggest-a-feature';
 
 	/**
+	 * Pattern with a heading above the roadmap.
+	 */
+	public const PATTERN_ROADMAP = 'mwtfrs/feature-request-roadmap';
+
+	/**
 	 * Pattern category for the plugin's patterns.
 	 */
 	public const PATTERN_CATEGORY = 'mwtfrs-feature-requests';
@@ -75,7 +85,7 @@ final class Blocks {
 	/**
 	 * Block folders inside build/.
 	 */
-	private const BLOCK_FOLDERS = [ 'board', 'submit', 'request', 'request-card' ];
+	private const BLOCK_FOLDERS = [ 'board', 'submit', 'request', 'request-card', 'roadmap' ];
 
 	/**
 	 * The board shortcode's attributes that switch a filter control on or off, with the
@@ -96,6 +106,7 @@ final class Blocks {
 		add_shortcode( self::FORM_SHORTCODE, [ self::class, 'form_shortcode' ] );
 		add_shortcode( self::LIST_SHORTCODE, [ self::class, 'list_shortcode' ] );
 		add_shortcode( self::CARD_SHORTCODE, [ self::class, 'card_shortcode' ] );
+		add_shortcode( self::ROADMAP_SHORTCODE, [ self::class, 'roadmap_shortcode' ] );
 
 		$styled = (bool) apply_filters( self::FILTER_STYLES, true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
 
@@ -216,6 +227,21 @@ final class Blocks {
 	}
 
 	/**
+	 * Renders the roadmap block for the roadmap shortcode.
+	 *
+	 * @param array<string, string>|string $atts Shortcode attributes: board (slug or term ID, every board without it).
+	 */
+	public static function roadmap_shortcode( $atts ): string {
+		$atts = shortcode_atts(
+			[ 'board' => '' ],
+			is_array( $atts ) ? $atts : [],
+			self::ROADMAP_SHORTCODE
+		);
+
+		return self::render( Roadmap::BLOCK, [ 'board' => self::board_id( $atts['board'] ) ] );
+	}
+
+	/**
 	 * Tells administrators that the compiled block files are missing, as in a copy of the source code.
 	 */
 	public static function missing_build_notice(): void {
@@ -269,6 +295,16 @@ final class Blocks {
 			__( 'Most wanted feature requests', 'feature-request-system' ),
 			__( 'The five feature requests with the most votes, with their vote buttons and a link to the board.', 'feature-request-system' ),
 			self::group( self::heading( __( 'Most wanted', 'feature-request-system' ) ) . "\n\n" . $top )
+		);
+
+		// As wide as the theme allows, with the heading at the same width, so the columns have room.
+		self::register_pattern(
+			self::PATTERN_ROADMAP,
+			__( 'Feature request roadmap', 'feature-request-system' ),
+			__( 'A heading above the roadmap: feature requests in columns by status, with their vote buttons.', 'feature-request-system' ),
+			'<!-- wp:group {"align":"wide","layout":{"type":"default"}} -->' . "\n"
+			. '<div class="wp-block-group alignwide">' . self::heading( __( 'Roadmap', 'feature-request-system' ) ) . "\n\n" . '<!-- wp:' . Roadmap::BLOCK . ' /--></div>' . "\n"
+			. '<!-- /wp:group -->'
 		);
 	}
 
