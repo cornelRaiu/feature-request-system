@@ -44,6 +44,7 @@ use FeatureRequestSystem\Privacy\PersonalData;
 use FeatureRequestSystem\Privacy\PolicyText;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Submission\Akismet;
+use FeatureRequestSystem\Submission\Turnstile;
 use FeatureRequestSystem\Voting\VoteService;
 use WP_CLI;
 
@@ -91,6 +92,7 @@ final class Plugin {
 		VoteForm::add_hooks();
 		SubmitForm::add_hooks();
 		Akismet::add_hooks();
+		Turnstile::add_hooks();
 		NewRequestEmail::add_hooks();
 		Subscriptions::add_hooks();
 		StatusNotifier::add_hooks();

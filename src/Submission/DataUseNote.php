@@ -52,6 +52,7 @@ final class DataUseNote {
 		$sentences = [
 			__( 'We keep the name and email you enter with your request. Only our team can see them, and we use them only to contact you about your request.', 'feature-request-system' ),
 			Akismet::is_connected() ? __( 'To stop spam, your request is checked by Akismet, which receives its text, your name, email address, IP address and browser details.', 'feature-request-system' ) : '',
+			Turnstile::is_active() ? __( 'To tell people from programs, the form is checked by Cloudflare Turnstile, which receives your IP address and browser details.', 'feature-request-system' ) : '',
 			__( 'Ask us at any time to remove your details.', 'feature-request-system' ),
 		];
 

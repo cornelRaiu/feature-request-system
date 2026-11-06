@@ -135,16 +135,22 @@ final class Blocks {
 	/**
 	 * Renders the form block for the form shortcode.
 	 *
-	 * @param array<string, string>|string $atts Shortcode attributes: board (slug or term ID).
+	 * @param array<string, string>|string $atts Shortcode attributes: board (slug or term ID), and the form's
+	 *                                           texts, such as heading and submit_label (SubmitForm::TEXTS).
 	 */
 	public static function form_shortcode( $atts ): string {
 		$atts = shortcode_atts(
-			[ 'board' => '' ],
+			array_merge( [ 'board' => '' ], array_fill_keys( array_keys( SubmitForm::TEXTS ), '' ) ),
 			is_array( $atts ) ? $atts : [],
 			self::FORM_SHORTCODE
 		);
 
-		return self::render( SubmitForm::BLOCK, [ 'board' => self::board_id( $atts['board'] ) ] );
+		$attrs = [ 'board' => self::board_id( $atts['board'] ) ];
+		foreach ( SubmitForm::TEXTS as $name => $attribute ) {
+			$attrs[ $attribute ] = (string) $atts[ $name ];
+		}
+
+		return self::render( SubmitForm::BLOCK, $attrs );
 	}
 
 	/**

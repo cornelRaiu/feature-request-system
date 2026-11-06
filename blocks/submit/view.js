@@ -5,6 +5,9 @@
  * so they can vote for one instead of posting a duplicate. The form is sent through the
  * REST API. It is a real form too, so it still works if this script never runs.
  *
+ * With Cloudflare Turnstile on, its widget adds a token to the form. A token works once,
+ * so the widget gets a new one after every attempt.
+ *
  * Actions that wait are generators (the * before the name) instead of async functions,
  * so the Interactivity API can restore the element's scope and getContext() keeps working.
  */
@@ -98,7 +101,9 @@ const { state } = store( 'mwtfrs/submit', {
 					form.reset();
 					context.searchTicket++;
 					showSimilar( context, [] );
-					context.message = data.message;
+					// The form's own message for the status, which may differ from the default.
+					context.message =
+						context.messages?.[ data.status ] || data.message;
 					context.url = data.url;
 				} else {
 					context.message = data.message || state.strings.error;
@@ -110,6 +115,7 @@ const { state } = store( 'mwtfrs/submit', {
 				context.isError = true;
 			} finally {
 				context.busy = false;
+				renewCaptcha( form );
 			}
 		},
 	},
@@ -126,6 +132,18 @@ function* waitUntilSendable() {
 
 	if ( wait > 0 ) {
 		yield new Promise( ( resolve ) => setTimeout( resolve, wait ) );
+	}
+}
+
+/**
+ * Asks the Turnstile widget in the form, if there is one, for a new token.
+ *
+ * @param {HTMLFormElement} form The form.
+ */
+function renewCaptcha( form ) {
+	const widget = form.querySelector( '.cf-turnstile' );
+	if ( widget && window.turnstile ) {
+		window.turnstile.reset( widget );
 	}
 }
 

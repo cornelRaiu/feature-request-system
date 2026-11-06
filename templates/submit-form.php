@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 $mwtfrs_prefix = $args['id_prefix'];
 $mwtfrs_limits = $args['limits'];
+$mwtfrs_texts  = $args['texts'];
 ?>
 <div
 	<?php echo $args['wrapper_attributes']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by get_block_wrapper_attributes(). ?>
@@ -22,7 +23,7 @@ $mwtfrs_limits = $args['limits'];
 	data-wp-interactive="<?php echo esc_attr( $args['namespace'] ); ?>"
 	<?php echo wp_interactivity_data_wp_context( $args['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by wp_interactivity_data_wp_context(). ?>
 >
-	<h2 class="mwtfrs-submit__heading" id="<?php echo esc_attr( $mwtfrs_prefix . '-heading' ); ?>"><?php esc_html_e( 'Suggest a feature', 'feature-request-system' ); ?></h2>
+	<h2 class="mwtfrs-submit__heading" id="<?php echo esc_attr( $mwtfrs_prefix . '-heading' ); ?>"><?php echo esc_html( $mwtfrs_texts['heading'] ); ?></h2>
 
 	<?php if ( 'closed' === $args['mode'] ) : ?>
 		<p class="mwtfrs-submit__notice"><?php esc_html_e( 'This board is not taking new requests.', 'feature-request-system' ); ?></p>
@@ -51,7 +52,7 @@ $mwtfrs_limits = $args['limits'];
 			<?php endif; ?>
 
 			<p class="mwtfrs-submit__field">
-				<label for="<?php echo esc_attr( $mwtfrs_prefix . '-title' ); ?>"><?php esc_html_e( 'Title', 'feature-request-system' ); ?></label>
+				<label for="<?php echo esc_attr( $mwtfrs_prefix . '-title' ); ?>"><?php echo esc_html( $mwtfrs_texts['title_label'] ); ?></label>
 				<input
 					type="text"
 					id="<?php echo esc_attr( $mwtfrs_prefix . '-title' ); ?>"
@@ -62,7 +63,7 @@ $mwtfrs_limits = $args['limits'];
 					aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-title-help' ); ?>"
 					data-wp-on--input="actions.search"
 				>
-				<span class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-title-help' ); ?>"><?php esc_html_e( 'One short sentence, such as "Export requests as CSV".', 'feature-request-system' ); ?></span>
+				<span class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-title-help' ); ?>"><?php echo esc_html( $mwtfrs_texts['title_help'] ); ?></span>
 			</p>
 
 			<div class="mwtfrs-submit__similar" data-wp-bind--hidden="!context.similar.length">
@@ -80,7 +81,7 @@ $mwtfrs_limits = $args['limits'];
 
 			<p class="mwtfrs-submit__field">
 				<label for="<?php echo esc_attr( $mwtfrs_prefix . '-description' ); ?>">
-					<?php esc_html_e( 'Details', 'feature-request-system' ); ?>
+					<?php echo esc_html( $mwtfrs_texts['details_label'] ); ?>
 					<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
 				</label>
 				<textarea
@@ -144,8 +145,16 @@ $mwtfrs_limits = $args['limits'];
 				<input type="text" id="<?php echo esc_attr( $mwtfrs_prefix . '-trap' ); ?>" name="<?php echo esc_attr( $args['trap_field'] ); ?>" value="" tabindex="-1" autocomplete="off">
 			</p>
 
+			<?php if ( '' !== $args['captcha_key'] ) : ?>
+				<?php // Cloudflare's script turns this into the Turnstile widget, which adds its answer to the form. ?>
+				<div class="mwtfrs-submit__captcha">
+					<div class="cf-turnstile" data-sitekey="<?php echo esc_attr( $args['captcha_key'] ); ?>" data-response-field-name="<?php echo esc_attr( $args['captcha_field'] ); ?>" data-size="flexible"></div>
+					<noscript><p class="mwtfrs-submit__help"><?php esc_html_e( 'The spam check of this form needs JavaScript. Turn it on to send your request.', 'feature-request-system' ); ?></p></noscript>
+				</div>
+			<?php endif; ?>
+
 			<p class="mwtfrs-submit__actions">
-				<button type="submit" class="mwtfrs-submit__button" data-wp-bind--disabled="context.busy"><?php esc_html_e( 'Send request', 'feature-request-system' ); ?></button>
+				<button type="submit" class="mwtfrs-submit__button" data-wp-bind--disabled="context.busy"><?php echo esc_html( $mwtfrs_texts['submit_label'] ); ?></button>
 			</p>
 
 			<div class="mwtfrs-submit__status" role="status">
