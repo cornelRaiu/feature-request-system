@@ -13,9 +13,10 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Reads and writes rows in the subscriptions table. One row per user per request they
- * follow, enforced by a unique key.
+ * follow, enforced by a unique key. A guest who confirmed their email follows requests
+ * the same way: their rows hold their guest ID, and 0 as the user ID.
  *
- * @phpstan-type Subscription array{id: int, request_id: int, user_id: int, token: string, source: string, created_at: string}
+ * @phpstan-type Subscription array{id: int, request_id: int, user_id: int, guest_id: int, token: string, source: string, created_at: string}
  */
 final class SubscriptionRepository {
 
@@ -35,6 +36,11 @@ final class SubscriptionRepository {
 	public const SOURCE_AUTHOR = 'author';
 
 	/**
+	 * Columns read for a subscription.
+	 */
+	private const COLUMNS = 'id, request_id, user_id, guest_id, token, source, created_at';
+
+	/**
 	 * Makes a user follow a request. Does nothing when they already follow it, except
 	 * that choosing to follow replaces a weaker reason, so that taking back a vote
 	 * later does not end it.
@@ -45,24 +51,19 @@ final class SubscriptionRepository {
 	 * @return bool Whether the user started following the request.
 	 */
 	public static function add( int $request_id, int $user_id, string $source ): bool {
-		global $wpdb;
+		return $user_id > 0 && self::insert( $request_id, $user_id, 0, $source );
+	}
 
-		// The unique key on request_id and user_id turns a repeat into an update instead of an error.
-		$result = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
-			$wpdb->prepare(
-				'INSERT INTO %i (request_id, user_id, token, source, created_at) VALUES (%d, %d, %s, %s, %s) ON DUPLICATE KEY UPDATE source = IF( %d, %s, source )',
-				Schema::table( Schema::SUBSCRIPTIONS ),
-				$request_id,
-				$user_id,
-				wp_generate_password( 32, false ),
-				$source,
-				current_time( 'mysql', true ),
-				(int) ( self::SOURCE_FOLLOW === $source ),
-				$source
-			)
-		);
-
-		return 1 === $result;
+	/**
+	 * Makes a guest who confirmed their email follow a request, as add() does for a user.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param int    $guest_id   Guest ID.
+	 * @param string $source     Why the guest follows the request, one of the SOURCE constants.
+	 * @return bool Whether the guest started following the request.
+	 */
+	public static function add_guest( int $request_id, int $guest_id, string $source ): bool {
+		return $guest_id > 0 && self::insert( $request_id, 0, $guest_id, $source );
 	}
 
 	/**
@@ -76,6 +77,11 @@ final class SubscriptionRepository {
 	public static function remove( int $request_id, int $user_id, string $only_source = '' ): bool {
 		global $wpdb;
 
+		// User ID 0 is every guest.
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+
 		$where = [
 			'request_id' => $request_id,
 			'user_id'    => $user_id,
@@ -85,6 +91,44 @@ final class SubscriptionRepository {
 		}
 
 		return (bool) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+	}
+
+	/**
+	 * Makes a guest stop following a request, as remove() does for a user.
+	 *
+	 * @param int    $request_id  Request ID.
+	 * @param int    $guest_id    Guest ID.
+	 * @param string $only_source Only stop when this is why the guest follows the request. '' stops in any case.
+	 * @return bool Whether the guest was following the request and no longer is.
+	 */
+	public static function remove_guest( int $request_id, int $guest_id, string $only_source = '' ): bool {
+		global $wpdb;
+
+		if ( $guest_id <= 0 ) {
+			return false;
+		}
+
+		$where = [
+			'request_id' => $request_id,
+			'guest_id'   => $guest_id,
+		];
+		if ( '' !== $only_source ) {
+			$where['source'] = $only_source;
+		}
+
+		return (bool) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+	}
+
+	/**
+	 * Removes one subscription, whoever it belongs to.
+	 *
+	 * @param int $subscription_id Subscription ID.
+	 * @return bool Whether it was removed.
+	 */
+	public static function remove_by_id( int $subscription_id ): bool {
+		global $wpdb;
+
+		return (bool) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), [ 'id' => $subscription_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
 	}
 
 	/**
@@ -107,7 +151,27 @@ final class SubscriptionRepository {
 	public static function remove_user( int $user_id ): int {
 		global $wpdb;
 
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+
 		return (int) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), [ 'user_id' => $user_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+	}
+
+	/**
+	 * Makes a guest stop following every request.
+	 *
+	 * @param int $guest_id Guest ID.
+	 * @return int How many requests the guest was following.
+	 */
+	public static function remove_all_of_guest( int $guest_id ): int {
+		global $wpdb;
+
+		if ( $guest_id <= 0 ) {
+			return 0;
+		}
+
+		return (int) $wpdb->delete( Schema::table( Schema::SUBSCRIPTIONS ), [ 'guest_id' => $guest_id ], [ '%d' ] ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
 	}
 
 	/**
@@ -119,18 +183,19 @@ final class SubscriptionRepository {
 	 * @phpstan-return Subscription|null
 	 */
 	public static function find( int $request_id, int $user_id ): ?array {
-		global $wpdb;
+		return $user_id > 0 ? self::find_by( $request_id, 'user_id', $user_id ) : null;
+	}
 
-		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
-			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE request_id = %d AND user_id = %d',
-				Schema::table( Schema::SUBSCRIPTIONS ),
-				$request_id,
-				$user_id
-			)
-		);
-
-		return self::rows( $rows )[0] ?? null;
+	/**
+	 * Returns a guest's subscription to a request, or null when they do not follow it.
+	 *
+	 * @param int $request_id Request ID.
+	 * @param int $guest_id   Guest ID.
+	 * @return array<string, int|string>|null
+	 * @phpstan-return Subscription|null
+	 */
+	public static function find_guest( int $request_id, int $guest_id ): ?array {
+		return $guest_id > 0 ? self::find_by( $request_id, 'guest_id', $guest_id ) : null;
 	}
 
 	/**
@@ -145,7 +210,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; a secret must not be cached.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE token = %s',
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE token = %s', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The columns are a constant.
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$token
 			)
@@ -191,7 +256,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read at the moment the emails go out.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE request_id = %d AND id BETWEEN %d AND %d ORDER BY id ASC',
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE request_id = %d AND id BETWEEN %d AND %d ORDER BY id ASC', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The columns are a constant.
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$request_id,
 				$first_id,
@@ -229,7 +294,7 @@ final class SubscriptionRepository {
 
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
 			$wpdb->prepare(
-				'SELECT id, request_id, user_id, token, source, created_at FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT %d OFFSET %d', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The columns are a constant.
 				Schema::table( Schema::SUBSCRIPTIONS ),
 				$user_id,
 				$limit,
@@ -254,6 +319,100 @@ final class SubscriptionRepository {
 	}
 
 	/**
+	 * Returns the subscriptions of a guest, newest first, a page at a time.
+	 *
+	 * @param int $guest_id Guest ID.
+	 * @param int $limit    Most subscriptions to return.
+	 * @param int $offset   Subscriptions to skip.
+	 * @return array<int, array<string, int|string>>
+	 * @phpstan-return list<Subscription>
+	 */
+	public static function of_guest( int $guest_id, int $limit, int $offset = 0 ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-visitor data must not be cached.
+			$wpdb->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE guest_id = %d ORDER BY id DESC LIMIT %d OFFSET %d', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The columns are a constant.
+				Schema::table( Schema::SUBSCRIPTIONS ),
+				$guest_id,
+				$limit,
+				$offset
+			)
+		);
+
+		return self::rows( $rows );
+	}
+
+	/**
+	 * Counts the requests a guest follows.
+	 *
+	 * @param int $guest_id Guest ID.
+	 */
+	public static function count_of_guest( int $guest_id ): int {
+		global $wpdb;
+
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-visitor data must not be cached.
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE guest_id = %d', Schema::table( Schema::SUBSCRIPTIONS ), $guest_id )
+		);
+	}
+
+	/**
+	 * Adds a subscription for a user or a guest.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param int    $user_id    User ID, or 0 for a guest.
+	 * @param int    $guest_id   Guest ID, or 0 for a user.
+	 * @param string $source     Why they follow the request, one of the SOURCE constants.
+	 * @return bool Whether they started following the request.
+	 */
+	private static function insert( int $request_id, int $user_id, int $guest_id, string $source ): bool {
+		global $wpdb;
+
+		// The unique key on request_id, user_id and guest_id turns a repeat into an update instead of an error.
+		$result = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'INSERT INTO %i (request_id, user_id, guest_id, token, source, created_at) VALUES (%d, %d, %d, %s, %s, %s) ON DUPLICATE KEY UPDATE source = IF( %d, %s, source )',
+				Schema::table( Schema::SUBSCRIPTIONS ),
+				$request_id,
+				$user_id,
+				$guest_id,
+				wp_generate_password( 32, false ),
+				$source,
+				current_time( 'mysql', true ),
+				(int) ( self::SOURCE_FOLLOW === $source ),
+				$source
+			)
+		);
+
+		return 1 === $result;
+	}
+
+	/**
+	 * Returns the subscription of a user or a guest to a request, or null.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param string $column     "user_id" or "guest_id".
+	 * @param int    $id         The user's or the guest's ID.
+	 * @return array<string, int|string>|null
+	 * @phpstan-return Subscription|null
+	 */
+	private static function find_by( int $request_id, string $column, int $id ): ?array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-user data must not be cached.
+			$wpdb->prepare(
+				'SELECT ' . self::COLUMNS . ' FROM %i WHERE request_id = %d AND %i = %d', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The columns are a constant.
+				Schema::table( Schema::SUBSCRIPTIONS ),
+				$request_id,
+				$column,
+				$id
+			)
+		);
+
+		return self::rows( $rows )[0] ?? null;
+	}
+
+	/**
 	 * Turns database rows into subscriptions with typed fields.
 	 *
 	 * @param mixed $rows Rows from $wpdb->get_results().
@@ -268,6 +427,7 @@ final class SubscriptionRepository {
 				'id'         => (int) $row->id,
 				'request_id' => (int) $row->request_id,
 				'user_id'    => (int) $row->user_id,
+				'guest_id'   => (int) $row->guest_id,
 				'token'      => (string) $row->token,
 				'source'     => (string) $row->source,
 				'created_at' => (string) $row->created_at,

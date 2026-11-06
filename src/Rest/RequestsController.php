@@ -19,7 +19,9 @@ use WP_REST_Server;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * POST /mwtfrs/v1/boards/{board}/requests submits a request.
+ * POST /mwtfrs/v1/boards/{board}/requests submits a request. On a board that asks visitors to
+ * confirm their email, a visitor's request waits for that: the answer is 202, with ID 0 and the
+ * status "unconfirmed".
  * GET /mwtfrs/v1/boards/{board}/similar?q= suggests existing requests while someone types.
  */
 final class RequestsController {
@@ -133,6 +135,12 @@ final class RequestsController {
 		$result = SubmissionService::submit( (int) $request['board'], $request->get_params() );
 		if ( is_wp_error( $result ) ) {
 			return Response::from( $result );
+		}
+
+		if ( SubmissionService::STATUS_UNCONFIRMED === $result['status'] ) {
+			$result['message'] = __( 'Check your email. Open the link we sent you within 24 hours and press the button on its page: then your request is sent.', 'feature-request-system' );
+
+			return Response::from( $result, 202 );
 		}
 
 		$result['message'] = 'publish' === $result['status']

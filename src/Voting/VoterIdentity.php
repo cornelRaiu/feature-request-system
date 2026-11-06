@@ -7,11 +7,14 @@
 
 namespace FeatureRequestSystem\Voting;
 
+use FeatureRequestSystem\Guests\Guests;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Turns the current visitor into a voter key: a hash of the user ID for logged-in users,
- * or of a random token kept in a cookie for guests.
+ * of the guest ID for visitors who confirmed their email, or of a random token kept in a
+ * cookie for other guests.
  *
  * Guest identity is best-effort. Clearing cookies gives a guest a new identity, which is
  * why boards only accept guest votes when the site owner turns that on, and why guests
@@ -36,12 +39,26 @@ final class VoterIdentity {
 			return hash( 'sha256', 'u:' . $user_id );
 		}
 
+		$guest_id = Guests::current_id();
+		if ( $guest_id ) {
+			return self::guest_key( $guest_id );
+		}
+
 		$token = self::guest_token();
 		if ( '' === $token && $create ) {
 			$token = self::issue_guest_token();
 		}
 
 		return '' === $token ? '' : hash( 'sha256', 'g:' . $token );
+	}
+
+	/**
+	 * Returns the voter key of a guest who confirmed their email.
+	 *
+	 * @param int $guest_id Guest ID.
+	 */
+	public static function guest_key( int $guest_id ): string {
+		return hash( 'sha256', 'e:' . $guest_id );
 	}
 
 	/**

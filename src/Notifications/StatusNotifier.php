@@ -153,8 +153,8 @@ final class StatusNotifier {
 		$old_name = $old instanceof WP_Term ? $old->name : '';
 
 		foreach ( SubscriptionRepository::in_range( $request_id, $first_id, $last_id ) as $subscription ) {
-			// Whoever changed the status knows about it.
-			if ( $subscription['user_id'] === $notice['actor'] ) {
+			// Whoever changed the status knows about it. A guest is never the one who changed it.
+			if ( $subscription['user_id'] && $subscription['user_id'] === $notice['actor'] ) {
 				continue;
 			}
 

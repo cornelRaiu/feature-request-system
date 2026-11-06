@@ -110,17 +110,23 @@ $mwtfrs_limits = $args['limits'];
 				<fieldset class="mwtfrs-submit__about">
 					<legend class="mwtfrs-submit__legend">
 						<?php esc_html_e( 'About you', 'feature-request-system' ); ?>
-						<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
+						<?php if ( ! $args['verify_email'] ) : ?>
+							<span class="mwtfrs-submit__optional"><?php esc_html_e( '(optional)', 'feature-request-system' ); ?></span>
+						<?php endif; ?>
 					</legend>
-					<p class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"><?php esc_html_e( 'Only our team sees this, in case we have a question about your request.', 'feature-request-system' ); ?></p>
+					<?php if ( $args['verify_email'] ) : ?>
+						<p class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"><?php esc_html_e( 'Only our team sees this. We email you a link to confirm your address, and send your request once you do.', 'feature-request-system' ); ?></p>
+					<?php else : ?>
+						<p class="mwtfrs-submit__help" id="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"><?php esc_html_e( 'Only our team sees this, in case we have a question about your request.', 'feature-request-system' ); ?></p>
+					<?php endif; ?>
 					<div class="mwtfrs-submit__row">
 						<p class="mwtfrs-submit__field">
 							<label for="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>"><?php esc_html_e( 'Name', 'feature-request-system' ); ?></label>
-							<input type="text" id="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>" name="name" maxlength="<?php echo (int) $mwtfrs_limits['name']; ?>" autocomplete="name" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
+							<input type="text" id="<?php echo esc_attr( $mwtfrs_prefix . '-name' ); ?>" name="name" maxlength="<?php echo (int) $mwtfrs_limits['name']; ?>" autocomplete="name" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"<?php echo $args['verify_email'] ? ' required' : ''; ?>>
 						</p>
 						<p class="mwtfrs-submit__field">
 							<label for="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>"><?php esc_html_e( 'Email', 'feature-request-system' ); ?></label>
-							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" maxlength="<?php echo (int) $mwtfrs_limits['email']; ?>" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>">
+							<input type="email" id="<?php echo esc_attr( $mwtfrs_prefix . '-email' ); ?>" name="email" maxlength="<?php echo (int) $mwtfrs_limits['email']; ?>" autocomplete="email" aria-describedby="<?php echo esc_attr( $mwtfrs_prefix . '-about-help' ); ?>"<?php echo $args['verify_email'] ? ' required' : ''; ?>>
 						</p>
 					</div>
 

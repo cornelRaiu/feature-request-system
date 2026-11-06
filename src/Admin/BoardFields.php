@@ -129,6 +129,7 @@ final class BoardFields {
 	private static function fields( array $settings ): array {
 		$who = [
 			BoardSettings::ANYONE    => __( 'Everyone, including visitors without an account', 'feature-request-system' ),
+			BoardSettings::VERIFIED  => __( 'Visitors who confirm their email', 'feature-request-system' ),
 			BoardSettings::LOGGED_IN => __( 'Logged-in users', 'feature-request-system' ),
 			BoardSettings::NOBODY    => __( 'Nobody', 'feature-request-system' ),
 		];

@@ -3,6 +3,8 @@
  * the vote button, the status and categories, and the message after a vote.
  */
 
+@use "base";
+
 .mwtfrs-request__vote {
 	margin: 0;
 }
@@ -120,4 +122,53 @@
 
 .mwtfrs-category {
 	color: var(--mwtfrs-muted);
+}
+
+/* The form for an email address, where visitors vote once they confirm it */
+
+.mwtfrs-guest {
+	display: grid;
+	// The field may be narrower than browsers make it by themselves, so the form
+	// fits a narrow column.
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0.25rem;
+	margin: 0;
+	font-size: 0.875em;
+}
+
+.mwtfrs-guest__label {
+	font-weight: 600;
+}
+
+.mwtfrs-guest__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+// Zero specificity, so a theme's own form styles win, as on the form for
+// suggesting a feature.
+:where(.mwtfrs-guest__email) {
+
+	@include base.field;
+
+	flex: 1 1 10rem;
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.mwtfrs-guest .mwtfrs-guest__button {
+
+	@include base.button;
+}
+
+.mwtfrs-guest__help {
+	color: var(--mwtfrs-muted);
+}
+
+// Off screen rather than display: none, which some bots check for.
+.mwtfrs-guest__trap {
+
+	@include base.visually-hidden;
 }

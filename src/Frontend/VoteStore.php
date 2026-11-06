@@ -44,6 +44,7 @@ final class VoteStore {
 					'following'   => __( 'You now follow this request.', 'feature-request-system' ),
 					'unfollowed'  => __( 'You no longer follow this request.', 'feature-request-system' ),
 					'followError' => __( 'That could not be saved. Check your connection and try again.', 'feature-request-system' ),
+					'linkError'   => __( 'Your email address could not be sent. Check your connection and try again.', 'feature-request-system' ),
 				],
 			]
 		);

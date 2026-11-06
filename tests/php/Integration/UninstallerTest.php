@@ -104,9 +104,10 @@ final class UninstallerTest extends TestCase {
 		}
 
 		$drops = $this->drop_queries();
-		$this->assertCount( 2, $drops );
+		$this->assertCount( 3, $drops );
 		$this->assertStringContainsString( Schema::table( Schema::VOTES ), $drops[0] );
 		$this->assertStringContainsString( Schema::table( Schema::SUBSCRIPTIONS ), $drops[1] );
+		$this->assertStringContainsString( Schema::table( Schema::GUESTS ), $drops[2] );
 
 		$this->assertSame( '', get_user_meta( $user, Subscriptions::META_AUTO_FOLLOW, true ), "A user's choice about following is removed." );
 		$this->assertFalse( as_has_scheduled_action( StatusNotifier::HOOK ), 'Emails that were waiting are cancelled.' );

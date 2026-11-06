@@ -10,6 +10,10 @@
  * visitor voted for and the counts that changed are kept in the store, and callbacks.sync
  * copies them to every place a request is shown.
  *
+ * On a board where visitors vote once they confirm their email, a visitor who has not
+ * gets a form for their address next to the button. The plugin emails them a link, and
+ * the vote counts once they press the button on the link's page.
+ *
  * Actions that wait for the network are generators (the * before the name) instead of
  * async functions. They yield promises rather than awaiting them, so the Interactivity
  * API can restore the element's scope before resuming, and getContext() keeps working.
@@ -17,6 +21,17 @@
 import { store, getContext } from '@wordpress/interactivity';
 
 import { send } from './rest';
+
+// The server refuses a form sent within 3 seconds of rendering it, as bots send
+// them. Someone that quick waits for the rest of this time instead.
+const RENDER_TO_SEND = 3500;
+
+// The vote's refusal that asks a visitor to confirm their email first.
+const EMAIL_REQUIRED = 'mwtfrs_email_required';
+
+// Fields of the email form that the plain form post needs but the REST API does not.
+// Every other field goes along, such as one a captcha adds to the form.
+const LINK_FORM_ONLY_FIELDS = [ 'action', 'request_id', 'redirect_to' ];
 
 const { state } = store( 'mwtfrs/votes', {
 	actions: {
@@ -59,12 +74,55 @@ const { state } = store( 'mwtfrs/votes', {
 					context.announcement = data.voted
 						? state.strings.added
 						: state.strings.removed;
+				} else if ( data.code === EMAIL_REQUIRED ) {
+					context.message = data.message;
+					context.needsEmail = true;
+					yield* focusEmail( event.target );
 				} else {
 					context.message = data.message || state.strings.error;
 					context.needsLogin = response.status === 401;
 				}
 			} catch {
 				context.message = state.strings.error;
+			} finally {
+				context.busy = false;
+			}
+		},
+
+		/**
+		 * Asks for the link that confirms the visitor's email, for the vote they started.
+		 *
+		 * @param {SubmitEvent} event Form submit event.
+		 */
+		*requestLink( event ) {
+			event.preventDefault();
+
+			const context = getContext();
+			if ( context.busy ) {
+				return;
+			}
+
+			const fields = Object.fromEntries( new FormData( event.target ) );
+			LINK_FORM_ONLY_FIELDS.forEach( ( name ) => delete fields[ name ] );
+
+			context.busy = true;
+			context.message = '';
+
+			try {
+				yield* waitUntilSendable();
+				const response = yield* send( state, 'guests/link', {
+					method: 'POST',
+					body: { ...fields, request: context.id },
+				} );
+				const data = yield response.json();
+
+				context.message = data.message || state.strings.linkError;
+				if ( response.ok ) {
+					context.needsEmail = false;
+					event.target.reset();
+				}
+			} catch {
+				context.message = state.strings.linkError;
 			} finally {
 				context.busy = false;
 			}
@@ -113,3 +171,30 @@ const { state } = store( 'mwtfrs/votes', {
 		},
 	},
 } );
+
+/**
+ * Moves the keyboard focus to the email field of a request, once it is shown.
+ *
+ * @param {HTMLFormElement} voteForm The request's vote form.
+ */
+function* focusEmail( voteForm ) {
+	yield new Promise( ( resolve ) => window.requestAnimationFrame( resolve ) );
+	voteForm
+		.closest( '[data-wp-context]' )
+		?.querySelector( '.mwtfrs-guest__email' )
+		?.focus();
+}
+
+/**
+ * Waits until the page has been open long enough for the server to accept a form.
+ * The page's response time stands in for when the server rendered the form.
+ */
+function* waitUntilSendable() {
+	const [ navigation ] = performance.getEntriesByType( 'navigation' );
+	const wait =
+		( navigation?.responseStart ?? 0 ) + RENDER_TO_SEND - performance.now();
+
+	if ( wait > 0 ) {
+		yield new Promise( ( resolve ) => setTimeout( resolve, wait ) );
+	}
+}

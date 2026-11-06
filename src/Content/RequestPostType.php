@@ -51,6 +51,11 @@ final class RequestPostType {
 	public const META_SUBMITTER_EMAIL = '_mwtfrs_submitter_email';
 
 	/**
+	 * Post meta: ID of the guest who suggested the request, when they confirmed their email. Private.
+	 */
+	public const META_SUBMITTER_GUEST = '_mwtfrs_submitter_guest';
+
+	/**
 	 * Post meta: set when a spam filter such as Akismet flagged the submission, which is then held for review.
 	 */
 	public const META_FLAGGED_AS_SPAM = '_mwtfrs_flagged_as_spam';

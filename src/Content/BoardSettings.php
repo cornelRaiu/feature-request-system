@@ -20,12 +20,12 @@ final class BoardSettings {
 	public const META = '_mwtfrs_board_settings';
 
 	/**
-	 * Setting: who may vote on the board's requests. One of ANYONE, LOGGED_IN or NOBODY.
+	 * Setting: who may vote on the board's requests. One of ANYONE, LOGGED_IN, NOBODY or VERIFIED.
 	 */
 	public const VOTING = 'voting';
 
 	/**
-	 * Setting: who may submit new requests to the board. One of ANYONE, LOGGED_IN or NOBODY.
+	 * Setting: who may submit new requests to the board. One of ANYONE, LOGGED_IN, NOBODY or VERIFIED.
 	 */
 	public const SUBMITTING = 'submitting';
 
@@ -60,6 +60,11 @@ final class BoardSettings {
 	public const NOBODY = 'nobody';
 
 	/**
+	 * Logged-in users, and visitors who confirm their email address with a link the plugin sends them.
+	 */
+	public const VERIFIED = 'verified';
+
+	/**
 	 * Default value of every setting.
 	 *
 	 * @return array<string, string|bool|int|int[]>
@@ -87,7 +92,7 @@ final class BoardSettings {
 	}
 
 	/**
-	 * Who may vote on a board: ANYONE, LOGGED_IN or NOBODY.
+	 * Who may vote on a board: ANYONE, LOGGED_IN, NOBODY or VERIFIED.
 	 *
 	 * @param int $board_id Board term ID.
 	 */
@@ -96,7 +101,7 @@ final class BoardSettings {
 	}
 
 	/**
-	 * Who may submit requests to a board: ANYONE, LOGGED_IN or NOBODY.
+	 * Who may submit requests to a board: ANYONE, LOGGED_IN, NOBODY or VERIFIED.
 	 *
 	 * @param int $board_id Board term ID.
 	 */
@@ -172,7 +177,7 @@ final class BoardSettings {
 		$clean = $base;
 
 		foreach ( [ self::VOTING, self::SUBMITTING ] as $key ) {
-			if ( in_array( $settings[ $key ] ?? null, [ self::ANYONE, self::LOGGED_IN, self::NOBODY ], true ) ) {
+			if ( in_array( $settings[ $key ] ?? null, [ self::ANYONE, self::LOGGED_IN, self::NOBODY, self::VERIFIED ], true ) ) {
 				$clean[ $key ] = $settings[ $key ];
 			}
 		}

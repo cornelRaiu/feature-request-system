@@ -10,10 +10,13 @@ namespace FeatureRequestSystem\Privacy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Guests\GuestRepository;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Notifications\Mailer;
 use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Notifications\Subscriptions;
 use FeatureRequestSystem\Voting\VoteRepository;
+use FeatureRequestSystem\Voting\VoterIdentity;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
@@ -22,13 +25,16 @@ defined( 'ABSPATH' ) || exit;
  * Adds the plugin's data to WordPress's privacy tools, under Tools → Export Personal Data
  * and Tools → Erase Personal Data.
  *
- * A person is found by their email address: as the user with that address, and as a
- * visitor who gave it when they suggested a feature without an account. Visitors who
- * voted without an account cannot be found: their votes hang on a random cookie.
+ * A person is found by their email address: as the user with that address, as a
+ * visitor who gave it when they suggested a feature without an account, and as a guest
+ * who confirmed it. Visitors who voted without an account and without confirming an
+ * address cannot be found: their votes hang on a random cookie.
  *
  * Erasing keeps what the site needs and cuts its tie to the person. Requests stay,
  * without their submitter. Votes stay, so counts stay correct, but no longer say whose
- * they are. What the person follows is deleted.
+ * they are. What the person follows is deleted, and so is a guest's confirmed address.
+ *
+ * @phpstan-import-type Guest from GuestRepository
  */
 final class PersonalData {
 
@@ -102,6 +108,16 @@ final class PersonalData {
 		$follows  = $user_id ? SubscriptionRepository::of_user( $user_id, self::PER_PAGE, $offset ) : [];
 		$items    = [];
 
+		// The same address can belong to a user and to a guest, who signed up after confirming it.
+		// The guest's items get their own IDs: the export merges items that share one.
+		$guest   = GuestRepository::find_by_email( Guests::normalise_email( $email ) );
+		$votes   = [ 'vote-' => $votes ];
+		$follows = [ 'follow-' => $follows ];
+		if ( $guest ) {
+			$votes['guest-vote-']     = VoteRepository::of_voter( VoterIdentity::guest_key( $guest['id'] ), self::PER_PAGE, $offset );
+			$follows['guest-follow-'] = SubscriptionRepository::of_guest( $guest['id'], self::PER_PAGE, $offset );
+		}
+
 		foreach ( $requests as $request ) {
 			$items[] = self::item(
 				'mwtfrs-requests',
@@ -112,32 +128,47 @@ final class PersonalData {
 			);
 		}
 
-		foreach ( $votes as $vote ) {
-			$items[] = self::item(
-				'mwtfrs-votes',
-				__( 'Feature request votes', 'feature-request-system' ),
-				__( 'The feature requests this user voted for.', 'feature-request-system' ),
-				'vote-' . $vote['request_id'],
-				array_merge(
-					self::named_request( $vote['request_id'] ),
-					[ __( 'Voted on', 'feature-request-system' ) => self::date( $vote['created_at'] ) ]
-				)
-			);
+		foreach ( $votes as $prefix => $list ) {
+			foreach ( $list as $vote ) {
+				$items[] = self::item(
+					'mwtfrs-votes',
+					__( 'Feature request votes', 'feature-request-system' ),
+					__( 'The feature requests this user voted for.', 'feature-request-system' ),
+					$prefix . $vote['request_id'],
+					array_merge(
+						self::named_request( $vote['request_id'] ),
+						[ __( 'Voted on', 'feature-request-system' ) => self::date( $vote['created_at'] ) ]
+					)
+				);
+			}
 		}
 
-		foreach ( $follows as $follow ) {
+		foreach ( $follows as $prefix => $list ) {
+			foreach ( $list as $follow ) {
+				$items[] = self::item(
+					'mwtfrs-follows',
+					__( 'Followed feature requests', 'feature-request-system' ),
+					__( 'The feature requests this user follows, and gets emails about.', 'feature-request-system' ),
+					$prefix . $follow['request_id'],
+					array_merge(
+						self::named_request( $follow['request_id'] ),
+						[
+							__( 'Following since', 'feature-request-system' ) => self::date( $follow['created_at'] ),
+							__( 'Because', 'feature-request-system' ) => self::reason( $follow['source'] ),
+						]
+					)
+				);
+			}
+		}
+
+		// What the plugin stores about a guest goes out once, with the first page.
+		if ( 1 === $page && $guest ) {
 			$items[] = self::item(
-				'mwtfrs-follows',
-				__( 'Followed feature requests', 'feature-request-system' ),
-				__( 'The feature requests this user follows, and gets emails about.', 'feature-request-system' ),
-				'follow-' . $follow['request_id'],
-				array_merge(
-					self::named_request( $follow['request_id'] ),
-					[
-						__( 'Following since', 'feature-request-system' ) => self::date( $follow['created_at'] ),
-						__( 'Because', 'feature-request-system' ) => self::reason( $follow['source'] ),
-					]
-				)
+				'mwtfrs-guest',
+				__( 'Feature request email address', 'feature-request-system' ),
+				__( 'The email address this person gave to vote or suggest features without an account.', 'feature-request-system' ),
+				'guest-' . $guest['id'],
+				self::guest_fields( $guest )
 			);
 		}
 
@@ -154,7 +185,7 @@ final class PersonalData {
 
 		return [
 			'data' => $items,
-			'done' => max( count( $requests ), count( $votes ), count( $follows ) ) < self::PER_PAGE,
+			'done' => max( array_merge( [ count( $requests ) ], array_map( 'count', $votes ), array_map( 'count', $follows ) ) ) < self::PER_PAGE,
 		];
 	}
 
@@ -177,6 +208,7 @@ final class PersonalData {
 			delete_post_meta( $request->ID, RequestPostType::META_SUBMITTER_ID );
 			delete_post_meta( $request->ID, RequestPostType::META_SUBMITTER_NAME );
 			delete_post_meta( $request->ID, RequestPostType::META_SUBMITTER_EMAIL );
+			delete_post_meta( $request->ID, RequestPostType::META_SUBMITTER_GUEST );
 			++$removed;
 		}
 		if ( $requests ) {
@@ -191,6 +223,17 @@ final class PersonalData {
 
 			$removed += $votes + SubscriptionRepository::remove_user( $user_id );
 			$removed += (int) delete_user_meta( $user_id, Subscriptions::META_AUTO_FOLLOW );
+		}
+
+		$guest = 1 === $page ? GuestRepository::find_by_email( Guests::normalise_email( $email ) ) : null;
+		if ( $guest ) {
+			$votes = VoteRepository::anonymise_voter( VoterIdentity::guest_key( $guest['id'] ) );
+			if ( $votes && ! $messages ) {
+				$messages[] = __( 'Votes for feature requests were kept, so that vote counts stay correct, without the record of whose they are.', 'feature-request-system' );
+			}
+
+			$removed += $votes + SubscriptionRepository::remove_all_of_guest( $guest['id'] );
+			$removed += (int) GuestRepository::delete( $guest['id'] );
 		}
 
 		return [
@@ -254,6 +297,33 @@ final class PersonalData {
 				__( 'Link', 'feature-request-system' )    => 'publish' === $request->post_status ? (string) get_permalink( $request ) : '',
 				__( 'Name given', 'feature-request-system' ) => (string) get_post_meta( $request->ID, RequestPostType::META_SUBMITTER_NAME, true ),
 				__( 'Email given', 'feature-request-system' ) => (string) get_post_meta( $request->ID, RequestPostType::META_SUBMITTER_EMAIL, true ),
+			]
+		);
+	}
+
+	/**
+	 * Returns what is exported about a guest: the confirmed address, the name, and what waits for a confirmation.
+	 *
+	 * @param array<string, mixed> $guest Guest.
+	 * @phpstan-param Guest $guest
+	 * @return array<string, string>
+	 */
+	private static function guest_fields( array $guest ): array {
+		return self::without_empty(
+			[
+				__( 'Email address', 'feature-request-system' ) => $guest['email'],
+				__( 'Name', 'feature-request-system' ) => Mailer::plain( $guest['name'] ),
+				__( 'Confirmed on', 'feature-request-system' ) => '' !== $guest['confirmed_at'] ? self::date( $guest['confirmed_at'] ) : __( 'Not confirmed', 'feature-request-system' ),
+				__( 'Waiting for the confirmation', 'feature-request-system' ) => implode(
+					' ',
+					array_map(
+						static function ( array $action ): string {
+							return Mailer::plain( Guests::describe( $action, true ) );
+						},
+						$guest['pending']
+					)
+				),
+				__( 'Follows the requests they vote for or suggest', 'feature-request-system' ) => $guest['auto_follow'] ? '' : __( 'No', 'feature-request-system' ),
 			]
 		);
 	}

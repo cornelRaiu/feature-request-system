@@ -168,6 +168,57 @@ final class VoteRepository {
 	}
 
 	/**
+	 * Returns the votes cast with a voter key, oldest first, a page at a time.
+	 *
+	 * @param string $voter_key Voter key from VoterIdentity.
+	 * @param int    $limit     Most votes to return.
+	 * @param int    $offset    Votes to skip.
+	 * @return array<int, array{request_id: int, created_at: string}>
+	 */
+	public static function of_voter( string $voter_key, int $limit, int $offset ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; read for a personal data export.
+			$wpdb->prepare(
+				'SELECT request_id, created_at FROM %i WHERE voter_key = %s ORDER BY id ASC LIMIT %d OFFSET %d',
+				Schema::table( Schema::VOTES ),
+				$voter_key,
+				$limit,
+				$offset
+			)
+		);
+
+		$votes = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$votes[] = [
+				'request_id' => (int) $row->request_id,
+				'created_at' => (string) $row->created_at,
+			];
+		}
+
+		return $votes;
+	}
+
+	/**
+	 * Cuts the tie between a voter key and its votes, as anonymise_user() does for a user.
+	 *
+	 * @param string $voter_key Voter key from VoterIdentity.
+	 * @return int How many votes were made anonymous.
+	 */
+	public static function anonymise_voter( string $voter_key ): int {
+		global $wpdb;
+
+		return (int) $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'UPDATE %i SET voter_key = SHA2( CONCAT( %s, id ), 256 ) WHERE voter_key = %s',
+				Schema::table( Schema::VOTES ),
+				wp_generate_password( 64, false ),
+				$voter_key
+			)
+		);
+	}
+
+	/**
 	 * Cuts the tie between a user and their votes. The votes stay, so every count stays
 	 * correct, but nothing says any more whose they are.
 	 *

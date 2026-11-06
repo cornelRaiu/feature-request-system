@@ -32,6 +32,11 @@ final class RequestNotice {
 	private const LOGIN_CODES = [ 'login', 'follow-login' ];
 
 	/**
+	 * Codes of the notices that come with the form for an email address, to vote as a guest who confirms it.
+	 */
+	private const EMAIL_CODES = [ 'email', 'bad-email' ];
+
+	/**
 	 * Returns the URL that shows a notice next to a request.
 	 *
 	 * @param string $page_url   Page that shows the request. A fragment in it names the element to come back to,
@@ -54,7 +59,7 @@ final class RequestNotice {
 	/**
 	 * Returns the notice from the current URL, if there is one.
 	 *
-	 * @return array{request: int, message: string, login: bool}|null
+	 * @return array{request: int, message: string, login: bool, email: bool}|null
 	 */
 	public static function from_request(): ?array {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Only picks a message to display.
@@ -71,6 +76,7 @@ final class RequestNotice {
 			'request' => $request,
 			'message' => $message,
 			'login'   => in_array( $code, self::LOGIN_CODES, true ),
+			'email'   => in_array( $code, self::EMAIL_CODES, true ),
 		];
 	}
 
@@ -95,6 +101,11 @@ final class RequestNotice {
 			'unfollowed'   => __( 'You no longer follow this request.', 'feature-request-system' ),
 			'follow-login' => __( 'Log in to follow this request.', 'feature-request-system' ),
 			'follow-error' => __( 'That could not be saved. Try again.', 'feature-request-system' ),
+			'email'        => __( 'Confirm your email address to vote. We will email you a link.', 'feature-request-system' ),
+			'bad-email'    => __( 'Enter a valid email address.', 'feature-request-system' ),
+			'link-sent'    => __( 'Check your email. Open the link we sent you within 24 hours and press the button on its page: then your vote counts.', 'feature-request-system' ),
+			'link-limit'   => __( 'You have asked for several links in a short time. Try again later.', 'feature-request-system' ),
+			'rejected'     => __( 'Your email address could not be sent. Reload the page and try again.', 'feature-request-system' ),
 		];
 
 		return $messages[ $code ] ?? '';

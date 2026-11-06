@@ -10,6 +10,7 @@ namespace FeatureRequestSystem\Frontend;
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
+use FeatureRequestSystem\Guests\Guests;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Security\RequestOrigin;
 use FeatureRequestSystem\Submission\DataUseNote;
@@ -52,12 +53,14 @@ final class SubmitForm {
 		SubmissionService::ERROR_LOGIN_REQUIRED  => 'login',
 		SubmissionService::ERROR_RATE_LIMITED    => 'limit',
 		SpamGuard::ERROR_REJECTED                => 'rejected',
+		Guests::ERROR_INVALID_EMAIL              => 'invalid-no-email',
+		Guests::ERROR_RATE_LIMITED               => 'limit',
 	];
 
 	/**
 	 * Validation problems a notice can name, as in "invalid-title".
 	 */
-	private const INVALID_REASONS = [ 'title', 'title-long', 'details-long', 'category', 'name-long', 'email' ];
+	private const INVALID_REASONS = [ 'title', 'title-long', 'details-long', 'category', 'name-long', 'email', 'name', 'no-email' ];
 
 	/**
 	 * Adds the form handler for logged-in visitors and guests.
@@ -116,6 +119,8 @@ final class SubmitForm {
 				'board_id'           => $board->term_id,
 				'categories'         => self::categories( $board->term_id ),
 				'guest_fields'       => ! $logged_in,
+				// On a board that asks visitors to confirm their email, the name and the address are needed.
+				'verify_email'       => ! $logged_in && BoardSettings::VERIFIED === $rule,
 				'data_use'           => DataUseNote::html(),
 				'privacy_url'        => get_privacy_policy_url(),
 				'limits'             => [
@@ -180,7 +185,7 @@ final class SubmitForm {
 
 		return [
 			'message' => $message,
-			'error'   => ! in_array( $code, [ 'pending', 'published' ], true ),
+			'error'   => ! in_array( $code, [ 'pending', 'published', 'confirm' ], true ),
 			'login'   => 'login' === $code,
 		];
 	}
@@ -213,6 +218,9 @@ final class SubmitForm {
 		}
 
 		$result = SubmissionService::submit( $board_id, $input );
+		if ( ! is_wp_error( $result ) && SubmissionService::STATUS_UNCONFIRMED === $result['status'] ) {
+			return 'confirm';
+		}
 		if ( ! is_wp_error( $result ) ) {
 			return 'publish' === $result['status'] ? 'published' : 'pending';
 		}
@@ -241,6 +249,7 @@ final class SubmitForm {
 
 		$messages = [
 			'pending'   => __( 'Thanks! Your request will appear on the board once it is approved.', 'feature-request-system' ),
+			'confirm'   => __( 'Check your email. Open the link we sent you within 24 hours and press the button on its page: then your request is sent.', 'feature-request-system' ),
 			'published' => __( 'Thanks! Your request is on the board.', 'feature-request-system' ),
 			'login'     => __( 'Log in to suggest a feature.', 'feature-request-system' ),
 			'closed'    => __( 'This board is not taking new requests.', 'feature-request-system' ),

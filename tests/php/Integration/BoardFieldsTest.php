@@ -95,6 +95,27 @@ final class BoardFieldsTest extends TestCase {
 		);
 	}
 
+	public function test_a_board_can_ask_visitors_to_confirm_their_email_to_vote_and_suggest(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'editor' ] ) );
+		$_POST = [
+			BoardFields::NONCE_FIELD => wp_create_nonce( BoardFields::NONCE_ACTION ),
+			BoardFields::FIELD       => [
+				BoardSettings::VOTING     => BoardSettings::VERIFIED,
+				BoardSettings::SUBMITTING => BoardSettings::VERIFIED,
+			],
+		];
+
+		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
+
+		$this->assertSame( BoardSettings::VERIFIED, BoardSettings::voting( $this->default_board() ) );
+		$this->assertSame( BoardSettings::VERIFIED, BoardSettings::submitting( $this->default_board() ) );
+
+		ob_start();
+		do_action( BoardTaxonomy::NAME . '_edit_form_fields', get_term( $this->default_board() ), BoardTaxonomy::NAME );
+		$html = (string) ob_get_clean();
+		$this->assertSame( 2, substr_count( $html, '<option value="verified" selected=\'selected\'>Visitors who confirm their email</option>' ) );
+	}
+
 	public function test_the_forms_offer_every_category_and_show_the_ones_the_board_is_limited_to(): void {
 		ob_start();
 		do_action( BoardTaxonomy::NAME . '_add_form_fields', BoardTaxonomy::NAME );

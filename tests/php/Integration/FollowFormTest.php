@@ -101,6 +101,7 @@ final class FollowFormTest extends TestCase {
 					'request' => 12,
 					'message' => $message,
 					'login'   => $login,
+					'email'   => false,
 				],
 				RequestNotice::from_request(),
 				$code
