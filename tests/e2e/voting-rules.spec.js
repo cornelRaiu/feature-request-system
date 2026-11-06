@@ -159,8 +159,8 @@ test.describe( 'Voting rules', () => {
 			'Quiet idea',
 		] );
 
+		// With JavaScript the board applies the order as soon as it is chosen.
 		await page.getByLabel( 'Sort by' ).selectOption( 'trending' );
-		await page.getByRole( 'button', { name: 'Show requests' } ).click();
 
 		await expect( page ).toHaveURL( /fr-sort=trending/ );
 		await expect( titles ).toHaveText( [
