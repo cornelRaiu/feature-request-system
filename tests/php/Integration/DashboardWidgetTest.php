@@ -34,6 +34,7 @@ final class DashboardWidgetTest extends TestCase {
 		$this->assertSame( [], $this->widgets_for( 'subscriber' ) );
 		$this->assertSame( [ DashboardWidget::ID => 'Feature Requests' ], $this->widgets_for( 'editor' ) );
 		$this->assertSame( [ DashboardWidget::ID => 'Feature Requests' ], $this->widgets_for( 'administrator' ) );
+		$this->assertContains( '#' . DashboardWidget::ID . ' li a { text-decoration: underline; }', (array) wp_styles()->get_data( 'dashboard', 'after' ), 'Its links stand out from the text beside them.' );
 	}
 
 	public function test_the_widget_lists_the_five_requests_that_wait_longest(): void {

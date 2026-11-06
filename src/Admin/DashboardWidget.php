@@ -46,9 +46,14 @@ final class DashboardWidget {
 	 * Registers the widget for moderators.
 	 */
 	public static function add(): void {
-		if ( current_user_can( Capabilities::MODERATE ) ) {
-			wp_add_dashboard_widget( self::ID, __( 'Feature Requests', 'feature-request-system' ), [ self::class, 'render' ] );
+		if ( ! current_user_can( Capabilities::MODERATE ) ) {
+			return;
 		}
+
+		wp_add_dashboard_widget( self::ID, __( 'Feature Requests', 'feature-request-system' ), [ self::class, 'render' ] );
+
+		// The admin tells links from text by colour alone, which is too faint next to the text after them.
+		wp_add_inline_style( 'dashboard', '#' . self::ID . ' li a { text-decoration: underline; }' );
 	}
 
 	/**
