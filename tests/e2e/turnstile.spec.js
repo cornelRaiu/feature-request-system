@@ -265,8 +265,7 @@ test.describe( 'Cloudflare Turnstile', () => {
 					element.scrollWidth > element.clientWidth + 1 ||
 					element.getBoundingClientRect().right >
 						window.innerWidth + 1 ||
-					document.documentElement.scrollWidth >
-						window.innerWidth + 1
+					document.documentElement.scrollWidth > window.innerWidth + 1
 				);
 			} );
 			expect( overflow ).toBe( false );
