@@ -78,6 +78,17 @@ final class Blocks {
 	private const BLOCK_FOLDERS = [ 'board', 'submit', 'request', 'request-card' ];
 
 	/**
+	 * The board shortcode's attributes that switch a filter control on or off, with the
+	 * control each one switches, as in Board::CONTROLS.
+	 */
+	private const FILTER_SWITCHES = [
+		'search'          => 'search',
+		'status_filter'   => 'status',
+		'category_filter' => 'category',
+		'sort_filter'     => 'sort',
+	];
+
+	/**
 	 * Registers the blocks, shortcodes and patterns. Runs on init.
 	 */
 	public static function register(): void {
@@ -111,24 +122,30 @@ final class Blocks {
 	/**
 	 * Renders the board block for the shortcode, so both share the same markup, assets and behaviour.
 	 *
-	 * @param array<string, string>|string $atts Shortcode attributes: board (slug or term ID) and per_page.
+	 * @param array<string, string>|string $atts Shortcode attributes: board (slug or term ID) and per_page, and
+	 *                                           search, status_filter, category_filter and sort_filter (yes or no).
 	 */
 	public static function shortcode( $atts ): string {
 		$atts = shortcode_atts(
 			[
 				'board'    => '',
 				'per_page' => '20',
-			],
+			] + array_fill_keys( array_keys( self::FILTER_SWITCHES ), 'yes' ),
 			is_array( $atts ) ? $atts : [],
 			self::SHORTCODE
 		);
+
+		$switches = [];
+		foreach ( self::FILTER_SWITCHES as $name => $control ) {
+			$switches[ Board::CONTROLS[ $control ] ] = ! in_array( strtolower( trim( $atts[ $name ] ) ), [ 'no', 'false', 'off', '0' ], true );
+		}
 
 		return self::render(
 			Board::BLOCK,
 			[
 				'board'   => self::board_id( $atts['board'] ),
 				'perPage' => absint( $atts['per_page'] ),
-			]
+			] + $switches
 		);
 	}
 

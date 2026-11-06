@@ -44,9 +44,28 @@ final class Board {
 	private const MAX_PER_PAGE = 100;
 
 	/**
+	 * The block attributes that switch the filter form's controls on and off, by control.
+	 * All of them are on unless a block turns one off.
+	 */
+	public const CONTROLS = [
+		'search'   => 'showSearch',
+		'status'   => 'showStatus',
+		'category' => 'showCategory',
+		'sort'     => 'showSort',
+	];
+
+	/**
+	 * Boards rendered so far on this page, which numbers their regions for live filtering.
+	 *
+	 * @var int
+	 */
+	private static $rendered = 0;
+
+	/**
 	 * Renders a board. Called by the block's render.php; the shortcode renders the block.
 	 *
-	 * @param array<string, mixed> $attributes         Block attributes: board (term ID, 0 for the default board) and perPage.
+	 * @param array<string, mixed> $attributes         Block attributes: board (term ID, 0 for the default board), perPage,
+	 *                                                 and the switches of the filters in CONTROLS.
 	 * @param string               $wrapper_attributes Attributes from get_block_wrapper_attributes().
 	 */
 	public static function render( array $attributes, string $wrapper_attributes ): string {
@@ -73,12 +92,20 @@ final class Board {
 			}
 		}
 
+		$categories = self::term_options( CategoryTaxonomy::NAME, BoardSettings::categories( $board->term_id ) );
+		$controls   = self::controls( $attributes, (bool) $categories );
+		$empty      = $items ? '' : self::empty_message( $filters, $board->term_id );
+		$allowance  = self::allowance( $board->term_id, $voting );
+		// The same on every load of this page, so live filtering finds the region again in the page it fetches.
+		$region = 'mwtfrs-board-' . ( ++self::$rendered );
+
 		return Template::render(
 			'board',
 			[
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
-				'context'            => VoteStore::context( $items ) + self::allowance( $board->term_id, $voting ),
+				// The board's context before live filtering, for theme copies of the template from 1.0.
+				'context'            => VoteStore::context( $items ) + $allowance,
 				'id_prefix'          => wp_unique_id( 'mwtfrs-board-' ),
 				'items'              => $items,
 				'title_tag'          => 'h3',
@@ -92,19 +119,33 @@ final class Board {
 				],
 				'status_all'         => BoardQuery::STATUS_ALL,
 				'statuses'           => self::term_options( StatusTaxonomy::NAME, [] ),
-				'categories'         => self::term_options( CategoryTaxonomy::NAME, BoardSettings::categories( $board->term_id ) ),
+				'categories'         => $categories,
 				'sorts'              => [
 					BoardQuery::SORT_TOP      => __( 'Most votes', 'feature-request-system' ),
 					BoardQuery::SORT_NEW      => __( 'Newest', 'feature-request-system' ),
 					BoardQuery::SORT_TRENDING => __( 'Trending', 'feature-request-system' ),
 				],
 				'page_url'           => $page_url,
-				'hidden_fields'      => self::query_args_of( $page_url ),
+				'hidden_fields'      => self::query_args_of( $page_url ) + self::hidden_filters( $filters, $controls ),
 				'vote'               => VoteForm::template_args( $current ),
 				'login_url'          => wp_login_url( $current ),
 				'pagination'         => self::pagination( $query, $filters['page'], add_query_arg( self::filter_args( $filters, false ), $page_url ) ),
-				'empty_message'      => $items ? '' : self::empty_message( $filters, $board->term_id ),
+				'empty_message'      => $empty,
 				'vote_limit'         => BoardSettings::NOBODY === $voting ? 0 : BoardSettings::vote_limit( $board->term_id ),
+				'controls'           => $controls,
+				'region'             => $region,
+				'filters_context'    => [
+					'region'   => $region,
+					// Whether the filters apply as they change. The script turns it on.
+					'live'     => false,
+					// Values the board takes when a parameter is left out, so links stay short.
+					'defaults' => [ BoardQuery::PARAM_SORT => BoardQuery::SORT_TOP ],
+				],
+				'results_key'        => md5( (string) wp_json_encode( $filters ) ),
+				'results_context'    => VoteStore::context( $items ) + $allowance + [
+					// Said to screen readers when live filtering brings these results.
+					'summary' => '' === $empty ? self::summary( count( $items ), (int) $query->found_posts ) : $empty,
+				],
 			]
 		);
 	}
@@ -131,6 +172,73 @@ final class Board {
 			'allowanceBoard' => $board_id,
 			'allowance'      => null === $left ? '' : VoteStore::votes_left_text( $left ),
 		];
+	}
+
+	/**
+	 * Which controls the filter form shows. A board can switch each one off, and the
+	 * category control also needs categories to choose from.
+	 *
+	 * @param array<string, mixed> $attributes     Block attributes.
+	 * @param bool                 $has_categories Whether the board has categories to filter by.
+	 * @return array{search: bool, status: bool, category: bool, sort: bool}
+	 */
+	private static function controls( array $attributes, bool $has_categories ): array {
+		$controls = [];
+		foreach ( self::CONTROLS as $control => $attribute ) {
+			$controls[ $control ] = (bool) ( $attributes[ $attribute ] ?? true );
+		}
+		$controls['category'] = $controls['category'] && $has_categories;
+
+		return $controls;
+	}
+
+	/**
+	 * The filters from the URL whose controls are not shown. The form carries them, so that
+	 * a link with one of them keeps it when the visitor searches or picks another order.
+	 *
+	 * @param array{search: string, status: string, category: string, sort: string, page: int} $filters  Current filters.
+	 * @param array{search: bool, status: bool, category: bool, sort: bool}                    $controls Controls the form shows.
+	 * @return array<string, string>
+	 */
+	private static function hidden_filters( array $filters, array $controls ): array {
+		$params = [
+			'search'   => BoardQuery::PARAM_SEARCH,
+			'status'   => BoardQuery::PARAM_STATUS,
+			'category' => BoardQuery::PARAM_CATEGORY,
+			'sort'     => BoardQuery::PARAM_SORT,
+		];
+
+		$hidden = [];
+		foreach ( $params as $control => $param ) {
+			if ( ! $controls[ $control ] && '' !== $filters[ $control ] && ! ( 'sort' === $control && BoardQuery::SORT_TOP === $filters['sort'] ) ) {
+				$hidden[ $param ] = $filters[ $control ];
+			}
+		}
+
+		return $hidden;
+	}
+
+	/**
+	 * Says how many requests are shown, for screen readers after the list changed.
+	 *
+	 * @param int $shown Requests on this page.
+	 * @param int $total Requests that match the filters.
+	 */
+	private static function summary( int $shown, int $total ): string {
+		if ( $total > $shown ) {
+			return sprintf(
+				/* translators: 1: number of requests on this page, 2: number of requests that match the filters. */
+				_n( 'Showing %1$s of %2$s request.', 'Showing %1$s of %2$s requests.', $total, 'feature-request-system' ),
+				number_format_i18n( $shown ),
+				number_format_i18n( $total )
+			);
+		}
+
+		return sprintf(
+			/* translators: %s: number of requests. */
+			_n( 'Showing %s request.', 'Showing %s requests.', $shown, 'feature-request-system' ),
+			number_format_i18n( $shown )
+		);
 	}
 
 	/**

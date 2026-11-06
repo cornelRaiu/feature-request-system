@@ -277,7 +277,8 @@ final class BoardRenderTest extends TestCase {
 	 */
 	public function test_the_script_asks_for_a_guests_votes_only_on_a_board_where_guests_vote(): void {
 		$this->request_with_votes( 'Dark mode', 0 );
-		$context = "/^<div[^>]*data-wp-context='(\{[^']*\})'/s";
+		// The results hold the context of the requests, beside the filter form.
+		$context = "/<div\\s+class=\"mwtfrs-board__page\"[^>]*data-wp-context='(\{[^']*\})'/s";
 
 		preg_match( $context, $this->render(), $logged_in_only );
 		$this->assertFalse( json_decode( $logged_in_only[1], true )['guestVotes'] );
@@ -296,7 +297,7 @@ final class BoardRenderTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>', $html );
-		$this->assertMatchesRegularExpression( "/^<div[^>]*data-wp-context='\{[^']*\"announcement\":\"\"\}'/s", $html );
+		$this->assertMatchesRegularExpression( "/<div\\s+class=\"mwtfrs-board__page\"[^>]*data-wp-context='\{[^']*\"announcement\":\"\"[,}]/s", $html );
 		$this->assertArrayNotHasKey( 'announcement', wp_interactivity_state( VoteStore::NAME ) );
 		$this->assertArrayHasKey( 'votes', wp_interactivity_state( VoteStore::NAME ), 'Counts that changed are shared, so a request shown twice shows one number.' );
 	}

@@ -29,6 +29,22 @@
 		"status": {
 			"type": "string",
 			"default": ""
+		},
+		"showSearch": {
+			"type": "boolean",
+			"default": true
+		},
+		"showStatus": {
+			"type": "boolean",
+			"default": true
+		},
+		"showCategory": {
+			"type": "boolean",
+			"default": true
+		},
+		"showSort": {
+			"type": "boolean",
+			"default": true
 		}
 	},
 	"example": {},
