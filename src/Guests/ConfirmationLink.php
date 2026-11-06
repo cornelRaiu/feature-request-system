@@ -111,10 +111,12 @@ final class ConfirmationLink {
 		$referer = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
 
 		// The page sets a cookie, so no cache may keep it. Its address holds the secret, which
-		// the page the visitor goes to next, and the scripts on it, must not get as the referrer.
+		// the page the visitor goes to next, and the scripts on it, must not get as the referrer:
+		// they get the site's address only. Not no referrer at all, because a browser then sends
+		// the button's post with an Origin of "null", and the post must show it comes from here.
 		nocache_headers();
 		if ( ! headers_sent() ) {
-			header( 'Referrer-Policy: no-referrer' );
+			header( 'Referrer-Policy: strict-origin' );
 		}
 
 		$page = self::process( $token, $posted && RequestOrigin::is_same_site( $origin, $referer ) );
