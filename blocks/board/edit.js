@@ -140,6 +140,14 @@ export default function Edit( { attributes, setAttributes } ) {
 									key={ name }
 									__nextHasNoMarginBottom
 									label={ label }
+									help={
+										name === 'showCategory'
+											? __(
+													'Shown when the board’s requests have categories.',
+													'feature-request-system'
+												)
+											: undefined
+									}
 									checked={ attributes[ name ] }
 									onChange={ ( value ) =>
 										setAttributes( { [ name ]: value } )
