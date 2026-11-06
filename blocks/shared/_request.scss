@@ -128,6 +128,9 @@
 
 .mwtfrs-guest {
 	display: grid;
+	// The field may be narrower than browsers make it by themselves, so the form
+	// fits a narrow column.
+	grid-template-columns: minmax(0, 1fr);
 	gap: 0.25rem;
 	margin: 0;
 	font-size: 0.875em;
@@ -149,7 +152,8 @@
 
 	@include base.field;
 
-	flex: 1 1 12rem;
+	flex: 1 1 10rem;
+	width: 100%;
 	min-width: 0;
 	box-sizing: border-box;
 }

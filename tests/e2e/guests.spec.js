@@ -294,6 +294,45 @@ test.describe( 'Visitors who confirm their email', () => {
 		expect( stored( urls.id, 'jane@example.com' ).votes ).toBe( 0 );
 	} );
 
+	test( 'the form for the email fits a narrow screen, and its button is big enough to hit', async ( {
+		page,
+	} ) => {
+		const urls = setUp();
+		// WCAG 1.4.10: content fits a width of 320 CSS pixels.
+		await page.setViewportSize( { width: 320, height: 640 } );
+
+		for ( const url of [ urls.board, urls.request ] ) {
+			await page.goto( url );
+			await page
+				.getByRole( 'button', { name: /Vote for Dark mode/ } )
+				.click();
+			const form = page.locator( '.mwtfrs-guest' ).first();
+			await expect( form ).toBeVisible();
+
+			const overflow = await page.evaluate( () =>
+				[
+					...document.querySelectorAll(
+						'.wp-block-mwtfrs-board, .wp-block-mwtfrs-request, .mwtfrs-guest'
+					),
+				]
+					.filter(
+						( element ) =>
+							element.scrollWidth > element.clientWidth + 1 ||
+							element.getBoundingClientRect().right >
+								window.innerWidth + 1
+					)
+					.map( ( element ) => element.className )
+			);
+			expect( overflow ).toEqual( [] );
+
+			const button = await form
+				.getByRole( 'button', { name: 'Send me the link' } )
+				.boundingBox();
+			expect( button.height ).toBeGreaterThanOrEqual( 24 );
+			expect( button.width ).toBeGreaterThanOrEqual( 24 );
+		}
+	} );
+
 	test( 'a suggestion waits for the email to be confirmed, and then reaches the board', async ( {
 		page,
 	} ) => {

@@ -229,6 +229,37 @@ final class GuestRepository {
 	}
 
 	/**
+	 * Forgets what waited for links that expired: addresses that were never confirmed are
+	 * deleted, and confirmed guests keep only their address and name.
+	 *
+	 * @param int $lifetime Seconds a link works.
+	 * @return int How many rows were deleted or emptied.
+	 */
+	public static function forget_expired( int $lifetime ): int {
+		global $wpdb;
+
+		$table   = Schema::table( Schema::GUESTS );
+		$expired = gmdate( 'Y-m-d H:i:s', time() - $lifetime );
+
+		$deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				'DELETE FROM %i WHERE confirmed_at IS NULL AND COALESCE( link_sent_at, created_at ) < %s LIMIT 100',
+				$table,
+				$expired
+			)
+		);
+		$emptied = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table.
+			$wpdb->prepare(
+				"UPDATE %i SET pending = NULL, token_hash = '' WHERE confirmed_at IS NOT NULL AND ( pending IS NOT NULL OR token_hash <> '' ) AND link_sent_at < %s LIMIT 100",
+				$table,
+				$expired
+			)
+		);
+
+		return (int) $deleted + (int) $emptied;
+	}
+
+	/**
 	 * Turns a database row into a guest with typed fields.
 	 *
 	 * @param mixed $row Row from $wpdb->get_row().

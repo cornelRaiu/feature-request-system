@@ -221,6 +221,23 @@ final class GuestLinkTest extends TestCase {
 		$this->assertCount( 1, $this->vote_rows_of( $other ) );
 	}
 
+	public function test_what_waited_for_an_expired_link_is_kept_no_longer_than_needed(): void {
+		$this->ask_for_link( 'never@example.com', $this->request );
+		$this->become_guest( 'jane@example.com' );
+		unset( $_COOKIE[ Guests::COOKIE ] );
+		$this->ask_for_link( 'jane@example.com', $this->request );
+		$this->ask_for_link( 'recent@example.com', $this->request );
+
+		$this->age_link( $this->guest( 'never@example.com' )['id'], DAY_IN_SECONDS + MINUTE_IN_SECONDS );
+		$this->age_link( $this->guest( 'jane@example.com' )['id'], DAY_IN_SECONDS + MINUTE_IN_SECONDS );
+		$this->ask_for_link( 'someone@example.com', $this->request );
+
+		$this->assertNull( $this->guest( 'never@example.com' ), 'An address that was never confirmed is forgotten.' );
+		$this->assertSame( [], $this->guest( 'jane@example.com' )['pending'], 'A confirmed guest keeps the address only.' );
+		$this->assertSame( '', $this->guest( 'jane@example.com' )['token_hash'] );
+		$this->assertCount( 1, $this->guest( 'recent@example.com' )['pending'], 'A link that still works keeps what waits for it.' );
+	}
+
 	public function test_a_button_pressed_on_another_site_confirms_nothing(): void {
 		$this->ask_for_link( 'jane@example.com', $this->request );
 

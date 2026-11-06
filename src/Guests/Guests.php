@@ -194,6 +194,9 @@ final class Guests {
 			);
 		}
 
+		// Addresses that were never confirmed, and what waited for expired links, are kept no longer than needed.
+		GuestRepository::forget_expired( self::LINK_LIFETIME );
+
 		$guest = GuestRepository::find_or_create( $email );
 		if ( ! $guest ) {
 			return true;
@@ -438,12 +441,13 @@ final class Guests {
 	 *
 	 * The signature covers the address and when the row was added, so a cookie stops
 	 * working when its guest is erased, also if the database gives the ID to a new row.
+	 * It covers the site too: the sites of a network can share a domain, and the cookie.
 	 *
 	 * @param array<string, mixed> $guest Guest.
 	 * @phpstan-param Guest $guest
 	 */
 	private static function signature( array $guest ): string {
-		return hash_hmac( 'sha256', 'guest|' . $guest['id'] . '|' . $guest['email'] . '|' . $guest['created_at'], wp_salt( 'auth' ) );
+		return hash_hmac( 'sha256', 'guest|' . get_current_blog_id() . '|' . $guest['id'] . '|' . $guest['email'] . '|' . $guest['created_at'], wp_salt( 'auth' ) );
 	}
 
 	/**
