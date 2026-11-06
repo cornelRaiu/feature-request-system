@@ -14,6 +14,7 @@ use FeatureRequestSystem\Merging\MergedStatus;
 use FeatureRequestSystem\Merging\MergeService;
 use FeatureRequestSystem\Notifications\SubscriptionRepository;
 use FeatureRequestSystem\Notifications\Subscriptions;
+use FeatureRequestSystem\Privacy\PersonalData;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Voting\VoteRepository;
 use FeatureRequestSystem\Voting\VoteService;
@@ -189,6 +190,19 @@ final class MergeApiTest extends TestCase {
 
 		wp_untrash_post( $duplicate );
 		$this->assertSame( MergedStatus::NAME, get_post_status( $duplicate ) );
+	}
+
+	public function test_the_privacy_tools_find_a_merged_request_by_the_email_its_visitor_gave(): void {
+		$duplicate = $this->create_request( [ 'post_title' => 'Night theme' ] );
+		update_post_meta( $duplicate, RequestPostType::META_SUBMITTER_NAME, 'Robin' );
+		update_post_meta( $duplicate, RequestPostType::META_SUBMITTER_EMAIL, 'robin@example.com' );
+		$this->merge( $duplicate, $this->create_request() );
+
+		$export = PersonalData::export( 'robin@example.com' )['data'];
+		$this->assertSame( [ 'request-' . $duplicate ], array_column( $export, 'item_id' ) );
+
+		$this->assertTrue( PersonalData::erase( 'robin@example.com' )['items_removed'] );
+		$this->assertSame( '', get_post_meta( $duplicate, RequestPostType::META_SUBMITTER_EMAIL, true ) );
 	}
 
 	public function test_nobody_can_vote_for_a_merged_request(): void {
