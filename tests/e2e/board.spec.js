@@ -104,8 +104,8 @@ test.describe( 'Feature request board', () => {
 			'Quiet newer idea',
 		] );
 
+		// The order applies as soon as it is chosen.
 		await page.getByLabel( 'Sort by' ).selectOption( 'new' );
-		await page.getByRole( 'button', { name: 'Show requests' } ).click();
 		await expect( titles ).toHaveText( [
 			'Quiet newer idea',
 			'Popular older idea',
