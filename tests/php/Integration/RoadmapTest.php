@@ -123,6 +123,35 @@ final class RoadmapTest extends TestCase {
 		}
 	}
 
+	public function test_show_more_works_for_a_status_of_any_name(): void {
+		foreach ( [ 'В работе', 'All' ] as $name ) {
+			$status = self::factory()->term->create(
+				[
+					'taxonomy' => StatusTaxonomy::NAME,
+					'name'     => $name,
+				]
+			);
+			update_term_meta( $status, StatusTaxonomy::META_ROADMAP, true );
+			$slug = get_term( $status )->slug;
+			for ( $i = 1; $i <= 12; $i++ ) {
+				$this->request( $name . ' ' . $i, $slug, 0 );
+			}
+		}
+		$this->request( 'Calendar view', 'in-progress', 0 );
+
+		foreach ( [ 'В работе', 'All' ] as $name ) {
+			$_GET   = [];
+			$slug   = get_term_by( 'name', $name, StatusTaxonomy::NAME )->slug;
+			$column = $this->column( $this->render(), $slug );
+			$this->assertCount( 10, $this->titles( $column ), $name . ': ten of its own requests.' );
+			$this->assertStringNotContainsString( 'Calendar view', $column, $name . ': only its own requests.' );
+
+			// Follows the link the way PHP reads a URL.
+			parse_str( (string) wp_parse_url( $this->more_link( $column ), PHP_URL_QUERY ), $_GET );
+			$this->assertCount( 12, $this->titles( $this->column( $this->render(), $slug ) ), $name . ': Show more shows more.' );
+		}
+	}
+
 	public function test_show_more_and_votes_without_javascript_keep_what_the_other_columns_show(): void {
 		wp_set_current_user( self::factory()->user->create() );
 		for ( $i = 1; $i <= 21; $i++ ) {

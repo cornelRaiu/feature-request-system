@@ -107,14 +107,23 @@ final class Roadmap {
 		$shown   = $pages[ $status->slug ];
 		$filters = [
 			'search'   => '',
-			'status'   => $status->slug,
+			'status'   => BoardQuery::STATUS_ALL,
 			'category' => '',
 			'sort'     => BoardQuery::SORT_TOP,
 			'page'     => 1,
 		];
 		$limit   = $shown * self::PER_PAGE;
 		// One more than the column shows: the request that "Show more" leads to.
-		$query = new WP_Query( BoardQuery::args( $board ? $board->term_id : 0, $filters, $limit + 1 ) );
+		$args = BoardQuery::args( $board ? $board->term_id : 0, $filters, $limit + 1 );
+
+		// The column's status by its ID, as a status can have any slug, "all" too.
+		$args['tax_query'][] = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Statuses are a taxonomy.
+			'taxonomy' => StatusTaxonomy::NAME,
+			'field'    => 'term_id',
+			'terms'    => $status->term_id,
+		];
+
+		$query = new WP_Query( $args );
 
 		$posts = [];
 		foreach ( $query->posts as $post ) {
@@ -164,7 +173,9 @@ final class Roadmap {
 	private static function pages_from_request( array $statuses ): array {
 		$pages = [];
 		foreach ( $statuses as $status ) {
-			$name = self::PARAM_PREFIX . $status->slug;
+			// PHP decodes the names of URL parameters, and a slug made from a name in another
+			// script, such as Cyrillic, is stored encoded.
+			$name = urldecode( self::PARAM_PREFIX . $status->slug );
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only paging from a link.
 			$value = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] ) ? (int) $_GET[ $name ] : 1;
 

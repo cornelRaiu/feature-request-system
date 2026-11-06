@@ -36,16 +36,23 @@ const { callbacks } = store( 'mwtfrs/votes', {
 
 			event.preventDefault();
 			const { href } = event.currentTarget;
-			const { actions } = yield import(
-				// WordPress provides the router as a script module; it is no package of this plugin.
-				// eslint-disable-next-line import/no-unresolved
-				'@wordpress/interactivity-router'
-			);
+			let router;
+			try {
+				router = yield import(
+					// WordPress provides the router as a script module; it is no package of this plugin.
+					// eslint-disable-next-line import/no-unresolved
+					'@wordpress/interactivity-router'
+				);
+			} catch {
+				// Without the router, the link still leads to the longer column.
+				window.location.assign( href );
+				return;
+			}
 
 			shownMore = true;
 			// No new history entry: Back leaves the page, as after any other link on it.
 			// The focus moves to the new requests, which says enough to screen readers.
-			yield actions.navigate( href, {
+			yield router.actions.navigate( href, {
 				replace: true,
 				screenReaderAnnouncement: false,
 			} );
