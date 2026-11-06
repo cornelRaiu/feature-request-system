@@ -245,7 +245,7 @@ final class BoardSettings {
 		if ( isset( $settings[ self::THRESHOLD ] ) && is_array( $settings[ self::THRESHOLD ] ) ) {
 			$threshold = [];
 			foreach ( [ 'votes', 'from', 'to' ] as $part ) {
-				$threshold[ $part ] = absint( $settings[ self::THRESHOLD ][ $part ] ?? 0 );
+				$threshold[ $part ] = max( 0, (int) ( $settings[ self::THRESHOLD ][ $part ] ?? 0 ) );
 			}
 			// Without a number of votes there is no threshold, whatever statuses were chosen.
 			$clean[ self::THRESHOLD ] = $threshold['votes'] ? $threshold : [];

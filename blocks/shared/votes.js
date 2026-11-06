@@ -27,8 +27,9 @@ import { send } from './rest';
  */
 function showVotesLeft( context, left ) {
 	if ( context.allowanceBoard ) {
+		// A translation may number the placeholder, as %1$d.
 		context.allowance = state.strings.votesLeft.replace(
-			'%d',
+			/%(1\$)?d/,
 			String( left )
 		);
 	}

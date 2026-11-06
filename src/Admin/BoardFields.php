@@ -120,7 +120,7 @@ final class BoardFields {
 				// No ticked box sends nothing, which means every category.
 				BoardSettings::CATEGORIES => isset( $sent[ BoardSettings::CATEGORIES ] ) && is_array( $sent[ BoardSettings::CATEGORIES ] ) ? $sent[ BoardSettings::CATEGORIES ] : [],
 				// An empty field sends '', which means no limit, and no threshold.
-				BoardSettings::VOTE_LIMIT => absint( $sent[ BoardSettings::VOTE_LIMIT ] ?? 0 ),
+				BoardSettings::VOTE_LIMIT => (int) ( $sent[ BoardSettings::VOTE_LIMIT ] ?? 0 ),
 				BoardSettings::THRESHOLD  => isset( $sent[ BoardSettings::THRESHOLD ] ) && is_array( $sent[ BoardSettings::THRESHOLD ] ) ? $sent[ BoardSettings::THRESHOLD ] : [],
 			]
 		);
@@ -159,7 +159,7 @@ final class BoardFields {
 			'mwtfrs-board-vote-limit' => [
 				__( 'Votes each person can give', 'feature-request-system' ),
 				sprintf(
-					'<input type="number" id="mwtfrs-board-vote-limit" class="small-text" name="%1$s" value="%2$s" min="1" step="1">',
+					'<input type="number" id="mwtfrs-board-vote-limit" class="small-text" style="width:6em" name="%1$s" value="%2$s" min="1" step="1">',
 					esc_attr( self::name( BoardSettings::VOTE_LIMIT ) ),
 					(int) $settings[ BoardSettings::VOTE_LIMIT ] ? (int) $settings[ BoardSettings::VOTE_LIMIT ] : ''
 				),
@@ -236,7 +236,7 @@ final class BoardFields {
 			/* translators: 1: field for a number of votes, 2: dropdown of statuses to move from, 3: dropdown of statuses to move to. */
 			esc_html__( 'When a request reaches %1$s votes, move it from %2$s to %3$s.', 'feature-request-system' ),
 			sprintf(
-				'<input type="number" id="mwtfrs-board-threshold" class="small-text" name="%1$s[votes]" value="%2$s" min="1" step="1">',
+				'<input type="number" id="mwtfrs-board-threshold" class="small-text" style="width:6em" name="%1$s[votes]" value="%2$s" min="1" step="1">',
 				esc_attr( self::name( BoardSettings::THRESHOLD ) ),
 				$votes ? $votes : ''
 			),

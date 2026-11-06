@@ -238,6 +238,10 @@ final class VoteLimitTest extends TestCase {
 		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
 		$this->assertSame( 0, BoardSettings::vote_limit( $this->default_board() ), 'An empty field means no limit.' );
 
+		$_POST[ BoardFields::FIELD ] = [ BoardSettings::VOTE_LIMIT => '-5' ];
+		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
+		$this->assertSame( 0, BoardSettings::vote_limit( $this->default_board() ), 'A negative number is no limit, not 5.' );
+
 		ob_start();
 		do_action( BoardTaxonomy::NAME . '_add_form_fields', BoardTaxonomy::NAME );
 		$this->assertStringContainsString( 'name="' . BoardFields::FIELD . '[' . BoardSettings::VOTE_LIMIT . ']" value=""', (string) ob_get_clean() );

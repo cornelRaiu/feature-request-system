@@ -160,7 +160,7 @@ final class VoteThresholdTest extends TestCase {
 		$html = (string) ob_get_clean();
 		$name = BoardFields::FIELD . '[' . BoardSettings::THRESHOLD . ']';
 		$this->assertStringContainsString( '<label for="mwtfrs-board-threshold">Vote threshold</label>', $html );
-		$this->assertStringContainsString( 'When a request reaches <input type="number" id="mwtfrs-board-threshold" class="small-text" name="' . $name . '[votes]" value=""', $html );
+		$this->assertStringContainsString( 'When a request reaches <input type="number" id="mwtfrs-board-threshold" class="small-text" style="width:6em" name="' . $name . '[votes]" value=""', $html );
 		$this->assertStringContainsString( '<select name="' . $name . '[from]" aria-label="Status to move the request from">', $html );
 		$this->assertMatchesRegularExpression( '/\[from\]"[^>]*>(?:<option[^>]*>[^<]*<\/option>)*<option value="' . $this->status( 'open' ) . '" selected=\'selected\'>Open/', $html, 'New requests are suggested.' );
 		$this->assertMatchesRegularExpression( '/\[to\]"[^>]*>(?:<option[^>]*>[^<]*<\/option>)*<option value="' . $this->status( 'under-review' ) . '" selected=\'selected\'>Under Review/', $html, 'The next status is suggested.' );
@@ -192,6 +192,10 @@ final class VoteThresholdTest extends TestCase {
 		$_POST[ BoardFields::FIELD ][ BoardSettings::THRESHOLD ]['votes'] = '';
 		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
 		$this->assertNull( BoardSettings::threshold( $this->default_board() ), 'An empty number moves nothing.' );
+
+		$_POST[ BoardFields::FIELD ][ BoardSettings::THRESHOLD ]['votes'] = '-50';
+		wp_update_term( $this->default_board(), BoardTaxonomy::NAME, [ 'name' => 'Ideas' ] );
+		$this->assertNull( BoardSettings::threshold( $this->default_board() ), 'Nor does a negative one.' );
 	}
 
 	/**

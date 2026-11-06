@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Tests\Integration;
 
 use FeatureRequestSystem\Cli\Commands;
 use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Voting\Trending;
 use FeatureRequestSystem\Voting\VoteRepository;
 use WP_CLI;
 
@@ -109,6 +110,7 @@ final class CommandsTest extends TestCase {
 		$wrong = $this->create_request();
 		VoteRepository::add( $wrong, hash( 'sha256', 'a voter' ), 0 );
 		update_post_meta( $wrong, RequestPostType::META_VOTES, 99 );
+		update_post_meta( $wrong, Trending::META, 99 );
 
 		( new Commands() )->recount();
 		( new Commands() )->recount();
@@ -122,6 +124,7 @@ final class CommandsTest extends TestCase {
 		);
 		$this->assertSame( '1', get_post_meta( $wrong, RequestPostType::META_VOTES, true ) );
 		$this->assertSame( '0', get_post_meta( $right, RequestPostType::META_VOTES, true ) );
+		$this->assertSame( '1', get_post_meta( $wrong, Trending::META, true ), 'The trending number is recounted too.' );
 	}
 
 	/**
