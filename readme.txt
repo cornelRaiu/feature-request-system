@@ -91,9 +91,9 @@ Feature Requests in the admin lists every request with its votes, status, board 
 
 Change a request's status from its edit screen, from Quick Edit, or for many requests at once with Bulk Edit. The edit screen also shows who voted for the request, how many users follow it and who submitted it.
 
-To merge a duplicate, open it and use the "Merge into…" box: find the other request by its title, and merge. Its votes move to the other request, counted once for a person who voted for both, and so do its followers. Its address leads to the other request from then on, and its comments stay with it. Only a published request on the same board can take a merge, and a merge cannot be undone. Who hears about it is set under Feature Requests → Settings → Email about a merge: everyone who followed the merged request, only the person who suggested it, or nobody. Each board can choose for itself. The person who merges is never emailed.
+To merge a duplicate, open it and use the "Merge into…" box. Its votes and followers move to the other request, and its address leads there. You choose who is emailed about it.
 
-"Export to CSV" above the list downloads the requests the list shows, with its filters, search and order. "Export voters to CSV" downloads one row for each of their votes. The names and email addresses of the people who suggested and voted are included only for editors and administrators. The files open in Excel, Numbers and LibreOffice. With WP-CLI: `wp mwtfrs export > requests.csv`, or `wp mwtfrs export --voters`, with `--board`, `--status`, `--category`, `--post_status` and `--search` to filter.
+"Export to CSV" and "Export voters to CSV" above the list download the requests the list shows, or their votes, as files for Excel, Numbers or LibreOffice.
 
 The Feature Requests widget on the dashboard shows the five requests that have waited longest for approval, and the requests with the most votes this week.
 
@@ -114,14 +114,6 @@ Under Feature Requests → Statuses, add, rename and reorder statuses. Each has 
 Every request has its own page with its vote button, status, categories, description and comments. Comments are WordPress comments, so your discussion settings, comment moderation and your theme's comment design apply.
 
 To answer a request on behalf of your team, write a comment on its page and tick "Post as the official response" before sending it. The newest official response is pinned below the request's description, and each one is labelled in the comments.
-
-Editors and administrators can change the mark on any comment written by an editor or administrator, in three places:
-
-* On the request's page, next to the comment's Reply link: "Mark as official response", or "Remove official mark" once it is marked.
-* On the comment's edit screen, with the "Official response" checkbox in the Save box.
-* On the Comments screen, among the actions that appear when you point at a comment.
-
-In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
 
 = Following requests and emails =
 
@@ -149,41 +141,13 @@ For a check against bots that people barely notice, the plugin supports Cloudfla
 
 Developers can add another captcha through the `mwtfrs_verify_captcha` filter, or another spam service through the `mwtfrs_is_spam` filter.
 
-= Themes =
-
-The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `roadmap.php`, `request-list.php`, `request-card.php`, `request-item.php`, `vote-button.php`, `guest-email-form.php`, `submit-form.php`, `request.php` or `official-response.php`.
-
-The text of the emails can be changed the same way: copy `emails/status-changed.php`, `emails/request-approved.php`, `emails/request-merged.php` or `emails/confirm-email.php` to `feature-request-system/emails` in your theme.
-
-`board.php` changed in 1.1 for live filtering. A copy made from 1.0 still works, with a Show requests button, until you update it. A copy of `submit-form.php` needs the new Turnstile block from the plugin's file, or the check fails while Turnstile is on.
-
-To style the blocks entirely yourself, turn the plugin's stylesheets off from your theme or a small plugin:
-
-`add_filter( 'mwtfrs_load_styles', '__return_false' );`
-
 = Accessibility =
 
 The board, the list, the card, the form and the request page aim for WCAG 2.2 level AA. Everything works with a keyboard and without JavaScript, changes are announced to screen readers, and the automated checks of axe pass in block themes and classic themes. Colours come from your theme, so the contrast of your theme's own text and background still matters.
 
 = Privacy =
 
-Everything is stored in your own WordPress database.
-
-Under Feature Requests → Settings you can write a "How we use your data" note. Visitors without an account can open it on the form, under the name and email fields, followed by a link to your privacy policy page. The settings page suggests a text to start from.
-
-People who suggest a feature are not stored as post authors, so their names never appear in author archives or other public data. The name and email a visitor gives are stored privately with their request and shown only to moderators. The plugin stores no IP addresses; rate limits use short-lived, hashed counters.
-
-The description of a request is shown as plain text. A web address in it stays text, and is not turned into an embedded video or page from another site.
-
-On boards for visitors who confirm their email, the plugin stores the address and name a visitor confirmed, in a table of its own, and sets a cookie named `mwtfrs_guest` for one year, which only the server can read. Addresses that are never confirmed are deleted once their link expires. These addresses are shown only to moderators, and in their CSV exports.
-
-For each logged-in user, the plugin stores which requests they follow, so it can email them. Those emails go to the address of the user's account, through your site's own mail setup. Who follows a request is never shown publicly; moderators see how many users follow it.
-
-The plugin works with WordPress's privacy tools. Tools → Export Personal Data includes the requests a person suggested, their votes and the requests they follow, for users and for visitors who confirmed their email. Tools → Erase Personal Data removes the record of who suggested a request, stops their emails, and cuts the tie between the person and their votes; the votes themselves stay, so counts stay correct. Under Settings → Privacy, the policy guide offers a text about the plugin for your privacy policy.
-
-When a user is deleted, they stop following every request, and their votes stay without the tie to the account, so counts stay correct. WordPress's own export file (Tools → Export) is a copy of your content for moving it to another site: it includes the name and email that visitors gave with their requests.
-
-A visitor who votes without an account gets a cookie named `mwtfrs_vid`, which holds a random number for one year so the site remembers their votes. It is only set on boards where you allow voting without an account, and only when such a visitor votes.
+Everything is stored in your own WordPress database, and the plugin stores no IP addresses. People who suggest a feature are not post authors, and the names and email addresses that visitors give are shown only to moderators. The plugin works with WordPress's tools to export and erase personal data, and offers a text for your privacy policy. Under Feature Requests → Settings you can write a "How we use your data" note that visitors see on the form. The FAQ says what is stored, and which cookies the plugin sets.
 
 = External services =
 
@@ -251,9 +215,59 @@ The filters apply to the vote buttons and the form that pages show, and to every
 
 Mind your page cache. Page caches serve one copy of a page to every visitor who is not logged in. A filter whose answer depends on the visitor, such as their membership, a purchase or a cookie, makes pages differ from one visitor to another. Such a filter should tell apart only logged-in users, whose pages caches do not serve, or the pages with the blocks must be left out of the cache. A filter that depends only on the request or the board is safe.
 
+= How does merging work? =
+
+Open the duplicate and use the "Merge into…" box on its edit screen: find the other request by its title, and merge. Its votes move to the other request, counted once for a person who voted for both, and so do its followers. Its address leads to the other request from then on, and its comments stay with it. Only a published request on the same board can take a merge, and a merge cannot be undone. Who hears about it is set under Feature Requests → Settings → Email about a merge: everyone who followed the merged request, only the person who suggested it, or nobody. Each board can choose for itself. The person who merges is never emailed.
+
 = Can I undo a merge? =
 
 Not in 1.1. Votes and followers have moved to the other request by then, and people may have been emailed. Check the request you merge into before you press Merge.
+
+= What is in the CSV exports? =
+
+"Export to CSV" above the list downloads the requests the list shows, with its filters, search and order. "Export voters to CSV" downloads one row for each of their votes. The names and email addresses of the people who suggested and voted are included only for editors and administrators. The files open in Excel, Numbers and LibreOffice. With WP-CLI: `wp mwtfrs export > requests.csv`, or `wp mwtfrs export --voters`, with `--board`, `--status`, `--category`, `--post_status` and `--search` to filter.
+
+= How do I change official responses? =
+
+Editors and administrators can change the mark on any comment written by an editor or administrator, in three places:
+
+* On the request's page, next to the comment's Reply link: "Mark as official response", or "Remove official mark" once it is marked.
+* On the comment's edit screen, with the "Official response" checkbox in the Save box.
+* On the Comments screen, among the actions that appear when you point at a comment.
+
+In block themes, request pages use the Single Feature Request template, which you can change in the Site Editor. It needs WordPress 6.7 or later; on WordPress 6.6 the theme's own template for posts is used.
+
+= Can I change the markup or the emails? =
+
+The board, the form and the request page take their colours and spacing from your theme. To change their markup, copy a file from the plugin's `templates` folder to a `feature-request-system` folder in your theme: `board.php`, `roadmap.php`, `request-list.php`, `request-card.php`, `request-item.php`, `vote-button.php`, `guest-email-form.php`, `submit-form.php`, `request.php` or `official-response.php`.
+
+The text of the emails can be changed the same way: copy `emails/status-changed.php`, `emails/request-approved.php`, `emails/request-merged.php` or `emails/confirm-email.php` to `feature-request-system/emails` in your theme.
+
+`board.php` changed in 1.1 for live filtering. A copy made from 1.0 still works, with a Show requests button, until you update it. A copy of `submit-form.php` needs the new Turnstile block from the plugin's file, or the check fails while Turnstile is on.
+
+To style the blocks entirely yourself, turn the plugin's stylesheets off from your theme or a small plugin:
+
+`add_filter( 'mwtfrs_load_styles', '__return_false' );`
+
+= What does the plugin store about people? =
+
+Everything is stored in your own WordPress database.
+
+Under Feature Requests → Settings you can write a "How we use your data" note. Visitors without an account can open it on the form, under the name and email fields, followed by a link to your privacy policy page. The settings page suggests a text to start from.
+
+People who suggest a feature are not stored as post authors, so their names never appear in author archives or other public data. The name and email a visitor gives are stored privately with their request and shown only to moderators. The plugin stores no IP addresses; rate limits use short-lived, hashed counters.
+
+The description of a request is shown as plain text. A web address in it stays text, and is not turned into an embedded video or page from another site.
+
+On boards for visitors who confirm their email, the plugin stores the address and name a visitor confirmed, in a table of its own, and sets a cookie named `mwtfrs_guest` for one year, which only the server can read. Addresses that are never confirmed are deleted once their link expires. These addresses are shown only to moderators, and in their CSV exports.
+
+For each logged-in user, the plugin stores which requests they follow, so it can email them. Those emails go to the address of the user's account, through your site's own mail setup. Who follows a request is never shown publicly; moderators see how many users follow it.
+
+The plugin works with WordPress's privacy tools. Tools → Export Personal Data includes the requests a person suggested, their votes and the requests they follow, for users and for visitors who confirmed their email. Tools → Erase Personal Data removes the record of who suggested a request, stops their emails, and cuts the tie between the person and their votes; the votes themselves stay, so counts stay correct. Under Settings → Privacy, the policy guide offers a text about the plugin for your privacy policy.
+
+When a user is deleted, they stop following every request, and their votes stay without the tie to the account, so counts stay correct. WordPress's own export file (Tools → Export) is a copy of your content for moving it to another site: it includes the name and email that visitors gave with their requests.
+
+A visitor who votes without an account gets a cookie named `mwtfrs_vid`, which holds a random number for one year so the site remembers their votes. It is only set on boards where you allow voting without an account, and only when such a visitor votes.
 
 = How do I delete the plugin's data? =
 

@@ -7,6 +7,8 @@
 
 namespace FeatureRequestSystem;
 
+defined( 'ABSPATH' ) || exit;
+
 use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Admin\CommentActions;
 use FeatureRequestSystem\Admin\MergeBox;
@@ -58,8 +60,6 @@ use FeatureRequestSystem\Submission\Turnstile;
 use FeatureRequestSystem\Voting\VoteService;
 use FeatureRequestSystem\Voting\VoteThreshold;
 use WP_CLI;
-
-defined( 'ABSPATH' ) || exit;
 
 /**
  * Connects the plugin's classes to WordPress hooks. Holds no logic of its own.

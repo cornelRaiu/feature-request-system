@@ -42,12 +42,12 @@ final class Turnstile {
 	 * Cloudflare's script. It must be loaded from this address, as it is: Cloudflare
 	 * changes it, and a copy or a version parameter would break the widget.
 	 */
-	private const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+	private const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- The captcha service's own script, which cannot be bundled; disclosed in the readme and loaded only once the site saves its keys.
 
 	/**
 	 * Cloudflare's endpoint that confirms a token.
 	 */
-	private const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+	private const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- The captcha service's API, called from the server; nothing is loaded from it.
 
 	/**
 	 * Longest token Cloudflare issues.

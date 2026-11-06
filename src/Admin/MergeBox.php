@@ -318,7 +318,7 @@ final class MergeBox {
 			'context'  => 'edit',
 			'per_page' => self::SEARCH_LIMIT,
 			'_fields'  => 'id,title',
-			'exclude'  => $request_id,
+			'exclude'  => $request_id, // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- A query argument of core's REST endpoint for posts, which leaves out the request being edited.
 		];
 		if ( $board_id && $board ) {
 			$args[ $board->rest_base ? $board->rest_base : $board->name ] = $board_id;

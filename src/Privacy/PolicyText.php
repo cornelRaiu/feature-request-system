@@ -69,7 +69,7 @@ final class PolicyText {
 			$paragraphs[] = sprintf(
 				/* translators: %s: URL of Cloudflare's privacy policy for Turnstile. */
 				__( 'The form for suggesting a feature is protected by Cloudflare Turnstile, which checks that a person, not a program, sends it. While the form is open, Cloudflare receives your IP address and details of your browser and device. Cloudflare has its own <a href="%s">privacy policy for Turnstile</a>.', 'feature-request-system' ),
-				'https://www.cloudflare.com/turnstile-privacy-policy/'
+				'https://www.cloudflare.com/turnstile-privacy-policy/' // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- A link to Cloudflare's privacy policy, not a file that is loaded.
 			);
 		}
 
