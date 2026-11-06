@@ -1,0 +1,31 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "mwtfrs/roadmap",
+	"version": "1.0.0",
+	"title": "Feature Request Roadmap",
+	"category": "widgets",
+	"description": "Feature requests in columns by status, such as Planned, In Progress and Shipped, with their vote buttons.",
+	"keywords": [ "roadmap", "feature request", "kanban", "vote", "feedback" ],
+	"textdomain": "feature-request-system",
+	"attributes": {
+		"board": {
+			"type": "integer",
+			"default": 0
+		}
+	},
+	"example": {},
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style-index.css",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}

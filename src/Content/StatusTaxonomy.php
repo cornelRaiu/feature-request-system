@@ -199,6 +199,33 @@ final class StatusTaxonomy {
 	}
 
 	/**
+	 * Whether requests in this status appear on the roadmap.
+	 *
+	 * @param WP_Term $status Status term.
+	 */
+	public static function is_on_roadmap( WP_Term $status ): bool {
+		return (bool) get_term_meta( $status->term_id, self::META_ROADMAP, true );
+	}
+
+	/**
+	 * The statuses shown on the roadmap, in workflow order: the roadmap's columns.
+	 *
+	 * @return WP_Term[]
+	 */
+	public static function on_roadmap(): array {
+		$terms = get_terms(
+			[
+				'taxonomy'   => self::NAME,
+				'hide_empty' => false,
+				'meta_key'   => self::META_ROADMAP, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A handful of status terms.
+				'meta_value' => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A handful of status terms.
+			]
+		);
+
+		return is_array( $terms ) ? self::sort( $terms ) : [];
+	}
+
+	/**
 	 * Sorts statuses by their order, then by name.
 	 *
 	 * @param WP_Term[] $terms Status terms.

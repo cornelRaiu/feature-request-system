@@ -1,0 +1,120 @@
+/**
+ * Feature Request Roadmap: a column for each status, side by side where there
+ * is room and one below the other where there is not.
+ */
+
+@use "../shared/base";
+@use "../shared/request";
+@use "../shared/item";
+
+.mwtfrs-roadmap {
+
+	@include base.tokens;
+
+	display: grid;
+	gap: var(--mwtfrs-gap);
+	container-type: inline-size;
+}
+
+.mwtfrs-roadmap__columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+	gap: var(--mwtfrs-gap);
+}
+
+// Side by side once each column can be at least 12rem wide. Where there are
+// more statuses than fit in a row, the rest wrap below.
+@container (min-width: 40rem) {
+
+	.mwtfrs-roadmap__columns {
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+	}
+}
+
+.mwtfrs-roadmap__column {
+	display: grid;
+	gap: 0.75rem;
+	min-width: 0;
+	padding: 0.75rem;
+	border: 1px solid var(--mwtfrs-line);
+	border-top: 4px solid var(--mwtfrs-status-color, var(--mwtfrs-line));
+	border-radius: var(--mwtfrs-radius);
+	// Lets the cards tighten their spacing in a narrow column.
+	container-type: inline-size;
+}
+
+// Two classes, because block themes style headings with a selector as
+// strong as one class, and theirs loads later.
+.mwtfrs-roadmap .mwtfrs-roadmap__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin: 0;
+	font-family: inherit;
+	font-size: 1em;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+.mwtfrs-roadmap__count {
+	min-width: 1.75em;
+	padding: 0.125em 0.5em;
+	border: 1px solid var(--mwtfrs-line);
+	border-radius: 999px;
+	font-size: 0.875em;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+.mwtfrs-roadmap__list {
+	display: grid;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Cards: smaller than on the board, as on a list */
+
+.mwtfrs-roadmap {
+
+	.mwtfrs-request {
+		grid-template-columns: 3rem minmax(0, 1fr);
+		gap: 0.75rem;
+		padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+	}
+
+	.mwtfrs-request .mwtfrs-request__title {
+		font-size: 1em;
+	}
+
+	// Smaller than on the board, and still an easy target. One class more
+	// than the rule that gives the vote button its size.
+	.mwtfrs-request__vote .mwtfrs-vote.mwtfrs-vote.mwtfrs-vote,
+	.mwtfrs-vote--closed {
+		min-height: 3rem;
+		padding: 0.25rem;
+	}
+}
+
+.mwtfrs-roadmap__empty {
+	margin: 0;
+	color: var(--mwtfrs-muted);
+	font-size: 0.9375em;
+}
+
+.mwtfrs-roadmap__more {
+	margin: 0;
+	font-size: 0.9375em;
+
+	// The link stands alone, so it is tall enough to hit.
+	a {
+		display: inline-block;
+		padding-block: 0.25rem;
+	}
+}

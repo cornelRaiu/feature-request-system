@@ -14,13 +14,14 @@ use WP_Term_Query;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Adds each status's colour, position and "closed for voting" switch to the forms that
- * add and edit a status, shows them as columns, and lists statuses in workflow order.
+ * Adds each status's colour, position, "closed for voting" switch and "show on roadmap"
+ * switch to the forms that add and edit a status, shows them as columns, and lists
+ * statuses in workflow order.
  */
 final class StatusFields {
 
 	/**
-	 * Name of the form fields, an array keyed by "color", "order" and "closed".
+	 * Name of the form fields, an array keyed by "color", "order", "closed" and "roadmap".
 	 */
 	public const FIELD = 'mwtfrs_status_fields';
 
@@ -45,6 +46,11 @@ final class StatusFields {
 	public const COLUMN_VOTING = 'mwtfrs_voting';
 
 	/**
+	 * Key of the column that says whether a status is shown on the roadmap.
+	 */
+	public const COLUMN_ROADMAP = 'mwtfrs_roadmap';
+
+	/**
 	 * Adds the fields, the columns and the ordering.
 	 */
 	public static function add_hooks(): void {
@@ -64,7 +70,7 @@ final class StatusFields {
 	public static function render_on_add(): void {
 		wp_nonce_field( self::NONCE_ACTION, self::NONCE_FIELD );
 
-		foreach ( self::fields( StatusTaxonomy::DEFAULT_COLOR, '', false ) as $id => list( $label, $control, $help ) ) {
+		foreach ( self::fields( StatusTaxonomy::DEFAULT_COLOR, '', false, false ) as $id => list( $label, $control, $help ) ) {
 			printf(
 				'<div class="form-field">%1$s%2$s<p>%3$s</p></div>',
 				self::label( $id, $label ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in label().
@@ -83,7 +89,8 @@ final class StatusFields {
 		$fields = self::fields(
 			StatusTaxonomy::color( $status ),
 			(string) (int) get_term_meta( $status->term_id, StatusTaxonomy::META_ORDER, true ),
-			StatusTaxonomy::is_closed( $status )
+			StatusTaxonomy::is_closed( $status ),
+			StatusTaxonomy::is_on_roadmap( $status )
 		);
 
 		foreach ( $fields as $id => list( $label, $control, $help ) ) {
@@ -127,10 +134,11 @@ final class StatusFields {
 		}
 		// An unticked box sends nothing.
 		update_term_meta( $status_id, StatusTaxonomy::META_CLOSED, ! empty( $sent['closed'] ) );
+		update_term_meta( $status_id, StatusTaxonomy::META_ROADMAP, ! empty( $sent['roadmap'] ) );
 	}
 
 	/**
-	 * Adds the colour and voting columns after the name.
+	 * Adds the colour, voting and roadmap columns after the name.
 	 *
 	 * @param array<string, string> $columns Columns of the statuses list.
 	 * @return array<string, string>
@@ -140,8 +148,9 @@ final class StatusFields {
 		foreach ( $columns as $key => $label ) {
 			$ordered[ $key ] = $label;
 			if ( 'name' === $key ) {
-				$ordered[ self::COLUMN_COLOR ]  = __( 'Colour', 'feature-request-system' );
-				$ordered[ self::COLUMN_VOTING ] = __( 'Voting', 'feature-request-system' );
+				$ordered[ self::COLUMN_COLOR ]   = __( 'Colour', 'feature-request-system' );
+				$ordered[ self::COLUMN_VOTING ]  = __( 'Voting', 'feature-request-system' );
+				$ordered[ self::COLUMN_ROADMAP ] = __( 'Roadmap', 'feature-request-system' );
 			}
 		}
 
@@ -149,7 +158,7 @@ final class StatusFields {
 	}
 
 	/**
-	 * Returns the content of the colour and voting columns.
+	 * Returns the content of the colour, voting and roadmap columns.
 	 *
 	 * @param string $content   Content so far.
 	 * @param string $column    Column key.
@@ -172,6 +181,12 @@ final class StatusFields {
 			return StatusTaxonomy::is_closed( $status )
 				? esc_html__( 'Closed', 'feature-request-system' )
 				: esc_html__( 'Open', 'feature-request-system' );
+		}
+
+		if ( self::COLUMN_ROADMAP === $column ) {
+			return StatusTaxonomy::is_on_roadmap( $status )
+				? esc_html__( 'Shown', 'feature-request-system' )
+				: esc_html__( 'Not shown', 'feature-request-system' );
 		}
 
 		return $content;
@@ -203,24 +218,25 @@ final class StatusFields {
 	/**
 	 * The fields, by HTML id: their label, their control and their help text.
 	 *
-	 * @param string $color  Colour to show.
-	 * @param string $order  Position to show, or '' for a new status.
-	 * @param bool   $closed Whether the status is closed for voting.
+	 * @param string $color   Colour to show.
+	 * @param string $order   Position to show, or '' for a new status.
+	 * @param bool   $closed  Whether the status is closed for voting.
+	 * @param bool   $roadmap Whether the status is shown on the roadmap.
 	 * @return array<string, array{0: string, 1: string, 2: string}>
 	 */
-	private static function fields( string $color, string $order, bool $closed ): array {
+	private static function fields( string $color, string $order, bool $closed, bool $roadmap ): array {
 		return [
-			'mwtfrs-status-color'  => [
+			'mwtfrs-status-color'   => [
 				__( 'Colour', 'feature-request-system' ),
 				sprintf( '<input type="color" id="mwtfrs-status-color" name="%1$s" value="%2$s">', esc_attr( self::FIELD . '[color]' ), esc_attr( $color ) ),
 				__( 'Shown next to the status wherever a request is listed.', 'feature-request-system' ),
 			],
-			'mwtfrs-status-order'  => [
+			'mwtfrs-status-order'   => [
 				__( 'Position', 'feature-request-system' ),
 				sprintf( '<input type="number" min="0" step="1" class="small-text" id="mwtfrs-status-order" name="%1$s" value="%2$s">', esc_attr( self::FIELD . '[order]' ), esc_attr( $order ) ),
 				__( 'Statuses are listed from the lowest number to the highest. Leave empty to put a new status last.', 'feature-request-system' ),
 			],
-			'mwtfrs-status-closed' => [
+			'mwtfrs-status-closed'  => [
 				__( 'Voting', 'feature-request-system' ),
 				sprintf(
 					'<label><input type="checkbox" id="mwtfrs-status-closed" name="%1$s" value="1"%2$s> %3$s</label>',
@@ -229,6 +245,16 @@ final class StatusFields {
 					esc_html__( 'Closed for voting', 'feature-request-system' )
 				),
 				__( 'Requests in a closed status keep their votes, and nobody can add or remove one. Use it for statuses such as Shipped or Declined.', 'feature-request-system' ),
+			],
+			'mwtfrs-status-roadmap' => [
+				__( 'Roadmap', 'feature-request-system' ),
+				sprintf(
+					'<label><input type="checkbox" id="mwtfrs-status-roadmap" name="%1$s" value="1"%2$s> %3$s</label>',
+					esc_attr( self::FIELD . '[roadmap]' ),
+					checked( $roadmap, true, false ),
+					esc_html__( 'Show on roadmap', 'feature-request-system' )
+				),
+				__( 'The roadmap block shows a column for each status that has this ticked, with its requests.', 'feature-request-system' ),
 			],
 		];
 	}

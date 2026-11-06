@@ -100,3 +100,20 @@ export const detailsIcon = (
 		<path fillOpacity=".7" d="M12 11h3a1 1 0 0 1 0 2h-3a1 1 0 0 1 0-2z" />
 	</Icon>
 );
+
+/**
+ * The roadmap: three columns of requests, the first one fullest and strongest.
+ */
+export const roadmapIcon = (
+	<Icon>
+		<path d="M2 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 7.5h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1zM2 14h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V15a1 1 0 0 1 1-1z" />
+		<path
+			fillOpacity=".7"
+			d="M8.5 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H8.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM8.5 7.5h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H8.5a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z"
+		/>
+		<path
+			fillOpacity=".45"
+			d="M15 1h3a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H15a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"
+		/>
+	</Icon>
+);
