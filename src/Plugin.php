@@ -44,7 +44,9 @@ use FeatureRequestSystem\Privacy\PersonalData;
 use FeatureRequestSystem\Privacy\PolicyText;
 use FeatureRequestSystem\Rest\RestApi;
 use FeatureRequestSystem\Submission\Akismet;
+use FeatureRequestSystem\Voting\Trending;
 use FeatureRequestSystem\Voting\VoteService;
+use FeatureRequestSystem\Voting\VoteThreshold;
 use WP_CLI;
 
 defined( 'ABSPATH' ) || exit;
@@ -88,6 +90,8 @@ final class Plugin {
 		StatusChange::add_hooks();
 		StatusTaxonomy::add_hooks();
 		VoteService::add_hooks();
+		Trending::add_hooks();
+		VoteThreshold::add_hooks();
 		VoteForm::add_hooks();
 		SubmitForm::add_hooks();
 		Akismet::add_hooks();

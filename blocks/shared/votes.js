@@ -18,6 +18,22 @@ import { store, getContext } from '@wordpress/interactivity';
 
 import { send } from './rest';
 
+/**
+ * Says how many votes the visitor has left, in a board that limits them. Lists, cards
+ * and request pages do not say it, so their blocks have nothing to update.
+ *
+ * @param {Object} context Context of the request or the block.
+ * @param {number} left    Votes left.
+ */
+function showVotesLeft( context, left ) {
+	if ( context.allowanceBoard ) {
+		context.allowance = state.strings.votesLeft.replace(
+			'%d',
+			String( left )
+		);
+	}
+}
+
 const { state } = store( 'mwtfrs/votes', {
 	actions: {
 		/**
@@ -59,6 +75,10 @@ const { state } = store( 'mwtfrs/votes', {
 					context.announcement = data.voted
 						? state.strings.added
 						: state.strings.removed;
+					// A board that limits votes says how many are left.
+					if ( typeof data.votes_left === 'number' ) {
+						showVotesLeft( context, data.votes_left );
+					}
 				} else {
 					context.message = data.message || state.strings.error;
 					context.needsLogin = response.status === 401;
@@ -75,7 +95,8 @@ const { state } = store( 'mwtfrs/votes', {
 		 * Marks the requests in this block that the visitor already voted for.
 		 */
 		*hydrate() {
-			const { ids, guestVotes } = getContext();
+			const context = getContext();
+			const { ids, guestVotes, allowanceBoard } = context;
 			// A visitor who is not logged in has votes only where a board lets guests
 			// vote. Anywhere else there is nothing to ask the server.
 			if ( ! ids.length || ( ! state.nonce && ! guestVotes ) ) {
@@ -85,13 +106,19 @@ const { state } = store( 'mwtfrs/votes', {
 			try {
 				const response = yield* send( state, 'me/state', {
 					method: 'POST',
-					body: { ids },
+					// A board that limits votes also asks how many the visitor has left.
+					body: allowanceBoard
+						? { ids, board: allowanceBoard }
+						: { ids },
 				} );
 				if ( response.ok ) {
 					const data = yield response.json();
 					data.voted.forEach( ( id ) => {
 						state.voted[ id ] = true;
 					} );
+					if ( typeof data.votes_left === 'number' ) {
+						showVotesLeft( context, data.votes_left );
+					}
 				}
 			} catch {
 				// The buttons still work. They just start unpressed.

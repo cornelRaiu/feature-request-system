@@ -7,6 +7,9 @@
 
 namespace FeatureRequestSystem\Voting;
 
+use FeatureRequestSystem\Content\BoardTaxonomy;
+use FeatureRequestSystem\Content\RequestPostType;
+use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Schema;
 
 defined( 'ABSPATH' ) || exit;
@@ -184,6 +187,83 @@ final class VoteRepository {
 				Schema::table( Schema::VOTES ),
 				wp_generate_password( 64, false ),
 				$user_id
+			)
+		);
+	}
+
+	/**
+	 * Counts the votes for a request cast since a moment, with the votes table's key on
+	 * request and date.
+	 *
+	 * @param int    $request_id Request ID.
+	 * @param string $since      UTC date and time, as Y-m-d H:i:s.
+	 */
+	public static function count_since( int $request_id, string $since ): int {
+		global $wpdb;
+
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; the count is cached in post meta by Trending.
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE request_id = %d AND created_at >= %s', Schema::table( Schema::VOTES ), $request_id, $since )
+		);
+	}
+
+	/**
+	 * Counts the votes cast since a moment for each of several requests.
+	 *
+	 * @param int[]  $request_ids Request IDs.
+	 * @param string $since       UTC date and time, as Y-m-d H:i:s.
+	 * @return array<int, int> Counts by request ID. Requests without such votes are left out.
+	 */
+	public static function counts_since( array $request_ids, string $since ): array {
+		global $wpdb;
+
+		$request_ids = array_values( array_unique( array_filter( array_map( 'intval', $request_ids ) ) ) );
+		if ( ! $request_ids ) {
+			return [];
+		}
+
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; the counts are cached in post meta by Trending.
+			$wpdb->prepare(
+				'SELECT request_id, COUNT(*) AS votes FROM %i WHERE request_id IN (' . implode( ',', array_fill( 0, count( $request_ids ), '%d' ) ) . ') AND created_at >= %s GROUP BY request_id', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %d placeholders are added.
+				array_merge( [ Schema::table( Schema::VOTES ) ], $request_ids, [ $since ] )
+			)
+		);
+
+		$counts = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$counts[ (int) $row->request_id ] = (int) $row->votes;
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Counts a voter's votes on the requests of a board that are open for voting: published,
+	 * without a password, and in a status that is not closed.
+	 *
+	 * The query starts from the board's requests and finds the voter's vote on each with
+	 * the votes table's unique key, because the table has no key on the voter alone.
+	 *
+	 * @param string $voter_key  Voter key from VoterIdentity.
+	 * @param int    $board_id   Board term ID.
+	 * @param int[]  $closed_ids Term IDs of the statuses that are closed for voting.
+	 */
+	public static function count_open_on_board( string $voter_key, int $board_id, array $closed_ids ): int {
+		global $wpdb;
+
+		// With no closed status, the list holds 0, which no status has.
+		$closed_ids = array_values( array_filter( array_map( 'intval', $closed_ids ) ) );
+		$closed_ids = $closed_ids ? $closed_ids : [ 0 ];
+
+		return (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; per-visitor data must not be cached.
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i AS bt INNER JOIN %i AS br ON br.term_taxonomy_id = bt.term_taxonomy_id INNER JOIN %i AS v ON v.request_id = br.object_id INNER JOIN %i AS p ON p.ID = v.request_id'
+				. " WHERE bt.taxonomy = %s AND bt.term_id = %d AND v.voter_key = %s AND p.post_type = %s AND p.post_status = 'publish' AND p.post_password = ''"
+				. ' AND NOT EXISTS ( SELECT 1 FROM %i AS sr INNER JOIN %i AS st ON st.term_taxonomy_id = sr.term_taxonomy_id WHERE sr.object_id = v.request_id AND st.taxonomy = %s AND st.term_id IN (' . implode( ',', array_fill( 0, count( $closed_ids ), '%d' ) ) . ') )', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Only %d placeholders are added.
+				array_merge(
+					[ $wpdb->term_taxonomy, $wpdb->term_relationships, Schema::table( Schema::VOTES ), $wpdb->posts, BoardTaxonomy::NAME, $board_id, $voter_key, RequestPostType::NAME ],
+					[ $wpdb->term_relationships, $wpdb->term_taxonomy, StatusTaxonomy::NAME ],
+					$closed_ids
+				)
 			)
 		);
 	}

@@ -89,6 +89,8 @@ final class BoardFieldsTest extends TestCase {
 				BoardSettings::MODERATION => false,
 				BoardSettings::PAGE       => $page,
 				BoardSettings::CATEGORIES => [],
+				BoardSettings::VOTE_LIMIT => 0,
+				BoardSettings::THRESHOLD  => [],
 			],
 			BoardSettings::get( $this->default_board() ),
 			'An unticked moderation box turns moderation off.'

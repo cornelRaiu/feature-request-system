@@ -151,7 +151,7 @@ final class Blocks {
 	 * Renders the board block in its compact form for the list shortcode.
 	 *
 	 * @param array<string, string>|string $atts Shortcode attributes: count, board (slug or term ID, every board
-	 *                                           without it), sort (top or new) and status (a status slug, or all).
+	 *                                           without it), sort (top, new or trending) and status (a status slug, or all).
 	 */
 	public static function list_shortcode( $atts ): string {
 		$atts = shortcode_atts(

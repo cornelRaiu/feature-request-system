@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Voting\VoteCount;
+use FeatureRequestSystem\Voting\VoteService;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,9 +37,10 @@ final class RequestItem {
 		$summary    = '' !== $post->post_excerpt ? $post->post_excerpt : strip_shortcodes( $post->post_content );
 		$votes      = VoteCount::get( $post->ID );
 		$notice     = $notice && $notice['request'] === $post->ID ? $notice : null;
-		$votable    = 'publish' === $post->post_status
-			&& BoardSettings::NOBODY !== $voting
-			&& ! ( $status && StatusTaxonomy::is_closed( $status ) );
+		$open       = 'publish' === $post->post_status && ! ( $status && StatusTaxonomy::is_closed( $status ) );
+		$allowed    = $open && VoteService::can_vote( $post->ID, $voting );
+		// Where the board wants users, a visitor who is not logged in gets the button, which asks them to log in.
+		$votable = $allowed || ( $open && BoardSettings::LOGGED_IN === $voting && ! is_user_logged_in() );
 
 		return [
 			'id'          => $post->ID,
@@ -53,7 +55,7 @@ final class RequestItem {
 			] : null,
 			'categories'  => is_array( $categories ) ? wp_list_pluck( $categories, 'name' ) : [],
 			'votable'     => $votable,
-			'guest_votes' => $votable && BoardSettings::ANYONE === $voting,
+			'guest_votes' => $allowed && ( BoardSettings::ANYONE === $voting || ! is_user_logged_in() ),
 			'context'     => [
 				'id'         => $post->ID,
 				'votes'      => $votes,

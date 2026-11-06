@@ -50,6 +50,7 @@ final class SubmitForm {
 		SubmissionService::ERROR_BOARD_NOT_FOUND => 'missing',
 		SubmissionService::ERROR_CLOSED          => 'closed',
 		SubmissionService::ERROR_LOGIN_REQUIRED  => 'login',
+		SubmissionService::ERROR_NOT_ALLOWED     => 'refused',
 		SubmissionService::ERROR_RATE_LIMITED    => 'limit',
 		SpamGuard::ERROR_REJECTED                => 'rejected',
 	];
@@ -84,12 +85,15 @@ final class SubmitForm {
 		$page_url  = CurrentPage::url();
 		$notice    = self::notice_from_request();
 
-		if ( BoardSettings::NOBODY === $rule ) {
-			$mode = 'closed';
+		if ( SubmissionService::can_submit( $board->term_id, $rule ) ) {
+			$mode = 'form';
 		} elseif ( BoardSettings::LOGGED_IN === $rule && ! $logged_in ) {
 			$mode = 'login';
+		} elseif ( BoardSettings::NOBODY === $rule ) {
+			$mode = 'closed';
 		} else {
-			$mode = 'form';
+			// The board takes requests, and the mwtfrs_can_submit filter refused this visitor.
+			$mode = 'refused';
 		}
 
 		self::provide_state();
@@ -244,6 +248,7 @@ final class SubmitForm {
 			'published' => __( 'Thanks! Your request is on the board.', 'feature-request-system' ),
 			'login'     => __( 'Log in to suggest a feature.', 'feature-request-system' ),
 			'closed'    => __( 'This board is not taking new requests.', 'feature-request-system' ),
+			'refused'   => __( 'You cannot suggest features on this board.', 'feature-request-system' ),
 			'limit'     => __( 'You have sent several requests in a short time. Try again later.', 'feature-request-system' ),
 			'rejected'  => __( 'Your request could not be sent. Reload the page and try again.', 'feature-request-system' ),
 			'expired'   => __( 'This page has expired. Reload it and try again.', 'feature-request-system' ),
