@@ -155,6 +155,8 @@ Differentiators, in delivery order:
 
 ### 1.2: Changelog and switching
 
+Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a CSV import as well, for Canny, Featurebase, Trello or a spreadsheet; IdeaPush's downvotes left out (D3); guest votes, which both plugins tie to IP addresses, imported as anonymous votes; run from Tools → Import and `wp mwtfrs import`, with a preview, safe to run twice (source IDs kept), and without the old plugin active. First step: both plugins on a test site with sample data, to learn how they store it.
+
 - ✅ **Changelog / Releases**: a release post type that links to shipped requests. Publishing a release notifies the subscribers of every linked request ("🎉 shipped in 2.3"). Comes with a Changelog block.
 - ✅ **Importers** for IdeaPush and Simple Feature Requests (ideas, statuses, votes and comments where possible).
 - ✅ Outgoing **webhooks** for request created, status changed and request shipped.
@@ -168,7 +170,9 @@ Differentiators, in delivery order:
   - Optional vote weighting by product ownership.
 - ✅ Sort in the admin by customer demand.
 
-### Pro candidates (later, separate plugin, not planned now)
+### Pro candidates (separate plugin, through Freemius; see D7)
+
+- **Signed access links** (decided): a link that the Pro user's own server signs, which lets that person vote and suggest as a confirmed guest. Built on 1.1's access hooks and verified guests.
 
 - Freemius / Paddle / Stripe customer data.
 - Slack, Discord, GitHub, Linear and Jira sync.
@@ -532,11 +536,86 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **M8** ✅ | Launch hardening (2–3 days) | Privacy exporter and eraser and policy text, accessibility pass (axe in E2E), translation-ready (`.pot`), readme.txt, screenshots, banner and icon, performance check (board with 1,000 requests and 50k votes). Also: categories per board, the filter that turns the stylesheets off, `wp mwtfrs seed`, an independent security review with its fixes, and a manual test plan (`tests/manual/test-plan.md`, 129 cases) | Plugin Check 2.1.0 finds no errors and no warnings. axe finds no violation of WCAG 2.2 AA in Twenty Twenty-Five and Twenty Twenty-One. With 1,000 requests and 50,000 votes the board block renders in about 16 ms with 14 to 21 queries, and its page answers in 56 ms, against 41 ms for a page without it. 418 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network; 43 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6. 175 rules were broken on purpose: 27 had no test and got one, and two new tests that could not fail were corrected. The security review found nothing critical or high; its two medium and six low findings are fixed (section 5.4 and 5.10) |
 | **After M8** ✅ | More blocks and patterns (1–2 days), at the owner's request | The Feature Request List (the board block in a compact form) and the Feature Request Card, with their shortcodes. Three patterns: the form beside the board, the most wanted requests, and an invitation with a button to the board. The blocks' icons, drawn from the logo, and previews in the inserter. For pages with several of the blocks: an element id of its own for each copy of a request, counts and pressed states that stay in step, and announcements said once. No call for a guest's votes where guests cannot vote. 12 more cases in the manual test plan, which now has 142 | 462 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network. 52 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6; ten of them are accessibility checks with axe. 89 rules were broken on purpose, 73 in PHP and 16 in the browser: one had no test and got one, with two more like it; one browser test could not fail and was corrected; one new check that could not fail was removed. Plugin Check finds no errors and no warnings |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
-| M9 | 1.1 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests, new readme tags | Per-feature slices with tests |
+| M9 | 1.1, Monday 9 Nov 2026 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests, new readme tags; from user feedback: filter switches and live filtering, form texts, access hooks, the new request email field | Seven slices, A to G, specified in "M9: the 1.1 specification" below |
 | M10 | 1.2 | Changelog / releases with shipped notifications, IdeaPush and SFR importers, webhooks | Importers tested against fixture dumps of each plugin |
 | M11 | 1.3 | WooCommerce / EDD customer insights and customer-only boards | Tests with WooCommerce active and inactive |
 
 About 17–22 working days to reach 1.0.0.
+
+### M9: the 1.1 specification
+
+Release target: **Monday 9 November 2026**. Built by seven agents in parallel, one slice each (A to G), each on its own branch and git worktree, each slice reviewed by a second agent. The slices are merged into `release/1.1`, checked as a whole, tested by hand on Herd, and merged into `main` once the owner approves. **Cut line: Sunday 8 November in the evening.** A slice that isn't fully checked by then moves to 1.1.1 instead of shipping half-tested.
+
+Four items came from the first user feedback (2026-11-06): filters a site can turn off and that apply at once (A), form texts the site can change (B), a hook for who may vote and suggest (E), and the new request email field filled in with the site's address (B).
+
+#### Rules for every slice
+
+- **Branch and worktree:** `m9-<letter>-<name>` in `../wt-m9-<letter>`, cut from `plan/1.1`. Copy `vendor/` (a symlink would load the main folder's classes), link `node_modules`, copy `tests/php/wp-tests-config.local.php`.
+- **Own test database:** `WP_TESTS_DB_NAME=frs_tests_<letter>` on Herd's MySQL. Only `frs_*` databases may be created or dropped.
+- **Own end-to-end site:** `wp-env` with `WP_ENV_PORT=89<n>0` and `WP_ENV_TESTS_PORT=89<n>1` (A=1 … G=7), stopped when done.
+- **Done means:** `composer ci` passes; `npm run lint:js`, `npm run lint:css` and `npm run build` pass; new behaviour has a PHP integration test through its real entry point (REST, form post, render, hook) and, where a visitor sees it, an end-to-end test; the slice's own end-to-end tests pass. Strings are translatable, identifiers come from constants (5.1), public output never holds emails or IPs, and everything works without JavaScript where 1.0 did.
+- **Don't touch:** `readme.txt`, `languages/`, `PLAN.md`, `tests/manual/`, version numbers, `package-lock.json` (unless the slice adds a package). The integration step does those.
+- **Shared files** (`src/Plugin.php`, `src/Frontend/Blocks.php`, `src/Settings.php`, `src/Admin/SettingsPage.php`, `src/Content/BoardSettings.php`, `src/Admin/BoardFields.php`): add to them, don't reorder or reformat them, so the merges stay small.
+- **Database version:** only slice F changes the schema; it takes database version 3.
+- **Hooks for Pro (D7):** where a slice decides who may do something, it goes through a filter, so the Pro plugin can extend it without patching.
+
+#### A. Board filters: switches and live filtering (feedback #1)
+
+- The board block gets `showSearch`, `showStatus`, `showCategory` and `showSort`, all on by default, as toggles in the block's sidebar. The shortcode takes `search`, `status_filter`, `category_filter` and `sort_filter` with `yes`/`no`. With every control off, no filter form is printed at all. A hidden control's value still comes from the URL, so links with `fr-status=…` keep working.
+- **Live filtering** with `@wordpress/interactivity-router`: a select applies as soon as it changes, search applies 300 ms after typing stops, and the board region is swapped without a full page load. The URL is updated (history entry per change), Back and Forward work, focus stays in the control, and a polite live region says how many requests are shown. The "Show requests" button is visible only without JavaScript. Votes on the new results are hydrated as on first load. Pagination links navigate the same way.
+- Cache safety stays: the router fetches the same public URLs.
+- **Done when:** end-to-end tests filter by status, search and sort without a reload, Back restores the previous list, a board with every control off prints no form, and the 1.0 no-JavaScript test still passes.
+
+#### B. Form texts, the new request email field, Turnstile (feedback #2 and #4)
+
+- **Form texts:** the form block gets `heading`, `titleLabel`, `titleHelp`, `detailsLabel`, `submitLabel`, `pendingMessage` and `publishedMessage`, edited in the block's sidebar with the default text as placeholder. Empty means the default, which stays translatable. The shortcode takes the same as `heading`, `title_label`, `title_help`, `details_label`, `submit_label`, `pending_message` and `published_message`. Plain text only, escaped on output.
+- **"Send those emails to":** shows the site's administration email as its value when nothing is stored, so saving the page stores it. Emails still go to the administration email while the stored value is empty.
+- **Cloudflare Turnstile:** on the settings page, a site key and a secret key (the secret is never printed back; a saved one shows as "saved"). When both are set, the form shows the widget to visitors without an account (and to logged-in users if a setting says so), and `SpamGuard` checks the token with Cloudflare's siteverify through the `mwtfrs_verify_captcha` filter. The form works without JavaScript only when Turnstile is off; the readme says so. The readme's external services section adds Cloudflare with its terms and privacy links.
+- **Done when:** tests show the custom texts in the block and the shortcode, defaults when empty, the email field's value, Turnstile refusing a submission without a valid token (siteverify faked in tests) and accepting one with it, and the secret never in the page.
+
+#### C. Roadmap block
+
+- `mwtfrs/roadmap` and `[feature_roadmap board="slug"]`: one column per status that is marked "Show on roadmap", in status order (default: Planned, In Progress, Shipped). Each card shows the title, the vote button (none in closed statuses), categories, and links to the request. Each column shows 10 requests, most votes first, with "Show more" that loads the next 10 (router, or a URL parameter without JavaScript). `board` 0 means every board. Columns stack on narrow screens, with a container query, and scroll sideways nowhere at 320 px.
+- The Statuses screen gets the "Show on roadmap" checkbox (the term meta exists since 1.0).
+- A pattern, "Feature request roadmap", puts a heading above the block.
+- **Done when:** render tests for columns, order, paging and boards; an end-to-end test that votes on a roadmap card and pages a column; axe passes.
+
+#### D. Merging duplicates
+
+- From a request's edit screen (a "Merge into…" box that finds the target by title), and `POST /mwtfrs/v1/requests/{id}/merge {target}` for `edit_others_mwtfrs_requests`.
+- **What happens, in one step:** votes move to the target, a voter who voted for both keeps one vote; followers move, keeping the stronger reason; the submitter of the source follows the target; counts are recounted on both. The source gets the post status `mwtfrs_merged` (registered, not public, its own view in the admin list) and `_mwtfrs_merged_into`. Its comments stay with it.
+- The source's URL redirects (301) to the target. Its followers get one email ("… was merged into …, your vote now counts there"), with the usual unsubscribe link; the email template can be overridden like the others.
+- Merging into itself, into a merged request, or into a request on another board is refused with a clear error. Merging can't be undone in 1.1; the box says so and asks to confirm.
+- **Done when:** tests for votes (with overlaps), followers, counts, the redirect, the email, the refusals and the capability; an end-to-end test merges from the edit screen.
+
+#### E. Voting rules: trending, vote limits, vote threshold, access hooks (feedback #3)
+
+- **Trending:** `_mwtfrs_trending` holds the number of votes in the last 30 days, recalculated hourly by a recurring Action Scheduler action, and on every vote for that request. The board's sort gets "Trending", and the block's and shortcode's sort accept `trending`.
+- **Vote limits per board:** a board setting, "Votes each person can give", empty for no limit. It counts the person's votes on requests of that board that are still open for voting, so a vote comes back when its request is shipped or declined. Over the limit, voting returns 403 `mwtfrs_vote_limit_reached`, and the board says how many votes are left.
+- **Vote threshold:** a board setting, "When a request reaches N votes, move it from [status] to [status]". It moves a request once (`_mwtfrs_threshold_reached`), so a moderator who moves it back isn't overruled, and goes through `wp_set_object_terms()`, so followers get the usual email.
+- **Access hooks:** `mwtfrs_can_vote( bool $allowed, int $request_id, int $user_id )` and `mwtfrs_can_submit( bool $allowed, int $board_id, int $user_id )`, applied wherever the board rules decide today: `VoteService`, `SubmissionService`, and the form and vote button rendering. The filter can refuse what the board allows and allow what it refuses. The readme warns that a filter which depends on the visitor makes the page differ per visitor, which page caches must know about.
+- **Done when:** tests for each rule through the REST routes and the no-JavaScript form; the hooks both ways; trending against votes with dates.
+
+#### F. Email-verified guests
+
+- A board's "Who can vote" and "Who can suggest features" get a fourth choice: "Visitors who confirm their email".
+- **Flow:** a visitor gives their email (and a name for suggesting). The plugin emails a link that is valid for 24 hours. Opening it shows a confirm button (link scanners must not confirm); pressing it marks the address confirmed and sets an HttpOnly cookie that identifies the confirmed guest for a year. The vote or request the visitor started is then completed.
+- **Data (database version 3):** a `{prefix}mwtfrs_guests` table (id, email, token hash, confirmed_at, created_at; unique email). A confirmed guest's votes use `voter_key = sha256('e:'.guest_id)`. The subscriptions table gets `guest_id`, so confirmed guests follow requests like users and get the same emails, with the same unsubscribe link.
+- **Abuse:** one link email per address per 10 minutes and the usual per-IP limits; the same answer whether or not an address is known; Turnstile when it's on.
+- **Privacy:** export and erase find a confirmed guest by email, and the policy text names the new cookie.
+- **For Pro (D7):** `Guests::sign_in( string $email, string $name )` marks an address confirmed and sets the cookie, so the Pro plugin's signed links can reuse all of this.
+- **Done when:** tests for the whole flow, the expiry, the rate limit, votes and follows of confirmed guests, the emails, export and erase, uninstall; an end-to-end test from email to vote with a captured email.
+
+#### G. CSV export and the dashboard widget
+
+- **CSV export:** an "Export to CSV" button on the requests list, which exports what the list shows (its filters and search). Columns: ID, title, status, board, categories, votes, followers, date, link, and the submitter's name and email for those who can edit others' requests. A second export lists the voters of the chosen requests (request, name, email for users, "visitor" otherwise, date). Streams in pages of 500; `wp mwtfrs export` does the same. Cells that start with `=`, `+`, `-` or `@` get a leading `'`, so spreadsheets don't run them.
+- **Dashboard widget** for moderators: requests waiting for approval (the 5 oldest, with links) and this week's top requests (most votes in the last 7 days).
+- **Done when:** tests for the columns, the filters, permissions, the formula guard and the widget's queries.
+
+#### After the slices (integration)
+
+Merge A to G into `release/1.1`, resolving conflicts in the shared files; then run the full checks (PHP on WordPress 7.1 and 6.6, single site and network; end-to-end in a block theme, a classic theme and on 6.6; Plugin Check; deliberate-breakage checks on the new rules). Then the readme (new tags, features, FAQ, external services, changelog), the translation template, screenshots for the roadmap, new manual test cases, version 1.1.0, and the Live Preview blueprint gains a roadmap.
+
 
 ---
 
@@ -547,7 +626,14 @@ About 17–22 working days to reach 1.0.0.
 - **D3. Downvotes:** ★ upvote only (like Canny, SFR and FeatureQuest; fewer hurt feelings, simpler UI). The schema keeps `value` so downvotes could be added later as an option.
 - **D4. Guest defaults:** ★ guests can *view* but not vote or submit by default; each board can enable them. Email-verified guests come in 1.1.
 - **D5. Changelog in 1.2:** ★ yes, but kept small ("releases that ship requests"). It completes the "close the loop" story. It isn't meant to compete with Changeloger's full changelog builder.
-- **D6. Free vs Pro:** ★ everything up to 1.3 is free; importers stay free because they drive adoption. Decide on Pro after 1.0 feedback.
+- **D6. Free vs Pro:** ★ everything up to 1.3 is free; importers stay free because they drive adoption. Decide on Pro after 1.0 feedback. *Replaced by D7 on 2026-11-06.*
+- **D7. Free and Pro (decided 2026-11-06).**
+  - The free plugin stays a complete board. **All of 1.1 is free**: most of it is free in a competitor already (roadmap in Changeloger and WP Roadmap, trending, captchas and verified guests in FeatureQuest, vote limits and the vote threshold in IdeaPush), and a new plugin wins installs by beating the free versions.
+  - **Pro is a separate plugin**, sold through **Freemius**. WordPress.org doesn't allow locked features in a free plugin, so the free plugin offers hooks and Pro builds on them, as with the access hooks in 1.1 and the signed links in Pro.
+  - **Some of 1.2 and 1.3 go to Pro, not all of it.** Decided: signed access links / single sign-on from inside a product (from the first feedback) are Pro. ★ Proposed, to confirm when each release is planned:
+    - 1.2: releases and the changelog stay free, the importers stay free; webhooks are Pro, next to the integrations they would otherwise replace.
+    - 1.3: the customer badge on voters stays free; the value of the customers behind a request, customer-only boards, vote weighting and sorting by customer demand are Pro.
+  - ★ The Freemius SDK goes into the Pro plugin only, so the free plugin keeps no telemetry (section 4, out of scope). To check with Freemius: a Pro plugin that needs the free one, without the SDK in the free one.
 
 ## 9. Risks
 
