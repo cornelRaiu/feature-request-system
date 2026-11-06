@@ -188,7 +188,8 @@ final class BoardSettings {
 		$from      = (int) ( $threshold['from'] ?? 0 );
 		$to        = (int) ( $threshold['to'] ?? 0 );
 
-		if ( ! $votes || $from === $to || ! term_exists( $from, StatusTaxonomy::NAME ) || ! term_exists( $to, StatusTaxonomy::NAME ) ) {
+		// A saved threshold always has a number of votes: without one, nothing is saved.
+		if ( $from === $to || ! term_exists( $from, StatusTaxonomy::NAME ) || ! term_exists( $to, StatusTaxonomy::NAME ) ) {
 			return null;
 		}
 

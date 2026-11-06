@@ -70,6 +70,19 @@ final class VoteLimitTest extends TestCase {
 		$this->assertSame( 200, $this->vote( 'POST', $third )->get_status(), 'The vote taken back can be given again.' );
 	}
 
+	public function test_lowering_the_limit_keeps_the_votes_already_given(): void {
+		wp_set_current_user( self::factory()->user->create() );
+		list( $first, $second, $third ) = $this->create_requests( 3 );
+		$this->vote( 'POST', $first );
+		$this->vote( 'POST', $second );
+		BoardSettings::update( $this->default_board(), [ BoardSettings::VOTE_LIMIT => 1 ] );
+
+		$again = $this->vote( 'POST', $first );
+		$this->assertSame( [ 'votes' => 1, 'voted' => true, 'votes_left' => 0, 'following' => true ], $again->get_data(), 'Voting again changes nothing.' );
+		$this->assertSame( 1, $this->vote_rows( $first ) );
+		$this->assertSame( VoteService::ERROR_LIMIT_REACHED, $this->vote( 'POST', $third )->get_data()['code'] );
+	}
+
 	public function test_a_vote_comes_back_when_its_request_is_closed(): void {
 		wp_set_current_user( self::factory()->user->create() );
 		list( $first, $second, $third ) = $this->create_requests( 3 );
