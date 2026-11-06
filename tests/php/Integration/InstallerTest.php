@@ -81,6 +81,85 @@ final class InstallerTest extends TestCase {
 		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $subscription, [ 'user_id' => 2 ] ) ), 'Other user, same request.' );
 	}
 
+	public function test_subscriptions_table_holds_users_and_any_number_of_guests_on_one_request(): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::SUBSCRIPTIONS );
+		$row   = [
+			'request_id' => 10,
+			'user_id'    => 0,
+			'guest_id'   => 5,
+			'token'      => str_repeat( 'b', 32 ),
+			'source'     => 'vote',
+			'created_at' => '2026-11-06 12:00:00',
+		];
+
+		$this->assertSame( 1, $wpdb->insert( $table, $row ) );
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $row, [ 'guest_id' => 6 ] ) ), 'Another guest, same request.' );
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $row, [ 'guest_id' => 0, 'user_id' => 1 ] ) ), 'A user, same request.' );
+
+		$suppress = $wpdb->suppress_errors();
+		$this->assertFalse( $wpdb->insert( $table, $row ), 'Same guest, same request.' );
+		$wpdb->suppress_errors( $suppress );
+	}
+
+	public function test_guests_table_has_the_planned_columns_and_one_row_per_address(): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::GUESTS );
+
+		$this->assertSame( [ 'id', 'email', 'name', 'token_hash', 'link_sent_at', 'pending', 'auto_follow', 'confirmed_at', 'created_at' ], $wpdb->get_col( 'DESCRIBE ' . $table ) );
+		$this->assertEqualsCanonicalizing( [ 'PRIMARY', 'email', 'token_hash' ], array_unique( $wpdb->get_col( 'SHOW INDEX FROM ' . $table, 2 ) ) );
+
+		$this->assertSame( 1, $wpdb->insert( $table, [ 'email' => 'jane@example.com', 'created_at' => '2026-11-06 12:00:00' ] ) );
+		$suppress = $wpdb->suppress_errors();
+		$this->assertFalse( $wpdb->insert( $table, [ 'email' => 'JANE@example.com', 'created_at' => '2026-11-06 12:00:00' ] ), 'The same address in other letters.' );
+		$wpdb->suppress_errors( $suppress );
+		$this->assertSame( 1, $wpdb->insert( $table, [ 'email' => 'john@example.com', 'created_at' => '2026-11-06 12:00:00' ] ) );
+	}
+
+	/**
+	 * Before database version 3 the subscriptions table's unique key covered the request
+	 * and the user only, which would allow one guest per request.
+	 *
+	 * A temporary table of the old shape stands in for the site's table, which it hides
+	 * while it exists.
+	 */
+	public function test_a_site_on_database_version_2_gets_the_key_that_lets_guests_follow(): void {
+		global $wpdb;
+
+		$table = Schema::table( Schema::SUBSCRIPTIONS );
+		$wpdb->query(
+			"CREATE TEMPORARY TABLE {$table} (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				request_id bigint(20) unsigned NOT NULL,
+				user_id bigint(20) unsigned NOT NULL,
+				token char(32) NOT NULL,
+				source varchar(20) NOT NULL,
+				created_at datetime NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY request_user (request_id,user_id),
+				KEY token (token),
+				KEY user_id (user_id)
+			) " . $wpdb->get_charset_collate()
+		);
+		$wpdb->insert( $table, [ 'request_id' => 10, 'user_id' => 1, 'token' => str_repeat( 'a', 32 ), 'source' => 'vote', 'created_at' => '2026-10-02 12:00:00' ] );
+
+		Schema::create_tables();
+
+		$keys = array_unique( $wpdb->get_col( 'SHOW INDEX FROM ' . $table, 2 ) );
+		$rows = $wpdb->get_results( "SELECT user_id, guest_id FROM {$table}" );
+		$this->assertContains( 'request_follower', $keys );
+		$this->assertNotContains( 'request_user', $keys );
+		$this->assertSame( '0', $rows[0]->guest_id, 'What users followed stays.' );
+
+		$guest = [ 'request_id' => 10, 'user_id' => 0, 'token' => str_repeat( 'b', 32 ), 'source' => 'vote', 'created_at' => '2026-11-06 12:00:00' ];
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $guest, [ 'guest_id' => 5 ] ) ) );
+		$this->assertSame( 1, $wpdb->insert( $table, array_merge( $guest, [ 'guest_id' => 6 ] ) ) );
+
+		$wpdb->query( "DROP TEMPORARY TABLE {$table}" );
+	}
+
 	public function test_a_site_on_the_previous_database_version_gets_its_tables_brought_up_to_date(): void {
 		// dbDelta() reads a table's columns, then creates the table or adds what is missing.
 		$examined = [];
