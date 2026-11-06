@@ -103,6 +103,11 @@
 		timer = window.setTimeout( find, 300 );
 	} );
 
+	// What was typed before the script ran, or what the browser kept when going back.
+	if ( search.value ) {
+		find();
+	}
+
 	// Enter in the field would save the request.
 	search.addEventListener( 'keydown', ( event ) => {
 		if ( 'Enter' === event.key ) {

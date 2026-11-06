@@ -232,6 +232,7 @@ test.describe( 'Accessibility', () => {
 				'#mwtfrs-request-details',
 				'#mwtfrs_statusdiv',
 				'#mwtfrs_boarddiv',
+				'#mwtfrs-merge',
 			] )
 		).toEqual( [] );
 
