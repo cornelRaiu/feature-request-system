@@ -155,6 +155,12 @@ Differentiators, in delivery order:
 
 ### 1.2: Changelog and switching
 
+- ✅ **MCP connector** (recorded 2026-11-06; the tools are reviewed when it is built). The plugin registers **abilities** with WordPress's Abilities API, only where it exists, and the official WordPress MCP Adapter exposes them as MCP tools, with its own sign-in through application passwords, so the plugin runs no MCP server of its own. Every tool checks the plugin's capabilities and returns no emails or IP addresses. Proposed tools:
+  - Free, reading: `list-requests` (with the board's filters and sorts, trending included), `get-request`, `find-similar`, `list-boards`, `list-statuses`, `board-summary` (counts per status, the waiting queue, the week's top requests).
+  - Free, writing: `set-status` (with or without emailing followers), `approve-request`, `reject-request`, `post-official-response`, `merge-requests`.
+  - Pro (D7), in the Pro plugin: customer demand per request, sending a request to GitHub or Linear, private boards.
+  - Each tool goes with its feature: the AI client does summaries and duplicate spotting with the free tools, so Pro tools are about Pro data and integrations.
+
 Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a CSV import as well, for Canny, Featurebase, Trello or a spreadsheet; IdeaPush's downvotes left out (D3); guest votes, which both plugins tie to IP addresses, imported as anonymous votes; run from Tools → Import and `wp mwtfrs import`, with a preview, safe to run twice (source IDs kept), and without the old plugin active. First step: both plugins on a test site with sample data, to learn how they store it.
 
 - ✅ **Changelog / Releases**: a release post type that links to shipped requests. Publishing a release notifies the subscribers of every linked request ("🎉 shipped in 2.3"). Comes with a Changelog block.
@@ -584,9 +590,10 @@ Four items came from the first user feedback (2026-11-06): filters a site can tu
 
 - From a request's edit screen (a "Merge into…" box that finds the target by title), and `POST /mwtfrs/v1/requests/{id}/merge {target}` for `edit_others_mwtfrs_requests`.
 - **What happens, in one step:** votes move to the target, a voter who voted for both keeps one vote; followers move, keeping the stronger reason; the submitter of the source follows the target; counts are recounted on both. The source gets the post status `mwtfrs_merged` (registered, not public, its own view in the admin list) and `_mwtfrs_merged_into`. Its comments stay with it.
-- The source's URL redirects (301) to the target. Its followers get one email ("… was merged into …, your vote now counts there"), with the usual unsubscribe link; the email template can be overridden like the others.
+- The source's URL redirects (301) to the target.
+- **Who is told** (added 2026-11-06): a site setting, "Email about a merge", with three choices: everyone who followed the merged request, only the person who suggested it, or nobody. Default: everyone who followed it. Each board can keep the site's choice (its default) or pick its own. The email says "… was merged into …, your vote now counts there", ends with the usual unsubscribe link, and its template can be overridden like the others. The person who merges is never emailed, and nobody gets it twice. Followers move to the target whatever the setting says.
 - Merging into itself, into a merged request, or into a request on another board is refused with a clear error. Merging can't be undone in 1.1; the box says so and asks to confirm.
-- **Done when:** tests for votes (with overlaps), followers, counts, the redirect, the email, the refusals and the capability; an end-to-end test merges from the edit screen.
+- **Done when:** tests for votes (with overlaps), followers, counts, the redirect, the email under each of the three choices (site setting and a board's own), the refusals and the capability; an end-to-end test merges from the edit screen.
 
 #### E. Voting rules: trending, vote limits, vote threshold, access hooks (feedback #3)
 
@@ -631,7 +638,7 @@ Merge A to G into `release/1.1`, resolving conflicts in the shared files; then r
   - The free plugin stays a complete board. **All of 1.1 is free**: most of it is free in a competitor already (roadmap in Changeloger and WP Roadmap, trending, captchas and verified guests in FeatureQuest, vote limits and the vote threshold in IdeaPush), and a new plugin wins installs by beating the free versions.
   - **Pro is a separate plugin**, sold through **Freemius**. WordPress.org doesn't allow locked features in a free plugin, so the free plugin offers hooks and Pro builds on them, as with the access hooks in 1.1 and the signed links in Pro.
   - **Some of 1.2 and 1.3 go to Pro, not all of it.** Decided: signed access links / single sign-on from inside a product (from the first feedback) are Pro. ★ Proposed, to confirm when each release is planned:
-    - 1.2: releases and the changelog stay free, the importers stay free; webhooks are Pro, next to the integrations they would otherwise replace.
+    - 1.2: releases and the changelog stay free, the importers stay free; webhooks are Pro, next to the integrations they would otherwise replace. The MCP connector has free tools for free features and Pro tools in the Pro plugin.
     - 1.3: the customer badge on voters stays free; the value of the customers behind a request, customer-only boards, vote weighting and sorting by customer demand are Pro.
   - ★ The Freemius SDK goes into the Pro plugin only, so the free plugin keeps no telemetry (section 4, out of scope). To check with Freemius: a Pro plugin that needs the free one, without the SDK in the free one.
 
