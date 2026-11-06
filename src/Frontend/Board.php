@@ -291,13 +291,14 @@ final class Board {
 	}
 
 	/**
-	 * URL parameters for the filters that differ from the defaults.
+	 * URL parameters for the filters that differ from the defaults. Other blocks on the page,
+	 * such as the roadmap, keep them in their links, so a board keeps its filters.
 	 *
 	 * @param array{search: string, status: string, category: string, sort: string, page: int} $filters   Current filters.
 	 * @param bool                                                                             $with_page Whether to include the page number.
 	 * @return array<string, string|int>
 	 */
-	private static function filter_args( array $filters, bool $with_page ): array {
+	public static function filter_args( array $filters, bool $with_page ): array {
 		$args = array_filter(
 			[
 				BoardQuery::PARAM_SEARCH   => $filters['search'],

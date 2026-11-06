@@ -14,6 +14,7 @@ use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Frontend\Blocks;
 use FeatureRequestSystem\Frontend\Board;
+use FeatureRequestSystem\Frontend\BoardQuery;
 use FeatureRequestSystem\Frontend\RequestNotice;
 use FeatureRequestSystem\Frontend\Roadmap;
 use FeatureRequestSystem\Frontend\VoteForm;
@@ -175,6 +176,28 @@ final class RoadmapTest extends TestCase {
 		$this->assertSame( $expected, strtok( $this->more_link( $this->column( $html, 'planned' ) ), '#' ) );
 		$this->assertStringContainsString( 'name="redirect_to" value="' . esc_url( add_query_arg( Roadmap::PARAM_PREFIX . 'in-progress', 2, home_url() ) ) . '#mwtfrs-roadmap-', $html );
 		$this->assertStringNotContainsString( 'unrelated', $html );
+	}
+
+	public function test_show_more_keeps_the_filters_of_a_board_on_the_same_page(): void {
+		for ( $i = 1; $i <= 11; $i++ ) {
+			$this->request( 'Planned ' . $i, 'planned', 0 );
+		}
+		$_GET = [
+			BoardQuery::PARAM_SEARCH => 'dark mode',
+			BoardQuery::PARAM_SORT   => BoardQuery::SORT_NEW,
+		];
+
+		$link = strtok( $this->more_link( $this->column( $this->render(), 'planned' ) ), '#' );
+		wp_parse_str( (string) wp_parse_url( $link, PHP_URL_QUERY ), $args );
+
+		$this->assertSame(
+			[
+				BoardQuery::PARAM_SEARCH          => 'dark mode',
+				BoardQuery::PARAM_SORT            => BoardQuery::SORT_NEW,
+				Roadmap::PARAM_PREFIX . 'planned' => '2',
+			],
+			$args
+		);
 	}
 
 	public function test_the_script_learns_which_column_grew_and_where_to_read_on(): void {

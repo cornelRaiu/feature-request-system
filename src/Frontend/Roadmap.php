@@ -59,7 +59,8 @@ final class Roadmap {
 		$board    = self::board( (int) ( $attributes['board'] ?? 0 ) );
 		$statuses = StatusTaxonomy::on_roadmap();
 		$pages    = self::pages_from_request( $statuses );
-		$page_url = CurrentPage::url();
+		// A board on the same page keeps its filters when the roadmap shows more, live or not.
+		$page_url = add_query_arg( Board::filter_args( BoardQuery::filters_from_request(), true ), CurrentPage::url() );
 		$current  = add_query_arg( self::page_args( $pages ), $page_url );
 		$notice   = RequestNotice::from_request();
 		$instance = wp_unique_id( 'mwtfrs-roadmap-' );
@@ -95,12 +96,12 @@ final class Roadmap {
 	/**
 	 * Prepares one column: a status and the requests in it that the column shows.
 	 *
-	 * @param WP_Term                                                $status   Status of the column.
-	 * @param WP_Term|null                                           $board    Board to show, or null for every board.
-	 * @param array<string, int>                                     $pages    Pages each column shows, by status slug.
-	 * @param string                                                 $page_url Page the roadmap is on.
-	 * @param array{request: int, message: string, login: bool}|null $notice   Notice from a vote without JavaScript.
-	 * @param string                                                 $instance Unique prefix of this roadmap.
+	 * @param WP_Term                                                             $status   Status of the column.
+	 * @param WP_Term|null                                                        $board    Board to show, or null for every board.
+	 * @param array<string, int>                                                  $pages    Pages each column shows, by status slug.
+	 * @param string                                                              $page_url Page the roadmap is on.
+	 * @param array{request: int, message: string, login: bool, email: bool}|null $notice   Notice from a vote without JavaScript.
+	 * @param string                                                              $instance Unique prefix of this roadmap.
 	 * @return array{slug: string, name: string, color: string, heading_id: string, key: string, total: int, items: array<int, array<string, mixed>>, more_url: string, context: array{ids: int[], focus: string}}
 	 */
 	private static function column( WP_Term $status, ?WP_Term $board, array $pages, string $page_url, ?array $notice, string $instance ): array {
