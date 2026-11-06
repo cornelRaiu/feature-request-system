@@ -52,7 +52,8 @@ final class MergeService {
 	public const ERROR_INVALID_TARGET = 'mwtfrs_merge_invalid_target';
 
 	/**
-	 * The request to merge into is not published, so nobody would see the votes and followers it gets.
+	 * The request to merge into is not published, or is behind a password, so nobody would
+	 * see the votes it gets and its followers could not follow it.
 	 */
 	public const ERROR_UNPUBLISHED_TARGET = 'mwtfrs_merge_unpublished_target';
 
@@ -114,8 +115,8 @@ final class MergeService {
 		if ( MergedStatus::NAME === $target->post_status ) {
 			return self::error( self::ERROR_INTO_MERGED, 400 );
 		}
-		// Its votes and followers would be somewhere nobody can see them.
-		if ( 'publish' !== $target->post_status ) {
+		// Its votes and followers would be somewhere nobody can see them, or follow them.
+		if ( 'publish' !== $target->post_status || '' !== $target->post_password ) {
 			return self::error( self::ERROR_UNPUBLISHED_TARGET, 400 );
 		}
 
@@ -184,7 +185,7 @@ final class MergeService {
 			self::ERROR_INTO_ITSELF        => __( 'A request cannot be merged into itself.', 'feature-request-system' ),
 			self::ERROR_INVALID_TARGET     => __( 'The request to merge into does not exist.', 'feature-request-system' ),
 			self::ERROR_INTO_MERGED        => __( 'The request to merge into was merged into another itself. Merge into that one instead.', 'feature-request-system' ),
-			self::ERROR_UNPUBLISHED_TARGET => __( 'Requests can only be merged into a published request.', 'feature-request-system' ),
+			self::ERROR_UNPUBLISHED_TARGET => __( 'Requests can only be merged into a published request without a password.', 'feature-request-system' ),
 			self::ERROR_OTHER_BOARD        => __( 'Requests can only be merged into a request on the same board.', 'feature-request-system' ),
 		];
 

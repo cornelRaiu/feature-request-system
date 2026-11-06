@@ -251,6 +251,8 @@ final class MergeApiTest extends TestCase {
 		$duplicate = $this->create_request();
 
 		$this->assertRefused( 400, MergeService::ERROR_UNPUBLISHED_TARGET, $this->merge( $duplicate, $this->create_request( [ 'post_status' => 'pending' ] ) ) );
+		// Nobody can follow a request behind a password.
+		$this->assertRefused( 400, MergeService::ERROR_UNPUBLISHED_TARGET, $this->merge( $duplicate, $this->create_request( [ 'post_password' => 'secret' ] ) ) );
 		$this->assertRefused( 400, MergeService::ERROR_INVALID_TARGET, $this->merge( $duplicate, $this->create_request( [ 'post_status' => 'trash' ] ) ) );
 		$this->assertRefused( 400, MergeService::ERROR_INVALID_TARGET, $this->merge( $duplicate, self::factory()->post->create() ) );
 		$this->assertRefused( 400, MergeService::ERROR_INVALID_TARGET, $this->merge( $duplicate, 999999 ) );
