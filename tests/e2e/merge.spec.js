@@ -106,7 +106,28 @@ async function choose( box, title ) {
 	await box.getByRole( 'radio', { name: title, exact: true } ).check();
 }
 
+// A merge email is due at once. While the tests run, the site's own queue runner, which
+// page loads start, must not send it before sendWaitingEmails() can catch it.
+const HOLD_QUEUE = `<?php
+add_filter( 'action_scheduler_allow_async_request_runner', '__return_false' );
+add_filter( 'action_scheduler_queue_runner_concurrent_batches', '__return_zero' );
+`;
+
 test.describe( 'Merging a duplicate', () => {
+	test.beforeAll( () => {
+		const plugin = Buffer.from( HOLD_QUEUE ).toString( 'base64' );
+		wpEval( `
+			wp_mkdir_p( WPMU_PLUGIN_DIR );
+			file_put_contents( WPMU_PLUGIN_DIR . '/mwtfrs-e2e-hold-queue.php', base64_decode( '${ plugin }' ) );
+		` );
+	} );
+
+	test.afterAll( () => {
+		wpEval(
+			`wp_delete_file( WPMU_PLUGIN_DIR . '/mwtfrs-e2e-hold-queue.php' );`
+		);
+	} );
+
 	test( 'a moderator merges a duplicate from its edit screen, and its address leads to the other request', async ( {
 		page,
 		browser,
