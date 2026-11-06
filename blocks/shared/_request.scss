@@ -78,6 +78,9 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	// A paragraph, unlike a button, adds its padding and border to
+	// its width, which would push it into the gap beside the title.
+	box-sizing: border-box;
 	width: 100%;
 	min-height: 3.5rem;
 	padding: 0.375rem;
