@@ -2,7 +2,7 @@
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
 	"name": "mwtfrs/roadmap",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"title": "Feature Request Roadmap",
 	"category": "widgets",
 	"description": "Feature requests in columns by status, such as Planned, In Progress and Shipped, with their vote buttons.",
