@@ -12,6 +12,8 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Voting\VoteLimit;
+use FeatureRequestSystem\Voting\VoterIdentity;
 use WP_Post;
 use WP_Query;
 
@@ -76,7 +78,7 @@ final class Board {
 			[
 				'namespace'          => VoteStore::NAME,
 				'wrapper_attributes' => $wrapper_attributes,
-				'context'            => VoteStore::context( $items ),
+				'context'            => VoteStore::context( $items ) + self::allowance( $board->term_id, $voting ),
 				'id_prefix'          => wp_unique_id( 'mwtfrs-board-' ),
 				'items'              => $items,
 				'title_tag'          => 'h3',
@@ -92,8 +94,9 @@ final class Board {
 				'statuses'           => self::term_options( StatusTaxonomy::NAME, [] ),
 				'categories'         => self::term_options( CategoryTaxonomy::NAME, BoardSettings::categories( $board->term_id ) ),
 				'sorts'              => [
-					BoardQuery::SORT_TOP => __( 'Most votes', 'feature-request-system' ),
-					BoardQuery::SORT_NEW => __( 'Newest', 'feature-request-system' ),
+					BoardQuery::SORT_TOP      => __( 'Most votes', 'feature-request-system' ),
+					BoardQuery::SORT_NEW      => __( 'Newest', 'feature-request-system' ),
+					BoardQuery::SORT_TRENDING => __( 'Trending', 'feature-request-system' ),
 				],
 				'page_url'           => $page_url,
 				'hidden_fields'      => self::query_args_of( $page_url ),
@@ -101,8 +104,33 @@ final class Board {
 				'login_url'          => wp_login_url( $current ),
 				'pagination'         => self::pagination( $query, $filters['page'], add_query_arg( self::filter_args( $filters, false ), $page_url ) ),
 				'empty_message'      => $items ? '' : self::empty_message( $filters, $board->term_id ),
+				'vote_limit'         => BoardSettings::NOBODY === $voting ? 0 : BoardSettings::vote_limit( $board->term_id ),
 			]
 		);
+	}
+
+	/**
+	 * What the board's context needs to say how many votes the visitor has left, on a board
+	 * that limits them. Nothing for other boards.
+	 *
+	 * The number belongs to the visitor, so it is in the HTML only for logged-in users,
+	 * whose pages caches do not serve. For others the script asks for it after the page loads.
+	 *
+	 * @param int    $board_id Board term ID.
+	 * @param string $voting   Voting rule of the board, a BoardSettings value.
+	 * @return array{allowanceBoard?: int, allowance?: string}
+	 */
+	private static function allowance( int $board_id, string $voting ): array {
+		if ( BoardSettings::NOBODY === $voting || ! BoardSettings::vote_limit( $board_id ) ) {
+			return [];
+		}
+
+		$left = is_user_logged_in() ? VoteLimit::left( $board_id, VoterIdentity::key() ) : null;
+
+		return [
+			'allowanceBoard' => $board_id,
+			'allowance'      => null === $left ? '' : VoteStore::votes_left_text( $left ),
+		];
 	}
 
 	/**

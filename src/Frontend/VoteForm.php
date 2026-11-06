@@ -38,6 +38,8 @@ final class VoteForm {
 		VoteService::ERROR_LOGIN_REQUIRED => 'login',
 		VoteService::ERROR_RATE_LIMITED   => 'limit',
 		VoteService::ERROR_EMAIL_REQUIRED => 'email',
+		VoteService::ERROR_NOT_ALLOWED    => 'refused',
+		VoteService::ERROR_LIMIT_REACHED  => 'votes-used',
 	];
 
 	/**

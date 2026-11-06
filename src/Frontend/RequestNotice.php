@@ -94,6 +94,8 @@ final class RequestNotice {
 			'disabled'     => __( 'Voting is turned off for this board.', 'feature-request-system' ),
 			'limit'        => __( 'Too many votes in a short time. Try again later.', 'feature-request-system' ),
 			'missing'      => __( 'This request is not open for voting.', 'feature-request-system' ),
+			'refused'      => __( 'You cannot vote on this request.', 'feature-request-system' ),
+			'votes-used'   => __( 'You have used all your votes on this board. You get one back when you take a vote back, or when a request you voted for is closed.', 'feature-request-system' ),
 			'expired'      => __( 'This page has expired. Reload it and try again.', 'feature-request-system' ),
 			'origin'       => __( 'Your vote could not be verified. Reload the page and try again.', 'feature-request-system' ),
 			'error'        => __( 'Your vote could not be saved. Try again.', 'feature-request-system' ),

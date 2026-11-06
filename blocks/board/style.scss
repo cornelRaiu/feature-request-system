@@ -110,6 +110,14 @@
 	}
 }
 
+/* Votes left, on a board that limits them */
+
+.mwtfrs-board__allowance {
+	margin: 0;
+	font-size: 0.9375em;
+	color: var(--mwtfrs-muted);
+}
+
 /* Empty state and pagination */
 
 .mwtfrs-board__empty {

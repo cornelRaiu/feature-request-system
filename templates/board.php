@@ -73,6 +73,16 @@ $mwtfrs_params  = $args['params'];
 
 	<p class="mwtfrs-sr-only" aria-live="polite" data-wp-text="context.announcement"></p>
 
+	<?php if ( ! empty( $args['vote_limit'] ) ) : ?>
+		<p class="mwtfrs-board__allowance">
+			<?php
+			/* translators: %d: number of votes. */
+			echo esc_html( sprintf( _n( 'Each person can vote for %d request on this board.', 'Each person can vote for %d requests on this board.', $args['vote_limit'], 'feature-request-system' ), $args['vote_limit'] ) );
+			?>
+			<span data-wp-bind--hidden="!context.allowance" data-wp-text="context.allowance"><?php echo esc_html( $args['context']['allowance'] ?? '' ); ?></span>
+		</p>
+	<?php endif; ?>
+
 	<?php if ( $args['items'] ) : ?>
 		<ul class="mwtfrs-board__list">
 			<?php foreach ( $args['items'] as $mwtfrs_item ) : ?>

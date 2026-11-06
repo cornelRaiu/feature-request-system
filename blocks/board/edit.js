@@ -73,6 +73,13 @@ export default function Edit( { attributes, setAttributes } ) {
 									),
 									value: 'new',
 								},
+								{
+									label: __(
+										'Trending',
+										'feature-request-system'
+									),
+									value: 'trending',
+								},
 							] }
 							onChange={ ( value ) =>
 								setAttributes( { sort: value } )

@@ -48,6 +48,19 @@ final class SubmissionService {
 	public const ERROR_LOGIN_REQUIRED = 'mwtfrs_submit_login_required';
 
 	/**
+	 * The mwtfrs_can_submit filter refused a request that the board would take.
+	 */
+	public const ERROR_NOT_ALLOWED = 'mwtfrs_submit_not_allowed';
+
+	/**
+	 * Filter that decides whether the current visitor may submit requests to a board.
+	 * Receives whether the board's rules allow it, the board's term ID and the user ID, 0 for
+	 * a visitor who is not logged in. It can refuse what the board allows and allow what it
+	 * refuses.
+	 */
+	public const FILTER_CAN_SUBMIT = 'mwtfrs_can_submit';
+
+	/**
 	 * A field is missing or invalid. The error data names the problem in "reason".
 	 */
 	public const ERROR_INVALID = 'mwtfrs_submission_invalid';
@@ -104,6 +117,9 @@ final class SubmissionService {
 		}
 
 		$rule = BoardSettings::submitting( $board_id );
+		if ( self::can_submit( $board_id, $rule ) ) {
+			return true;
+		}
 		if ( BoardSettings::NOBODY === $rule ) {
 			return new WP_Error( self::ERROR_CLOSED, __( 'This board is not taking new requests.', 'feature-request-system' ), [ 'status' => 403 ] );
 		}
@@ -111,7 +127,23 @@ final class SubmissionService {
 			return new WP_Error( self::ERROR_LOGIN_REQUIRED, __( 'Log in to suggest a feature.', 'feature-request-system' ), [ 'status' => 401 ] );
 		}
 
-		return true;
+		return new WP_Error( self::ERROR_NOT_ALLOWED, __( 'You cannot suggest features on this board.', 'feature-request-system' ), [ 'status' => 403 ] );
+	}
+
+	/**
+	 * Whether the current visitor may submit under a board's rule, as the mwtfrs_can_submit
+	 * filter decides. The form is drawn from this too, so the page and the submission agree.
+	 *
+	 * @param int    $board_id Board term ID.
+	 * @param string $rule     Submission rule of the board, a BoardSettings value.
+	 */
+	public static function can_submit( int $board_id, string $rule ): bool {
+		// On a board for visitors who confirm their email, anyone may send a request. A visitor's
+		// request waits until they confirm their address.
+		$allowed = in_array( $rule, [ BoardSettings::ANYONE, BoardSettings::VERIFIED ], true )
+			|| ( BoardSettings::LOGGED_IN === $rule && is_user_logged_in() );
+
+		return (bool) apply_filters( self::FILTER_CAN_SUBMIT, $allowed, $board_id, get_current_user_id() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
 	}
 
 	/**

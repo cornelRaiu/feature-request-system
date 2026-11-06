@@ -7,6 +7,7 @@
 
 namespace FeatureRequestSystem\Cli;
 
+use FeatureRequestSystem\Voting\Trending;
 use FeatureRequestSystem\Voting\VoteCount;
 use WP_CLI;
 
@@ -23,7 +24,8 @@ final class Commands {
 	public const NAME = 'mwtfrs';
 
 	/**
-	 * Recounts every request's votes and fixes stored counts that are wrong or missing.
+	 * Recounts every request's votes and fixes stored counts that are wrong or missing,
+	 * the recent votes that the trending sort uses included.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -33,6 +35,7 @@ final class Commands {
 	 */
 	public function recount(): void {
 		$result = VoteCount::sync_all();
+		Trending::sync_all();
 
 		WP_CLI::success(
 			sprintf(

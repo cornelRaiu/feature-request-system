@@ -23,7 +23,7 @@
 		},
 		"sort": {
 			"type": "string",
-			"enum": [ "top", "new" ],
+			"enum": [ "top", "new", "trending" ],
 			"default": "top"
 		},
 		"status": {

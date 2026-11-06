@@ -45,6 +45,19 @@ final class BoardSettings {
 	public const CATEGORIES = 'categories';
 
 	/**
+	 * Setting: how many votes each person can give on the board's requests that are open
+	 * for voting. 0 means no limit.
+	 */
+	public const VOTE_LIMIT = 'vote_limit';
+
+	/**
+	 * Setting: the vote threshold, as an array with "votes", the number of votes at which a
+	 * request moves, and "from" and "to", the term IDs of the statuses it moves between.
+	 * Empty, or 0 votes, moves nothing.
+	 */
+	public const THRESHOLD = 'threshold';
+
+	/**
 	 * Everyone may take part, including visitors who are not logged in.
 	 */
 	public const ANYONE = 'anyone';
@@ -76,6 +89,8 @@ final class BoardSettings {
 			self::MODERATION => true,
 			self::PAGE       => 0,
 			self::CATEGORIES => [],
+			self::VOTE_LIMIT => 0,
+			self::THRESHOLD  => [],
 		];
 	}
 
@@ -157,6 +172,40 @@ final class BoardSettings {
 	}
 
 	/**
+	 * How many votes each person can give on a board's requests that are open for voting, or 0 for no limit.
+	 *
+	 * @param int $board_id Board term ID.
+	 */
+	public static function vote_limit( int $board_id ): int {
+		return (int) self::get( $board_id )[ self::VOTE_LIMIT ];
+	}
+
+	/**
+	 * A board's vote threshold: at how many votes a request moves, and from which status to
+	 * which. Null when the board has none, or when one of its statuses no longer exists.
+	 *
+	 * @param int $board_id Board term ID.
+	 * @return array{votes: int, from: int, to: int}|null
+	 */
+	public static function threshold( int $board_id ): ?array {
+		$threshold = (array) self::get( $board_id )[ self::THRESHOLD ];
+		$votes     = (int) ( $threshold['votes'] ?? 0 );
+		$from      = (int) ( $threshold['from'] ?? 0 );
+		$to        = (int) ( $threshold['to'] ?? 0 );
+
+		// A saved threshold always has a number of votes: without one, nothing is saved.
+		if ( $from === $to || ! term_exists( $from, StatusTaxonomy::NAME ) || ! term_exists( $to, StatusTaxonomy::NAME ) ) {
+			return null;
+		}
+
+		return [
+			'votes' => $votes,
+			'from'  => $from,
+			'to'    => $to,
+		];
+	}
+
+	/**
 	 * Saves settings for a board. Settings not passed, and invalid values, leave the current value in place.
 	 *
 	 * @param int                  $board_id Board term ID.
@@ -192,6 +241,19 @@ final class BoardSettings {
 
 		if ( isset( $settings[ self::CATEGORIES ] ) && is_array( $settings[ self::CATEGORIES ] ) ) {
 			$clean[ self::CATEGORIES ] = array_values( array_unique( array_filter( array_map( 'absint', $settings[ self::CATEGORIES ] ) ) ) );
+		}
+
+		if ( isset( $settings[ self::VOTE_LIMIT ] ) && is_numeric( $settings[ self::VOTE_LIMIT ] ) ) {
+			$clean[ self::VOTE_LIMIT ] = max( 0, (int) $settings[ self::VOTE_LIMIT ] );
+		}
+
+		if ( isset( $settings[ self::THRESHOLD ] ) && is_array( $settings[ self::THRESHOLD ] ) ) {
+			$threshold = [];
+			foreach ( [ 'votes', 'from', 'to' ] as $part ) {
+				$threshold[ $part ] = max( 0, (int) ( $settings[ self::THRESHOLD ][ $part ] ?? 0 ) );
+			}
+			// Without a number of votes there is no threshold, whatever statuses were chosen.
+			$clean[ self::THRESHOLD ] = $threshold['votes'] ? $threshold : [];
 		}
 
 		return $clean;

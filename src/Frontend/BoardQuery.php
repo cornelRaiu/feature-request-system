@@ -11,6 +11,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Voting\Trending;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -63,6 +64,11 @@ final class BoardQuery {
 	public const SORT_NEW = 'new';
 
 	/**
+	 * Most votes in the last days first, then most votes.
+	 */
+	public const SORT_TRENDING = 'trending';
+
+	/**
 	 * Reads the filters from the current URL.
 	 *
 	 * @return array{search: string, status: string, category: string, sort: string, page: int}
@@ -74,7 +80,7 @@ final class BoardQuery {
 			'search'   => self::param( self::PARAM_SEARCH ),
 			'status'   => sanitize_title( self::param( self::PARAM_STATUS ) ),
 			'category' => sanitize_title( self::param( self::PARAM_CATEGORY ) ),
-			'sort'     => self::SORT_NEW === $sort ? self::SORT_NEW : self::SORT_TOP,
+			'sort'     => self::sort( $sort ),
 			'page'     => max( 1, absint( self::param( self::PARAM_PAGE ) ) ),
 		];
 	}
@@ -141,6 +147,23 @@ final class BoardQuery {
 				'meta_value_num' => 'DESC',
 				'date'           => 'DESC',
 			];
+		} elseif ( self::SORT_TRENDING === $filters['sort'] ) {
+			// Both counts are on every request from creation. Requests without recent votes follow by votes.
+			$args['meta_query'] = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Sorting by the stored counts.
+				'trending' => [
+					'key'  => Trending::META,
+					'type' => 'NUMERIC',
+				],
+				'votes'    => [
+					'key'  => RequestPostType::META_VOTES,
+					'type' => 'NUMERIC',
+				],
+			];
+			$args['orderby']    = [
+				'trending' => 'DESC',
+				'votes'    => 'DESC',
+				'date'     => 'DESC',
+			];
 		} else {
 			$args['orderby'] = [
 				'date' => 'DESC',
@@ -149,6 +172,15 @@ final class BoardQuery {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * Returns a known sort order, or the default for anything else.
+	 *
+	 * @param string $sort Sort order from a URL, a block or a shortcode.
+	 */
+	public static function sort( string $sort ): string {
+		return in_array( $sort, [ self::SORT_NEW, self::SORT_TRENDING ], true ) ? $sort : self::SORT_TOP;
 	}
 
 	/**

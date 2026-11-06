@@ -11,6 +11,7 @@ use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestPostType;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Install\Schema;
+use FeatureRequestSystem\Voting\Trending;
 use FeatureRequestSystem\Voting\VoteCount;
 
 defined( 'ABSPATH' ) || exit;
@@ -134,6 +135,7 @@ final class SampleData {
 
 			$voted += self::add_votes( $request_id, $shares[ $index ] );
 			VoteCount::sync( $request_id );
+			Trending::sync( $request_id );
 
 			++$created;
 			if ( $progress ) {

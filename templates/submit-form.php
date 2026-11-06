@@ -26,6 +26,8 @@ $mwtfrs_limits = $args['limits'];
 
 	<?php if ( 'closed' === $args['mode'] ) : ?>
 		<p class="mwtfrs-submit__notice"><?php esc_html_e( 'This board is not taking new requests.', 'feature-request-system' ); ?></p>
+	<?php elseif ( 'refused' === $args['mode'] ) : ?>
+		<p class="mwtfrs-submit__notice"><?php esc_html_e( 'You cannot suggest features on this board.', 'feature-request-system' ); ?></p>
 	<?php elseif ( 'login' === $args['mode'] ) : ?>
 		<p class="mwtfrs-submit__notice"><?php esc_html_e( 'Log in to suggest a feature.', 'feature-request-system' ); ?></p>
 		<p class="mwtfrs-submit__actions">

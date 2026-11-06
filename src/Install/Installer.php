@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
+use FeatureRequestSystem\Voting\Trending;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -54,10 +55,12 @@ final class Installer {
 	}
 
 	/**
-	 * Deactivation hook. Keeps all data and capabilities; only the rewrite rules are rebuilt.
+	 * Deactivation hook. Keeps all data and capabilities; only the rewrite rules are rebuilt,
+	 * and the hourly trending recount stops until the plugin is active again.
 	 */
 	public static function deactivate(): void {
 		delete_option( 'rewrite_rules' );
+		Trending::unschedule();
 	}
 
 	/**
@@ -81,6 +84,8 @@ final class Installer {
 		self::seed( BoardTaxonomy::NAME, BoardTaxonomy::defaults() );
 		self::seed( StatusTaxonomy::NAME, StatusTaxonomy::defaults() );
 		Capabilities::grant();
+		// Requests from before trending existed get their number now, not at the first hourly recount.
+		Trending::sync_all();
 		update_option( self::OPTION_DB_VERSION, self::DB_VERSION );
 
 		// WordPress rebuilds the rules on the next request, now including the request post type.

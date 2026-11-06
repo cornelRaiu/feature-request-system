@@ -12,6 +12,7 @@ use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\RequestTerms;
 use FeatureRequestSystem\Content\StatusTaxonomy;
 use FeatureRequestSystem\Voting\VoteCount;
+use FeatureRequestSystem\Voting\VoteService;
 use WP_Post;
 
 defined( 'ABSPATH' ) || exit;
@@ -36,9 +37,11 @@ final class RequestItem {
 		$summary    = '' !== $post->post_excerpt ? $post->post_excerpt : strip_shortcodes( $post->post_content );
 		$votes      = VoteCount::get( $post->ID );
 		$notice     = $notice && $notice['request'] === $post->ID ? $notice : null;
-		$votable    = 'publish' === $post->post_status
-			&& BoardSettings::NOBODY !== $voting
-			&& ! ( $status && StatusTaxonomy::is_closed( $status ) );
+		$open       = 'publish' === $post->post_status && ! ( $status && StatusTaxonomy::is_closed( $status ) );
+		// The page is the same for every visitor who is not logged in, confirmed or not.
+		$allowed = $open && VoteService::can_vote( $post->ID, $voting, true );
+		// Where the board wants users, a visitor who is not logged in gets the button, which asks them to log in.
+		$votable = $allowed || ( $open && BoardSettings::LOGGED_IN === $voting && ! is_user_logged_in() );
 
 		return [
 			'id'          => $post->ID,
@@ -53,7 +56,7 @@ final class RequestItem {
 			] : null,
 			'categories'  => is_array( $categories ) ? wp_list_pluck( $categories, 'name' ) : [],
 			'votable'     => $votable,
-			'guest_votes' => $votable && in_array( $voting, [ BoardSettings::ANYONE, BoardSettings::VERIFIED ], true ),
+			'guest_votes' => $allowed && ( ! is_user_logged_in() || in_array( $voting, [ BoardSettings::ANYONE, BoardSettings::VERIFIED ], true ) ),
 			// Visitors who have not confirmed their email give it in a form next to the vote button.
 			'email_vote'  => $votable && BoardSettings::VERIFIED === $voting,
 			'context'     => [

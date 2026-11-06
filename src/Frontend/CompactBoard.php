@@ -51,7 +51,7 @@ final class CompactBoard {
 			'search'   => '',
 			'status'   => sanitize_title( (string) ( $attributes['status'] ?? '' ) ),
 			'category' => '',
-			'sort'     => BoardQuery::SORT_NEW === ( $attributes['sort'] ?? '' ) ? BoardQuery::SORT_NEW : BoardQuery::SORT_TOP,
+			'sort'     => BoardQuery::sort( (string) ( $attributes['sort'] ?? '' ) ),
 			'page'     => 1,
 		];
 		// Nothing here needs the number of requests there are in all.

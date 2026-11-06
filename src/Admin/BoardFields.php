@@ -10,6 +10,8 @@ namespace FeatureRequestSystem\Admin;
 use FeatureRequestSystem\Content\BoardSettings;
 use FeatureRequestSystem\Content\BoardTaxonomy;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
+use FeatureRequestSystem\Content\RequestTerms;
+use FeatureRequestSystem\Content\StatusTaxonomy;
 use WP_Term;
 
 defined( 'ABSPATH' ) || exit;
@@ -17,7 +19,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Adds each board's settings to the forms that add and edit a board: who can vote, who
  * can suggest features, whether new requests wait for approval, the board's page and the
- * categories its requests can have.
+ * categories its requests can have. Since 1.1 also how many votes each person can give,
+ * and the vote threshold that moves a request to another status.
  */
 final class BoardFields {
 
@@ -116,6 +119,9 @@ final class BoardFields {
 				BoardSettings::PAGE       => absint( $sent[ BoardSettings::PAGE ] ?? 0 ),
 				// No ticked box sends nothing, which means every category.
 				BoardSettings::CATEGORIES => isset( $sent[ BoardSettings::CATEGORIES ] ) && is_array( $sent[ BoardSettings::CATEGORIES ] ) ? $sent[ BoardSettings::CATEGORIES ] : [],
+				// An empty field sends '', which means no limit, and no threshold.
+				BoardSettings::VOTE_LIMIT => (int) ( $sent[ BoardSettings::VOTE_LIMIT ] ?? 0 ),
+				BoardSettings::THRESHOLD  => isset( $sent[ BoardSettings::THRESHOLD ] ) && is_array( $sent[ BoardSettings::THRESHOLD ] ) ? $sent[ BoardSettings::THRESHOLD ] : [],
 			]
 		);
 	}
@@ -151,6 +157,20 @@ final class BoardFields {
 				self::select( 'mwtfrs-board-voting', BoardSettings::VOTING, $who, (string) $settings[ BoardSettings::VOTING ] ),
 				'',
 			],
+			'mwtfrs-board-vote-limit' => [
+				__( 'Votes each person can give', 'feature-request-system' ),
+				sprintf(
+					'<input type="number" id="mwtfrs-board-vote-limit" class="small-text" style="width:6em" name="%1$s" value="%2$s" min="1" step="1">',
+					esc_attr( self::name( BoardSettings::VOTE_LIMIT ) ),
+					(int) $settings[ BoardSettings::VOTE_LIMIT ] ? (int) $settings[ BoardSettings::VOTE_LIMIT ] : ''
+				),
+				__( 'Leave empty for no limit. Only votes for requests that are still open for voting count, so a vote comes back when its request is shipped or declined.', 'feature-request-system' ),
+			],
+			'mwtfrs-board-threshold'  => [
+				__( 'Vote threshold', 'feature-request-system' ),
+				self::threshold( (array) $settings[ BoardSettings::THRESHOLD ] ),
+				__( 'Leave the number empty to move nothing. A request is moved once, so a moderator can move it back, and its followers are emailed as for any change of status.', 'feature-request-system' ),
+			],
 			'mwtfrs-board-submitting' => [
 				__( 'Who can suggest features', 'feature-request-system' ),
 				self::select( 'mwtfrs-board-submitting', BoardSettings::SUBMITTING, $who, (string) $settings[ BoardSettings::SUBMITTING ] ),
@@ -178,6 +198,52 @@ final class BoardFields {
 				__( 'The categories that people can choose for a request on this board, and that the board can be filtered by. Tick none to offer every category.', 'feature-request-system' ),
 			],
 		];
+	}
+
+	/**
+	 * Returns the threshold's controls, as one sentence: when a request reaches a number of
+	 * votes, move it from one status to another.
+	 *
+	 * @param array<string, int> $threshold Saved threshold: votes, from and to.
+	 */
+	private static function threshold( array $threshold ): string {
+		$statuses = get_terms(
+			[
+				'taxonomy'   => StatusTaxonomy::NAME,
+				'hide_empty' => false,
+			]
+		);
+		$statuses = is_array( $statuses ) ? StatusTaxonomy::sort( $statuses ) : [];
+		$options  = wp_list_pluck( $statuses, 'name', 'term_id' );
+		$ids      = array_keys( $options );
+
+		// Until one is saved, the threshold suggests moving new requests on to the next status.
+		$default = RequestTerms::default_term( StatusTaxonomy::NAME );
+		$next    = array_search( $default, $ids, true );
+		$from    = ! empty( $threshold['from'] ) ? (int) $threshold['from'] : $default;
+		$to      = ! empty( $threshold['to'] ) ? (int) $threshold['to'] : (int) ( $ids[ false === $next ? 0 : $next + 1 ] ?? 0 );
+		$votes   = (int) ( $threshold['votes'] ?? 0 );
+
+		$status_select = static function ( string $part, string $label, int $selected ) use ( $options ): string {
+			$html = sprintf( '<select name="%1$s[%2$s]" aria-label="%3$s">', esc_attr( self::name( BoardSettings::THRESHOLD ) ), esc_attr( $part ), esc_attr( $label ) );
+			foreach ( $options as $id => $name ) {
+				$html .= sprintf( '<option value="%1$d"%2$s>%3$s</option>', (int) $id, selected( $selected, (int) $id, false ), esc_html( $name ) );
+			}
+
+			return $html . '</select>';
+		};
+
+		return sprintf(
+			/* translators: 1: field for a number of votes, 2: dropdown of statuses to move from, 3: dropdown of statuses to move to. */
+			esc_html__( 'When a request reaches %1$s votes, move it from %2$s to %3$s.', 'feature-request-system' ),
+			sprintf(
+				'<input type="number" id="mwtfrs-board-threshold" class="small-text" style="width:6em" name="%1$s[votes]" value="%2$s" min="1" step="1">',
+				esc_attr( self::name( BoardSettings::THRESHOLD ) ),
+				$votes ? $votes : ''
+			),
+			$status_select( 'from', __( 'Status to move the request from', 'feature-request-system' ), $from ),
+			$status_select( 'to', __( 'Status to move the request to', 'feature-request-system' ), $to )
+		);
 	}
 
 	/**

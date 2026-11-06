@@ -45,9 +45,23 @@ final class VoteStore {
 					'unfollowed'  => __( 'You no longer follow this request.', 'feature-request-system' ),
 					'followError' => __( 'That could not be saved. Check your connection and try again.', 'feature-request-system' ),
 					'linkError'   => __( 'Your email address could not be sent. Check your connection and try again.', 'feature-request-system' ),
+					'votesLeft'   => self::votes_left_text( -1 ),
 				],
 			]
 		);
+	}
+
+	/**
+	 * Says how many votes the visitor has left on a board. With -1, the text with a %d
+	 * in place of the number, for the script to fill in.
+	 *
+	 * @param int $left Votes left, or -1.
+	 */
+	public static function votes_left_text( int $left ): string {
+		/* translators: %d: number of votes. */
+		$text = __( 'Votes you have left: %d.', 'feature-request-system' );
+
+		return $left < 0 ? $text : sprintf( $text, $left );
 	}
 
 	/**
