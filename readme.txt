@@ -1,4 +1,4 @@
-=== Feature Request System ===
+=== Feature Request System – Feedback Board, Voting & Roadmap ===
 Contributors: cornel.raiu
 Tags: feature requests, feature request, customer feedback, user feedback, roadmap
 Requires at least: 6.6

@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Feature Request System
+ * Plugin Name:       Feature Request System – Feedback Board, Voting & Roadmap
  * Plugin URI:        https://www.cornelraiu.com/feature-request-system
  * Description:       Collect feature requests, let people vote, and email everyone who follows a request when its status changes.
  * Version:           1.1.0
