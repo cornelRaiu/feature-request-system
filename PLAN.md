@@ -167,6 +167,15 @@ Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a C
 - ✅ **Importers** for IdeaPush and Simple Feature Requests (ideas, statuses, votes and comments where possible).
 - ✅ Outgoing **webhooks** for request created, status changed and request shipped.
 
+Ideas from SoftIcon Poll (a poll block, reviewed on 2026-11-14), added for 1.2 at the owner's request:
+
+- ✅ **Colour, typography and border settings** on the board, list, card and roadmap blocks, through WordPress's own block supports (`color`, `typography.fontSize`, border and radius). The blocks still follow the theme until someone changes them.
+- ✅ **Block styles** for the request list: Card (today's look), Minimal (no borders) and Compact rows, picked with one click in the editor.
+- ✅ **More variations in the inserter**: "Most wanted", "Newest requests" and "Planned" presets of the list block. No shipped preset, since the owner declined "Recently shipped" after M8.
+- ✅ **Shortcodes in the admin**: a Shortcode column on the Boards screen that copies with one click, and a short getting-started section for the Classic Editor and page builders. Test the shortcodes in Elementor's and Divi's editor previews and say so in the FAQ.
+- ✅ **Vote count visibility** per board: shown, shown after voting, or admins only, so popular requests do not snowball and low numbers need not be public.
+- ✅ **Tests**: a board in a right-to-left language (one manual case, one end-to-end check), and the list block in a template part and a synced pattern, such as a footer on every page; then document both.
+
 ### 1.3: Customer-aware voting
 
 - ✅ WooCommerce and Easy Digital Downloads integration:
@@ -575,7 +584,7 @@ Each milestone is a vertical slice that ends with something demonstrable. Estima
 | **After M8** ✅ | More blocks and patterns (1–2 days), at the owner's request | The Feature Request List (the board block in a compact form) and the Feature Request Card, with their shortcodes. Three patterns: the form beside the board, the most wanted requests, and an invitation with a button to the board. The blocks' icons, drawn from the logo, and previews in the inserter. For pages with several of the blocks: an element id of its own for each copy of a request, counts and pressed states that stay in step, and announcements said once. No call for a guest's votes where guests cannot vote. 12 more cases in the manual test plan, which now has 142 | 462 PHP tests pass on WordPress 7.1 and 6.6, each also as a multisite network. 52 end-to-end tests pass in a block theme, a classic theme and on WordPress 6.6; ten of them are accessibility checks with axe. 89 rules were broken on purpose, 73 in PHP and 16 in the browser: one had no test and got one, with two more like it; one browser test could not fail and was corrected; one new check that could not fail was removed. Plugin Check finds no errors and no warnings |
 | **→** | **Release 1.0.0** | Tag, deploy to SVN, publish, announce | Listing is live on WordPress.org |
 | M9 | 1.1, Monday 9 Nov 2026 | Roadmap block, merge, trending, Turnstile, vote limits, vote threshold, CSV export, dashboard widget, email-verified guests, new readme tags; from user feedback: filter switches and live filtering, form texts, access hooks, the new request email field | Seven slices, A to G, specified in "M9: the 1.1 specification" below, each built and then reviewed by its own agent, and merged on `release/1.1`. The integration fixed where slices met: confirmed guests and the access filters, guests in merges, Turnstile on the email form next to a vote button, the roadmap keeping a board's filters, the votes-left line with live filtering, trending after a merge, confirmed guests in the voters export. On WordPress 6.6 a change of context reaches one level up only, so each roadmap column has its own announcement; the confirmation page adds the no-store that 6.6 leaves out. 715 PHP tests pass on WordPress 7.1, single site and network; on 6.6.0 with an older test library, 713 pass and two query counts differ, as they did before 1.1 (CI runs 6.6.x). 95 end-to-end tests pass in a block theme, in a classic theme (GeneratePress) and on WordPress 6.6. Plugin Check finds no errors and no warnings, experimental checks included. 186 manual cases, 44 of them new |
-| M10 | 1.2 | Changelog / releases with shipped notifications, IdeaPush and SFR importers, webhooks | Importers tested against fixture dumps of each plugin |
+| M10 | 1.2 | Changelog / releases with shipped notifications, IdeaPush and SFR importers, webhooks, MCP connector, block colours and styles, list presets, shortcodes in the admin, vote count visibility, RTL and template-part tests | Importers tested against fixture dumps of each plugin |
 | M11 | 1.3 | WooCommerce / EDD customer insights and customer-only boards | Tests with WooCommerce active and inactive |
 
 About 17–22 working days to reach 1.0.0.
