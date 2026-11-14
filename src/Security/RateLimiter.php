@@ -39,7 +39,7 @@ final class RateLimiter {
 	/**
 	 * Filter to change the client IP address, for sites behind a trusted proxy.
 	 */
-	public const FILTER_CLIENT_IP = 'mwtfrs_client_ip';
+	public const FILTER_CLIENT_IP = ClientIp::FILTER;
 
 	/**
 	 * Prefix of the transients that hold the counters.
@@ -170,20 +170,15 @@ final class RateLimiter {
 	}
 
 	/**
-	 * Returns what the visitor is counted by: their IP address from REMOTE_ADDR, or '' when it is not a valid address.
-	 *
-	 * Forwarded headers are ignored because any client can set them. Sites behind a proxy
-	 * they trust can supply the real address through the mwtfrs_client_ip filter.
+	 * Returns what the visitor is counted by: their IP address (see ClientIp), or '' when there is no valid one.
 	 *
 	 * An IPv6 address is cut down to its network, the first half of the address. One
 	 * connection usually has that whole network to itself, and could otherwise use a new
 	 * address for every attempt.
 	 */
 	private static function client_ip(): string {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		$ip = (string) apply_filters( self::FILTER_CLIENT_IP, $ip ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the prefixed hook name.
-
-		if ( false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+		$ip = ClientIp::get();
+		if ( '' === $ip ) {
 			return '';
 		}
 

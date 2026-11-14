@@ -208,7 +208,7 @@ Notes on the importers from 2026-11-06, to settle when 1.2 is planned: maybe a C
 4. **Trust boundaries are explicit.**
    - Every REST route has a real `permission_callback`.
    - Public responses are built from allow-listed fields and never include emails, IPs or user agents.
-   - Client IP comes from `REMOTE_ADDR`, with a `mwtfrs_client_ip` filter for sites behind a trusted proxy. An IPv6 address counts as its /64 network, and an IPv4 address written as IPv6 as that IPv4 address (M8).
+   - Client IP comes from `REMOTE_ADDR`, with a `mwtfrs_client_ip` filter for sites behind a trusted proxy. An IPv6 address counts as its /64 network, and an IPv4 address written as IPv6 as that IPv4 address (M8). Since 1.1, `ClientIp` takes the visitor's address from `CF-Connecting-IP` when `REMOTE_ADDR` is in Cloudflare's published ranges (kept in the class; check them before each release), and from nowhere else; `mwtfrs_trust_cloudflare` turns it off. Akismet gets the same address.
 5. **Stored counts are always initialised.** Every request has `_mwtfrs_votes = 0` from the moment it's created (v0 lost posts from vote-sorted lists because this meta was missing).
 6. **Use core wherever it fits.** Comments, post statuses, taxonomies, capabilities, the Settings API, privacy tools, list tables and the Interactivity API.
 7. **One coding standard, checked in CI:** WPCS 3, PHPStan level 6, ESLint and Stylelint from `@wordpress/scripts`.
@@ -330,7 +330,7 @@ This is idempotent and self-correcting, and there's no read-increment-write race
   - Counters are fixed one-hour windows (`mwtfrs_rate_limit` filter to change a limit, `mwtfrs_client_ip` for sites behind a trusted proxy). The votes table's unique key, not the counters, is what prevents duplicate votes.
   - An attempt is counted first, in one statement (`INSERT … ON DUPLICATE KEY UPDATE`, or `wp_cache_incr` with a persistent object cache), and judged after, so requests that arrive together can't all pass on the same count (M8). Measured with 200 simultaneous guest votes against 8 PHP workers: 60 were accepted, the limit; with a count that is read and then written, 124 were.
   - The visitor's own counter is raised first. Once it is over its limit, further attempts don't use up what others at the same address may still do.
-  - Behind a proxy that hides the visitors' addresses, all visitors share one address counter until the site names the right header through `mwtfrs_client_ip`. The readme explains this.
+  - Behind a proxy that hides the visitors' addresses, all visitors share one address counter until the site names the right header through `mwtfrs_client_ip`. Cloudflare is recognised without setup since 1.1. The readme explains this.
 - **Frozen votes:** while a request's status is closed, or its board has voting turned off, votes can neither be cast nor retracted.
 - **Submissions** (built in M4):
   - A honeypot field, and a minimum 3 seconds between rendering the form and submitting it, checked with an HMAC-signed timestamp. The timestamp has no maximum age, so a form served from a page cache keeps working. With JavaScript, the form waits out the rest of the 3 seconds itself, so quick people are never refused.

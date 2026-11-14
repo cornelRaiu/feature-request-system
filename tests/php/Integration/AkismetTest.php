@@ -47,6 +47,18 @@ final class AkismetTest extends TestCase {
 		$this->assertSame( '', get_post_meta( $request, RequestPostType::META_FLAGGED_AS_SPAM, true ) );
 	}
 
+	public function test_behind_cloudflare_akismet_gets_the_visitor_s_address(): void {
+		Akismet::$api_key                 = 'key';
+		$_SERVER['REMOTE_ADDR']           = '162.158.1.2';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '198.51.100.7';
+		wp_set_current_user( self::factory()->user->create() );
+
+		$this->submit();
+		unset( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+
+		$this->assertSame( '198.51.100.7', Akismet::$last_query['user_ip'] );
+	}
+
 	public function test_requests_akismet_flags_are_held_for_review(): void {
 		Akismet::$api_key = 'key';
 		Akismet::$verdict = 'true';

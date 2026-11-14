@@ -228,6 +228,22 @@ final class RateLimiterTest extends TestCase {
 		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'visitor-c' ) );
 	}
 
+	public function test_visitors_behind_cloudflare_are_counted_by_their_own_address(): void {
+		$this->limit( 100, 1 );
+		$_SERVER['REMOTE_ADDR'] = '162.158.1.2';
+
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '198.51.100.1';
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'visitor-a' ) );
+
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '198.51.100.2';
+		$this->assertSame( 0, RateLimiter::attempt( 'vote', 'visitor-b' ), 'Another visitor, through the same Cloudflare server.' );
+
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '198.51.100.1';
+		$this->assertGreaterThan( 0, RateLimiter::attempt( 'vote', 'visitor-c' ), 'The first visitor again.' );
+
+		unset( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+	}
+
 	public function test_the_counters_expire_and_wordpress_deletes_them(): void {
 		global $wpdb;
 

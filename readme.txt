@@ -191,9 +191,11 @@ WordPress turns a web address on a line of its own into a video player or a prev
 
 = My site is behind a proxy or a CDN. Do the rate limits still work? =
 
-The limits for each IP address use the address your server sees. Most hosts pass on the visitor's address. If your server sees the address of the proxy instead, all visitors count as one, and a busy board can reach the limit for everyone. In that case, tell the plugin which header holds the visitor's address, from your theme or a small plugin. For Cloudflare:
+The limits for each IP address use the visitor's address. Behind Cloudflare this works by itself: when a request really comes from one of Cloudflare's addresses, the plugin takes the visitor's address from the header Cloudflare adds. From anywhere else that header is ignored, so nobody can fake it. To turn this off, add `add_filter( 'mwtfrs_trust_cloudflare', '__return_false' );` to your theme or a small plugin.
 
-`add_filter( 'mwtfrs_client_ip', function ( $ip ) { return isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ? $_SERVER['HTTP_CF_CONNECTING_IP'] : $ip; } );`
+Behind another proxy or CDN, most hosts still pass on the visitor's address. If your server sees the address of the proxy instead, all visitors count as one, and a busy board can reach the limit for everyone. In that case, tell the plugin which header holds the visitor's address, from your theme or a small plugin, for example:
+
+`add_filter( 'mwtfrs_client_ip', function ( $ip ) { return isset( $_SERVER['HTTP_X_REAL_IP'] ) ? $_SERVER['HTTP_X_REAL_IP'] : $ip; } );`
 
 Only do this when every request reaches your server through that proxy, because anyone can send such a header. The vote limits themselves are under Feature Requests → Settings, and every limit can be changed with the `mwtfrs_rate_limit` filter.
 
@@ -297,6 +299,7 @@ Deleting the plugin keeps your requests and votes, in case you install it again.
 * New: export requests and voters to CSV, from the requests list or with `wp mwtfrs export`.
 * New: a dashboard widget with the requests waiting for approval and this week's top requests.
 * New: the `mwtfrs_can_vote` and `mwtfrs_can_submit` filters, to decide who may vote and suggest features.
+* Changed: behind Cloudflare, the limits per IP address and Akismet use the visitor's own address, without any setup. The new `mwtfrs_trust_cloudflare` filter turns this off.
 * Changed: the "Send those emails to" field starts with the site's administration email.
 * Changed: the board's template, `board.php`, for live filtering. Copies in themes made from 1.0 keep working without it.
 

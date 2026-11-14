@@ -7,6 +7,8 @@
 
 namespace FeatureRequestSystem\Submission;
 
+use FeatureRequestSystem\Security\ClientIp;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -46,7 +48,7 @@ final class Akismet {
 			'blog'                 => home_url(),
 			'blog_lang'            => get_locale(),
 			'blog_charset'         => get_option( 'blog_charset' ),
-			'user_ip'              => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'user_ip'              => ClientIp::get(),
 			'user_agent'           => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 			'referrer'             => isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '',
 			'comment_type'         => 'forum-post',
