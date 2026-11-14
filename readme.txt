@@ -23,7 +23,7 @@ Feature Request System adds a feature request board to your WordPress site. Peop
 * **Tools for moderators**: merge duplicates with their votes and followers, limit how many votes each person gives, move a request on when it reaches a number of votes, export to CSV, and a dashboard widget.
 * **Visitors who confirm their email** can vote and suggest features without an account.
 * **Blocks and shortcodes** that take their look from your theme, and work without JavaScript and behind a page cache.
-* **Privacy built in**: no IP addresses stored, export and erasure through WordPress's privacy tools, and no outside service unless you use Akismet or Cloudflare Turnstile.
+* **Privacy built in**: no IP addresses stored, export and erasure through WordPress's privacy tools, and no outside service unless you use Akismet or Cloudflare Turnstile, or choose to tell us why you deactivate the plugin.
 
 = Adding the board =
 
@@ -58,8 +58,6 @@ Each new request is emailed to the site's administration email address, with a l
 = Visitors who confirm their email =
 
 A board can let visitors without an account vote and suggest features once they confirm their email address. Choose "Visitors who confirm their email" for who can vote or who can suggest features. A visitor who votes gives their address next to the vote button, and the plugin emails them a link that works for 24 hours. The link's page has a button: pressing it confirms the address, and the vote counts or the request is sent. The browser is then remembered for a year, so the next votes count at once.
-
-Each address gets at most one link every 10 minutes. The answer is the same whether or not an address is known, so the form does not tell anyone who has confirmed. Visitors who confirmed their email follow the requests they vote for or suggest, and every email they get has a link to stop.
 
 = Showing requests on other pages =
 
@@ -155,6 +153,8 @@ When the Akismet plugin is active and connected to an Akismet account, this plug
 
 When you save a site key and a secret key for Cloudflare Turnstile under Feature Requests → Settings → Spam check, pages with the form, and boards where visitors confirm their email, load Cloudflare's script from `https://challenges.cloudflare.com/turnstile/v0/api.js` for visitors without an account (and for logged-in users if you tick "Check logged-in users too"). While the page is open, Cloudflare receives the visitor's IP address and details about their browser and device, to tell people from bots. When the form is sent, your site sends the widget's answer and your secret key to `https://challenges.cloudflare.com/turnstile/v0/siteverify`, without the visitor's IP address. Nothing loads from Cloudflare while either key is empty. Turnstile is a service by Cloudflare: [terms](https://www.cloudflare.com/website-terms/), [privacy policy](https://www.cloudflare.com/privacypolicy/), [Turnstile privacy addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
 
+Deactivating the plugin asks why. Only if you pick an answer and click "Send & Deactivate" does your site send it, with any text you typed, the plugin, WordPress and PHP versions and the site language, to `https://www.master-webtools.com/api/v1/feedback`, run by the plugin's author. Your site address and email are not sent, and answers are kept for 12 months. Master WebTools: [terms](https://www.master-webtools.com/terms/), [privacy policy](https://www.master-webtools.com/privacy-policy/).
+
 == Frequently Asked Questions ==
 
 = Does it work with my theme? =
@@ -164,6 +164,8 @@ The board and the form are built for any theme. Block themes and classic themes 
 = Can visitors without an account suggest features? =
 
 Not by default. Each board has a setting for who can suggest features: everyone, visitors who confirm their email, logged-in users, or nobody. Change it under Feature Requests → Boards. Visitors without an account leave their name and email, and those are never shown publicly. With "Visitors who confirm their email", their request is sent only once they confirm the address.
+
+Each address gets at most one link every 10 minutes. The answer is the same whether or not an address is known, so the form does not tell anyone who has confirmed. Visitors who confirmed their email follow the requests they vote for or suggest, and every email they get has a link to stop.
 
 = I changed a status. Why did the followers get no email yet? =
 
@@ -299,6 +301,7 @@ Deleting the plugin keeps your requests and votes, in case you install it again.
 * New: export requests and voters to CSV, from the requests list or with `wp mwtfrs export`.
 * New: a dashboard widget with the requests waiting for approval and this week's top requests.
 * New: the `mwtfrs_can_vote` and `mwtfrs_can_submit` filters, to decide who may vote and suggest features.
+* New: deactivating the plugin asks why, in a short optional form. Nothing is sent unless you click "Send & Deactivate", and the answers about the plugin not working link to the support forum. See External services for what is sent.
 * Changed: behind Cloudflare, the limits per IP address and Akismet use the visitor's own address, without any setup. The new `mwtfrs_trust_cloudflare` filter turns this off.
 * Changed: the "Send those emails to" field starts with the site's administration email.
 * Changed: the board's template, `board.php`, for live filtering. Copies in themes made from 1.0 keep working without it.

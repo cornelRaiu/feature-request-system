@@ -1,6 +1,6 @@
 # Manual test plan
 
-A list of everything to try by hand before a release: 186 cases in 26 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
+A list of everything to try by hand before a release: 189 cases in 26 areas. The automated tests cover the same ground from the inside; this plan is how a person checks it from the outside, on a real site.
 
 - **Build to test:** the branch that is checked out in the plugin folder of the test site.
 - **Test site:** https://test-wp-plugins.test (WordPress 7.1, PHP 8.4, Twenty Twenty-Five).
@@ -15,8 +15,8 @@ A list of everything to try by hand before a release: 186 cases in 26 areas. The
 
 | Priority | Meaning | Cases |
 |---|---|---|
-| P1 | Must pass before the release. | 104 |
-| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 72 |
+| P1 | Must pass before the release. | 106 |
+| P2 | Should pass. A failure is fixed before the release unless you decide otherwise. | 73 |
 | P3 | Extended checks that need extra setup. Run them if you have the time. | 10 |
 
 ## Who does the steps
@@ -1881,6 +1881,61 @@ Expected:
 - The menu shows the plugin's logo, a stack of request cards, in the colour of the other menu icons.
 - Under the pointer, and on the plugin's own screens, it changes colour as the other icons do.
 - In the other colour scheme, the icon has that scheme's colours.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### ADM-17 · Deactivating asks why, and Cancel keeps the plugin
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Open Plugins and click Deactivate under Feature Request System.
+2. Click Cancel. Click Deactivate again and press Escape.
+3. Click Deactivate again, and pick each answer in turn.
+
+Expected:
+
+- A "Quick feedback" window asks why you are deactivating Feature Request System, with seven answers. Nothing is deactivated yet.
+- Cancel and Escape close it, and the plugin stays active.
+- "It stopped working" and "It broke or slowed down my site" show a button to the support forum, which opens in a new tab.
+- "It is missing a feature I need", "I found a better plugin" and "Other" show a text field.
+- The button reads "Skip & Deactivate" with no answer, "Send & Deactivate" for an answer that is sent, and "Deactivate" for "It is temporary", or for "Other" with nothing typed.
+- The note under the answers says what is sent to master-webtools.com, with a link to the privacy policy.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### ADM-18 · Skip & Deactivate, and a temporary deactivation
+
+**Priority:** P1 · **As:** Admin
+
+Steps:
+
+1. Click Deactivate under Feature Request System, then Skip & Deactivate. Activate the plugin again.
+2. Click Deactivate, pick "It is temporary, I am troubleshooting an issue", tick "Don't ask again for 24 hours" and click Deactivate. Activate the plugin again.
+3. Click Deactivate once more.
+
+Expected:
+
+- Step 1 deactivates the plugin at once.
+- Step 2 deactivates it too.
+- In step 3 no window opens: the plugin is deactivated straight away, because the question is put off for 24 hours. Run `wp user meta delete <your user> mwtfrs_deactivation_feedback_snooze` to bring it back, then activate the plugin again.
+
+Result: ☐ Passed ☐ Failed ☐ Blocked
+
+#### ADM-19 · Send & Deactivate stores the answer on master-webtools.com
+
+**Priority:** P2 · **As:** Admin
+
+Steps (only once the feedback endpoint is live on master-webtools.com):
+
+1. Click Deactivate under Feature Request System, pick "Other", type "Manual test, please ignore" and click Send & Deactivate. Activate the plugin again.
+2. In the master-webtools folder, run: `npx wrangler d1 execute master-webtools --remote --command "SELECT * FROM uninstall_feedback ORDER BY id DESC LIMIT 1"`
+
+Expected:
+
+- The plugin is deactivated within a few seconds.
+- The newest row has the plugin `feature-request-system`, the reason `other`, your text, and the plugin, WordPress and PHP versions and the site language, and nothing about the site's address.
 
 Result: ☐ Passed ☐ Failed ☐ Blocked
 

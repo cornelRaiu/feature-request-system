@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-07T11:47:30+00:00\n"
+"POT-Creation-Date: 2026-11-14T13:05:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: feature-request-system\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #. Plugin URI of the plugin
 #: feature-request-system.php
-msgid "https://www.cornelraiu.com/feature-request-system"
+msgid "https://www.master-webtools.com/plugins/feature-request-system/"
 msgstr ""
 
 #. Description of the plugin
@@ -218,6 +218,88 @@ msgstr[1] ""
 
 #: src/Admin/DashboardWidget.php:148
 msgid "(no title)"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:101
+msgid "It stopped working"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:102
+msgid "It is missing a feature I need"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:103
+msgid "I found a better plugin"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:104
+msgid "I no longer need it"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:105
+msgid "It broke or slowed down my site"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:165
+msgid "It is temporary, I am troubleshooting an issue"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:166
+msgid "Other"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:168
+msgid "(opens in a new tab)"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:172
+msgid "Quick feedback"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:175
+msgid "If you have a moment, tell us why you are deactivating Feature Request System:"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:184
+msgid "Sending shares your answer, the plugin, WordPress and PHP versions and the site language with master-webtools.com. Not your site address, your email or your requests."
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:185
+#: templates/submit-form.php:142
+msgid "Privacy policy"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:189
+msgid "Don't ask again for 24 hours"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:190
+#: assets/admin/deactivation-feedback.js:97
+msgid "Skip & Deactivate"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:191
+msgid "Cancel"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:208
+msgid "Sorry about that. Ask in the support forum and we will help you get it working."
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:209
+msgid "Get help in the support forum"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:216
+msgid "Which feature?"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:217
+msgid "What is the plugin's name?"
+msgstr ""
+
+#: src/Admin/DeactivationFeedback.php:218
+msgid "Tell us the reason, so we can improve the plugin."
 msgstr ""
 
 #: src/Admin/ExportLinks.php:65
@@ -2255,10 +2337,6 @@ msgstr ""
 msgid "Only our team sees this, in case we have a question about your request."
 msgstr ""
 
-#: templates/submit-form.php:142
-msgid "Privacy policy"
-msgstr ""
-
 #: templates/submit-form.php:160
 msgid "The spam check of this form needs JavaScript. Turn it on to send your request."
 msgstr ""
@@ -2275,6 +2353,18 @@ msgstr ""
 
 #: templates/vote-button.php:44
 msgid "votes. Voting is closed."
+msgstr ""
+
+#: assets/admin/deactivation-feedback.js:90
+msgid "Send & Deactivate"
+msgstr ""
+
+#: assets/admin/deactivation-feedback.js:95
+msgid "Deactivate"
+msgstr ""
+
+#: assets/admin/deactivation-feedback.js:175
+msgid "Deactivating…"
 msgstr ""
 
 #: assets/admin/merge-box.js:30

@@ -13,6 +13,7 @@ use FeatureRequestSystem\Admin\BoardFields;
 use FeatureRequestSystem\Admin\CommentActions;
 use FeatureRequestSystem\Admin\MergeBox;
 use FeatureRequestSystem\Admin\DashboardWidget;
+use FeatureRequestSystem\Admin\DeactivationFeedback;
 use FeatureRequestSystem\Admin\ExportLinks;
 use FeatureRequestSystem\Admin\NotifySwitch;
 use FeatureRequestSystem\Admin\PendingBadge;
@@ -140,6 +141,7 @@ final class Plugin {
 		MergeRedirect::add_hooks();
 		MergeNotifier::add_hooks();
 		MergeBox::add_hooks();
+		DeactivationFeedback::add_hooks();
 
 		add_action( 'rest_api_init', [ RestApi::class, 'register_routes' ] );
 

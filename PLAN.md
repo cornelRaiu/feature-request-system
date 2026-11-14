@@ -147,6 +147,7 @@ Differentiators, in delivery order:
 - ✅ **CSV export** of requests and voters.
 - ✅ Dashboard widget showing the pending queue and top requests this week.
 - ✅ **Email-verified guests** (magic link), so guests can vote and submit with less abuse.
+- ✅ **Deactivation question** (added 2026-11-14, like Search Analytics'): Deactivate on the Plugins screen opens a short optional form. Only "Send & Deactivate" sends the answer, with the plugin, WordPress and PHP versions and the site language, to `https://www.master-webtools.com/api/v1/feedback` with the plugin's own user agent, never the site address. The answers about the plugin not working link to the support forum; "It is temporary" sends nothing and can put the question off for 24 hours. master-webtools.com keeps every MWT plugin's answers in one D1 table, `uninstall_feedback`, for 12 months. The Plugin URI is now `https://www.master-webtools.com/plugins/feature-request-system/`.
 - ✅ **New readme tags**: `feature requests, feature request, customer feedback, user feedback, roadmap`, replacing `feedback`, `voting` and `ideas`. Reasons, from the tag pages on 2026-10-21:
   - `feature request` (6 plugins) is the singular tag that IdeaPush, Changeloger and Simple Feature Requests use. `feature requests` (12 plugins) is the plural that the newer boards use. We can be near the top of both.
   - `customer feedback` (40 plugins, the leader has 800 installs) and `user feedback` (30 plugins, second place has 2,000) reach the people who collect product feedback, and the top places are within reach.

@@ -7,6 +7,7 @@
 
 namespace FeatureRequestSystem\Install;
 
+use FeatureRequestSystem\Admin\DeactivationFeedback;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\ContentTypes;
 use FeatureRequestSystem\Content\RequestPostType;
@@ -44,6 +45,7 @@ final class Uninstaller {
 		// Action Scheduler's own tables stay, because other plugins may use them.
 		Queue::cancel_all();
 		delete_metadata( 'user', 0, Subscriptions::META_AUTO_FOLLOW, '', true );
+		delete_metadata( 'user', 0, DeactivationFeedback::META_SNOOZE, '', true );
 
 		delete_option( Settings::OPTION );
 		delete_option( Installer::OPTION_DB_VERSION );

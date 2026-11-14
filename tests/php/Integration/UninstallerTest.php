@@ -9,6 +9,7 @@ namespace FeatureRequestSystem\Tests\Integration;
 
 use ActionScheduler;
 use ActionScheduler_Store;
+use FeatureRequestSystem\Admin\DeactivationFeedback;
 use FeatureRequestSystem\Capabilities;
 use FeatureRequestSystem\Content\CategoryTaxonomy;
 use FeatureRequestSystem\Content\ContentTypes;
@@ -80,6 +81,7 @@ final class UninstallerTest extends TestCase {
 		set_transient( RateLimiter::TRANSIENT_PREFIX . 'vote_ip_0123456789abcdef_2026100112', 3, HOUR_IN_SECONDS );
 		$user = self::factory()->user->create();
 		Subscriptions::set_automatic( $user, false );
+		update_user_meta( $user, DeactivationFeedback::META_SNOOZE, time() + DAY_IN_SECONDS );
 		Queue::schedule( time() + HOUR_IN_SECONDS, StatusNotifier::HOOK, [ $published, 'notice', 1, 50 ] );
 		$theirs = as_schedule_single_action( time() + HOUR_IN_SECONDS, 'another_plugins_hook', [], 'another-plugin' );
 
@@ -110,6 +112,7 @@ final class UninstallerTest extends TestCase {
 		$this->assertStringContainsString( Schema::table( Schema::GUESTS ), $drops[2] );
 
 		$this->assertSame( '', get_user_meta( $user, Subscriptions::META_AUTO_FOLLOW, true ), "A user's choice about following is removed." );
+		$this->assertSame( '', get_user_meta( $user, DeactivationFeedback::META_SNOOZE, true ), 'A user\'s pause of the deactivation question is removed.' );
 		$this->assertFalse( as_has_scheduled_action( StatusNotifier::HOOK ), 'Emails that were waiting are cancelled.' );
 		$this->assertSame( ActionScheduler_Store::STATUS_PENDING, ActionScheduler::store()->get_status( $theirs ), "Another plugin's background work is untouched." );
 
