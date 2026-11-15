@@ -305,6 +305,13 @@ Deleting the plugin keeps your requests and votes, in case you install it again.
 * Changed: behind Cloudflare, the limits per IP address and Akismet use the visitor's own address, without any setup. The new `mwtfrs_trust_cloudflare` filter turns this off.
 * Changed: the "Send those emails to" field starts with the site's administration email.
 * Changed: the board's template, `board.php`, for live filtering. Copies in themes made from 1.0 keep working without it.
+* Changed: the form's template, `submit-form.php`, for its texts, Turnstile and visitors who confirm their email. A copy in your theme made from 1.0 shows none of them, and with Turnstile on its requests are refused: copy the new file again.
+* Fixed: on Shipped and Declined requests, the vote count no longer runs into the gap beside the title.
 
 = 1.0.0 =
 * First release.
+
+== Upgrade Notice ==
+
+= 1.1.0 =
+1.1: a roadmap, merging duplicates, trending, Turnstile and visitors who confirm their email. If your theme has its own copy of submit-form.php, copy it again.
