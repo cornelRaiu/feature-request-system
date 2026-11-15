@@ -195,6 +195,10 @@ Ideas from SoftIcon Poll (a poll block, reviewed on 2026-11-14), added for 1.2 a
 - In-app feedback widget for SaaS and plugin dashboards, with SSO.
 - Private boards per membership level.
 - AI tools: duplicate clustering and summarising.
+- **Merge extras** (added 2026-11-15). Merging itself stays free (see D7). Pro could add:
+  - undoing a merge, which 1.1 can't do: votes, followers and the redirect go back;
+  - merging several requests into one at once;
+  - likely duplicates suggested to moderators, next to the AI duplicate clustering above.
 - Custom fields and white-labelled emails.
 
 ### Explicitly out of scope
@@ -682,6 +686,7 @@ Merge A to G into `release/1.1`, resolving conflicts in the shared files; then r
   - **Some of 1.2 and 1.3 go to Pro, not all of it.** Decided: signed access links / single sign-on from inside a product (from the first feedback) are Pro. ★ Proposed, to confirm when each release is planned:
     - 1.2: releases and the changelog stay free, the importers stay free; webhooks are Pro, next to the integrations they would otherwise replace. The MCP connector has free tools for free features and Pro tools in the Pro plugin.
     - 1.3: the customer badge on voters stays free; the value of the customers behind a request, customer-only boards, vote weighting and sorting by customer demand are Pro.
+  - **Merging stays free** (decided 2026-11-15). Of the competitors checked that day, IdeaPush, Simple Feature Requests and Boomerang charge for it and only FeatureQuest (under 10 installs) gives it away, so a free merge is a reason to switch, and the 1.2 importers are aimed at those plugins' users. The extras that build on it are Pro candidates.
   - ★ The Freemius SDK goes into the Pro plugin only, so the free plugin keeps no telemetry (section 4, out of scope). To check with Freemius: a Pro plugin that needs the free one, without the SDK in the free one.
 
 ## 9. Risks
